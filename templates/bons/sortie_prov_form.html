@@ -1,0 +1,89 @@
+{% extends 'base.html' %}
+{% block content %}
+<style>
+  .bsp-label { display:block; font-size:11.5px; font-weight:600; color:#64748b; margin-bottom:4px; text-transform:uppercase; letter-spacing:.04em; }
+  .bsp-input { width:100%; padding:7px 11px; border:1.5px solid #e2e8f0; border-radius:8px; font-size:13.5px; font-family:inherit; color:#1e293b; background:#fff; outline:none; transition:border-color .15s; box-sizing:border-box; }
+  .bsp-input:focus { border-color:#ea580c; box-shadow:0 0 0 3px rgba(234,88,12,.1); }
+  .bsp-select { appearance:none; background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E"); background-repeat:no-repeat; background-position:right 10px center; background-size:16px; padding-right:32px; }
+  .form-card { background:#fff; border:1px solid #e2e8f0; border-radius:14px; padding:28px; box-shadow:0 1px 3px rgba(0,0,0,.06); }
+</style>
+
+<div style="max-width:760px;margin:0 auto">
+  <div style="background:linear-gradient(135deg,#ea580c 0%,#c2410c 100%);border-radius:14px;padding:20px 28px;margin-bottom:24px;display:flex;align-items:center;gap:16px">
+    <div style="background:rgba(255,255,255,.18);border-radius:10px;padding:10px">
+      <svg width="22" height="22" fill="none" stroke="#fff" viewBox="0 0 24 24" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
+      </svg>
+    </div>
+    <div>
+      <h1 style="color:#fff;font-size:17px;font-weight:700;margin:0">Nouveau Bon de Sortie Provisoire</h1>
+      <p style="color:rgba(255,255,255,.75);font-size:12px;margin:2px 0 0">Matières Groupe 1 — Sortie temporaire</p>
+    </div>
+    <div style="margin-left:auto;background:rgba(255,255,255,.2);border-radius:10px;padding:8px 16px">
+      <span style="color:#fff;font-family:monospace;font-size:18px;font-weight:800">BSP-{{ next_num|stringformat:"04d" }}</span>
+    </div>
+  </div>
+
+  <div class="form-card">
+    <form method="post" action="{% url 'matieres:bon_sortie_prov_create' %}">
+      {% csrf_token %}
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:18px">
+        <div>
+          <label class="bsp-label">N° Bon *</label>
+          <input type="number" name="num_bon" class="bsp-input" value="{{ next_num }}" required min="1">
+        </div>
+        <div>
+          <label class="bsp-label">Année</label>
+          <select name="annee_creation" class="bsp-input bsp-select" id="bsp-annee">
+            {% for a in annees %}
+            <option value="{{ a.annee }}" {% if a.annee == today.year %}selected{% endif %}>{{ a.annee }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div>
+          <label class="bsp-label">Date de sortie *</label>
+          <input type="date" name="date_sortie" class="bsp-input" value="{{ today|date:'Y-m-d' }}" required id="bsp-date">
+        </div>
+        <div>
+          <label class="bsp-label">Date de retour prévue</label>
+          <input type="date" name="date_retour_prevue" class="bsp-input">
+        </div>
+        <div>
+          <label class="bsp-label">Dépôt source *</label>
+          <select name="depot_id" class="bsp-input bsp-select" required>
+            <option value="">— Sélectionner —</option>
+            {% for d in depots %}<option value="{{ d.pk }}">{{ d }}</option>{% endfor %}
+          </select>
+        </div>
+        <div>
+          <label class="bsp-label">Bénéficiaire</label>
+          <select name="beneficiaire_id" class="bsp-input bsp-select">
+            <option value="">— Sélectionner —</option>
+            {% for b in beneficiaires %}<option value="{{ b.pk }}">{{ b.nom }}</option>{% endfor %}
+          </select>
+        </div>
+        <div style="grid-column:1/-1">
+          <label class="bsp-label">Observation</label>
+          <textarea name="observation" class="bsp-input" rows="2" style="resize:vertical"></textarea>
+        </div>
+      </div>
+      <div style="height:1px;background:#f1f5f9;margin:20px 0"></div>
+      <div style="display:flex;gap:12px;justify-content:flex-end">
+        <a href="{% url 'matieres:bons_sortie_prov_list' %}" class="btn-secondary">Annuler</a>
+        <button type="submit" class="btn-primary">
+          <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          Créer et saisir les articles
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+document.getElementById('bsp-date').addEventListener('change', function() {
+  const yr = this.value.split('-')[0];
+  const sel = document.getElementById('bsp-annee');
+  for (const opt of sel.options) { if (opt.value == yr) { sel.value = yr; break; } }
+});
+</script>
+{% endblock %}

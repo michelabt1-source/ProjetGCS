@@ -1,0 +1,26 @@
+{% for p in produits %}
+<div class="produit-item"
+     onclick="selectProduit(
+       '{{ p.pk }}',
+       '{{ p.designation|escapejs }}',
+       '{{ p.nomenclature|escapejs }}',
+       '{{ p.specification|escapejs }}',
+       '{{ p.unite_id|default:'' }}',
+       '{{ p.unite.libelle|default:''|escapejs }}',
+       {{ p.stock_disponible }}
+     )">
+  <div style="flex:1;min-width:0">
+    <div class="nom" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ p.designation }}</div>
+    <div class="sub">{{ p.nomenclature }}{% if p.specification %} — {{ p.specification }}{% endif %}</div>
+  </div>
+  <div>
+    <span class="badge-stock" style="background:{% if p.stock_disponible > 0 %}#dcfce7;color:#15803d{% else %}#fef3c7;color:#92400e{% endif %}">
+      Qté: {{ p.stock_disponible }}
+    </span>
+  </div>
+</div>
+{% empty %}
+<div style="padding:14px 16px;text-align:center;font-size:12px;color:#94a3b8">
+  Aucun produit trouvé
+</div>
+{% endfor %}

@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% block content %}
+<div style="display:flex;gap:24px;align-items:flex-start">
+  <div style="flex:1">
+    <div style="margin-bottom:20px">
+      <h1 style="font-size:22px;font-weight:700;color:#0f172a">Commission de Réforme</h1>
+      <p style="color:#64748b;font-size:13px;margin-top:4px">{{ membres.count }} membre(s)</p>
+    </div>
+    <div class="card" style="padding:0;overflow:hidden">
+      <table style="width:100%;border-collapse:collapse;font-size:13px">
+        <thead>
+          <tr style="background:#f8fafc;border-bottom:2px solid #e2e8f0">
+            <th style="padding:12px 20px;text-align:left;font-weight:600;color:#475569">Nom</th>
+            <th style="padding:12px 20px;text-align:left;font-weight:600;color:#475569">Qualité</th>
+            <th style="padding:12px 20px;text-align:center;font-weight:600;color:#475569;width:100px">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for m in membres %}
+          <tr class="table-row">
+            <td style="padding:12px 20px;font-weight:600;color:#0f172a">{{ m.nom }}</td>
+            <td style="padding:12px 20px;color:#475569">{{ m.qualite }}</td>
+            <td style="padding:12px 20px;text-align:center;display:flex;gap:8px;justify-content:center">
+              <button onclick="fillForm({{ m.pk }},'{{ m.nom|escapejs }}','{{ m.qualite|escapejs }}')"
+                style="font-size:11px;color:#4f46e5;background:none;border:none;cursor:pointer;font-weight:600">Modifier</button>
+              <a href="?delete={{ m.pk }}" onclick="return confirm('Supprimer ?')"
+                style="font-size:11px;color:#ef4444;text-decoration:none;font-weight:600">Suppr.</a>
+            </td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="3" style="padding:40px;text-align:center;color:#94a3b8">Aucun membre.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <div style="width:300px;flex-shrink:0">
+    <div class="card">
+      <h3 style="font-size:14px;font-weight:700;color:#0f172a;margin-bottom:16px" id="form-title">Ajouter un membre</h3>
+      <form method="post" id="membre-form">
+        {% csrf_token %}
+        <input type="hidden" name="pk" id="field-pk">
+        <div style="margin-bottom:14px">
+          <label style="font-size:12px;font-weight:600;color:#475569;display:block;margin-bottom:6px">Nom complet *</label>
+          <input name="nom" id="field-nom" required style="width:100%;padding:9px 14px;border:1px solid #e2e8f0;border-radius:8px;font-size:13px;outline:none">
+        </div>
+        <div style="margin-bottom:16px">
+          <label style="font-size:12px;font-weight:600;color:#475569;display:block;margin-bottom:6px">Qualité</label>
+          <input name="qualite" id="field-qualite" placeholder="ex: Secrétaire, Gestionnaire…"
+            style="width:100%;padding:9px 14px;border:1px solid #e2e8f0;border-radius:8px;font-size:13px;outline:none">
+        </div>
+        <div style="display:flex;gap:8px">
+          <button class="btn-primary" type="submit" style="flex:1;justify-content:center" id="submit-btn">Ajouter</button>
+          <button type="button" onclick="resetForm()" class="btn-secondary" id="cancel-btn" style="display:none">Annuler</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+<script>
+function fillForm(pk, nom, qualite) {
+  document.getElementById('field-pk').value = pk;
+  document.getElementById('field-nom').value = nom;
+  document.getElementById('field-qualite').value = qualite;
+  document.getElementById('form-title').textContent = 'Modifier le membre';
+  document.getElementById('submit-btn').textContent = 'Enregistrer';
+  document.getElementById('cancel-btn').style.display = 'inline-flex';
+}
+function resetForm() {
+  document.getElementById('field-pk').value = '';
+  document.getElementById('field-nom').value = '';
+  document.getElementById('field-qualite').value = '';
+  document.getElementById('form-title').textContent = 'Ajouter un membre';
+  document.getElementById('submit-btn').textContent = 'Ajouter';
+  document.getElementById('cancel-btn').style.display = 'none';
+}
+</script>
+{% endblock %}

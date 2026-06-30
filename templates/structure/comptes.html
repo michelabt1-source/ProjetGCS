@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block content %}
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px">
+  <div>
+    <h1 style="font-size:22px;font-weight:700;color:#0f172a">Comptes Principaux</h1>
+    <p style="color:#64748b;font-size:13px;margin-top:4px">{{ total }} compte(s) — référentiel comptable</p>
+  </div>
+</div>
+
+<div class="card" style="margin-bottom:20px;padding:14px 20px">
+  <form method="get" style="display:flex;gap:12px;align-items:center">
+    <input name="q" value="{{ query }}" placeholder="Rechercher famille ou numéro…"
+      style="flex:1;padding:8px 14px;border:1px solid #e2e8f0;border-radius:8px;font-size:13px;outline:none">
+    <button class="btn-primary" type="submit" style="padding:8px 20px">Rechercher</button>
+    {% if query %}<a href="?" class="btn-secondary" style="padding:8px 16px">Effacer</a>{% endif %}
+  </form>
+</div>
+
+<div class="card" style="padding:0;overflow:hidden">
+  <table style="width:100%;border-collapse:collapse;font-size:13px">
+    <thead>
+      <tr style="background:#f8fafc;border-bottom:2px solid #e2e8f0">
+        <th style="padding:12px 20px;text-align:left;font-weight:600;color:#475569;width:120px">N° Compte</th>
+        <th style="padding:12px 20px;text-align:left;font-weight:600;color:#475569">Famille</th>
+        <th style="padding:12px 20px;text-align:center;font-weight:600;color:#475569;width:130px">Sous-comptes</th>
+        <th style="padding:12px 20px;text-align:center;font-weight:600;color:#475569;width:100px">Action</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for cp in comptes %}
+      <tr class="table-row">
+        <td style="padding:12px 20px">
+          <span style="background:#ede9fe;color:#5b21b6;padding:3px 10px;border-radius:6px;font-weight:600;font-size:12px">{{ cp.num_compte }}</span>
+        </td>
+        <td style="padding:12px 20px;color:#0f172a;font-weight:500">{{ cp.famille }}</td>
+        <td style="padding:12px 20px;text-align:center">
+          <span class="badge-info">{{ cp.nb_sc }}</span>
+        </td>
+        <td style="padding:12px 20px;text-align:center">
+          <a href="{% url 'matieres:sous_compte_list' %}?compte={{ cp.pk }}"
+             style="font-size:12px;color:#4f46e5;text-decoration:none;font-weight:500">Voir SC →</a>
+        </td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="4" style="padding:40px;text-align:center;color:#94a3b8">Aucun compte trouvé.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

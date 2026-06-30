@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% block content %}
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+  <div>
+    <h1 style="font-size:22px;font-weight:700;color:#0f172a">Relevé Récapitulatif</h1>
+    <p style="color:#64748b;font-size:13px;margin-top:4px">{{ total }} ligne(s)</p>
+  </div>
+</div>
+
+<div class="card" style="margin-bottom:16px;padding:14px 20px">
+  <form method="get" style="display:flex;gap:12px;align-items:center">
+    <label style="font-size:13px;font-weight:500;color:#475569">Année :</label>
+    <select name="annee" style="padding:8px 14px;border:1px solid #e2e8f0;border-radius:8px;font-size:13px">
+      <option value="">Toutes</option>
+      {% for a in annees %}<option value="{{ a.pk }}" {% if annee_id == a.pk|stringformat:"s" %}selected{% endif %}>{{ a.annee }}</option>{% endfor %}
+    </select>
+    <button class="btn-primary" type="submit" style="padding:8px 20px">Filtrer</button>
+    {% if annee_id %}<a href="?" class="btn-secondary" style="padding:8px 16px">Toutes années</a>{% endif %}
+  </form>
+</div>
+
+{% if totaux.t_montant %}
+<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:20px">
+  {% with t=totaux %}
+  <div class="stat-card" style="padding:14px 16px">
+    <div><div style="font-size:12px;color:#64748b;margin-bottom:4px">Existant DP</div><div style="font-size:18px;font-weight:800;color:#0f172a">{{ t.t_existant|default:0 }}</div></div>
+  </div>
+  <div class="stat-card" style="padding:14px 16px">
+    <div><div style="font-size:12px;color:#64748b;margin-bottom:4px">Entrées</div><div style="font-size:18px;font-weight:800;color:#16a34a">{{ t.t_entree|default:0 }}</div></div>
+  </div>
+  <div class="stat-card" style="padding:14px 16px">
+    <div><div style="font-size:12px;color:#64748b;margin-bottom:4px">Total Entrées</div><div style="font-size:18px;font-weight:800;color:#0f172a">{{ t.t_total|default:0 }}</div></div>
+  </div>
+  <div class="stat-card" style="padding:14px 16px">
+    <div><div style="font-size:12px;color:#64748b;margin-bottom:4px">Sorties</div><div style="font-size:18px;font-weight:800;color:#dc2626">{{ t.t_sortie|default:0 }}</div></div>
+  </div>
+  <div class="stat-card" style="padding:14px 16px">
+    <div><div style="font-size:12px;color:#64748b;margin-bottom:4px">Existant Fin</div><div style="font-size:18px;font-weight:800;color:#4f46e5">{{ t.t_fin|default:0 }}</div></div>
+  </div>
+  {% endwith %}
+</div>
+{% endif %}
+
+<div class="card" style="padding:0;overflow:hidden">
+  <table style="width:100%;border-collapse:collapse;font-size:12px">
+    <thead>
+      <tr style="background:#f8fafc;border-bottom:2px solid #e2e8f0">
+        <th style="padding:10px 14px;text-align:left;font-weight:600;color:#475569;width:110px">Nomenclature</th>
+        <th style="padding:10px 14px;text-align:left;font-weight:600;color:#475569">Désignation</th>
+        <th style="padding:10px 14px;text-align:center;font-weight:600;color:#475569;width:60px">Unité</th>
+        <th style="padding:10px 14px;text-align:right;font-weight:600;color:#475569;width:80px">Ex. Déb.</th>
+        <th style="padding:10px 14px;text-align:right;font-weight:600;color:#475569;width:70px">Entrées</th>
+        <th style="padding:10px 14px;text-align:right;font-weight:600;color:#475569;width:80px">Total Ent.</th>
+        <th style="padding:10px 14px;text-align:right;font-weight:600;color:#475569;width:70px">Sorties</th>
+        <th style="padding:10px 14px;text-align:right;font-weight:600;color:#475569;width:80px">Ex. Fin</th>
+        <th style="padding:10px 14px;text-align:right;font-weight:600;color:#475569;width:100px">Montant</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for b in balances %}
+      <tr class="table-row">
+        <td style="padding:8px 14px"><span style="font-family:monospace;background:#f1f5f9;padding:2px 8px;border-radius:4px;font-size:11px">{{ b.nomenclature }}</span></td>
+        <td style="padding:8px 14px;color:#0f172a;font-weight:500">{{ b.designation|truncatechars:40 }}</td>
+        <td style="padding:8px 14px;text-align:center;color:#64748b;font-size:11px">{{ b.unite }}</td>
+        <td style="padding:8px 14px;text-align:right;color:#475569">{{ b.existant_dp }}</td>
+        <td style="padding:8px 14px;text-align:right;color:#16a34a;font-weight:600">{{ b.entree_periode }}</td>
+        <td style="padding:8px 14px;text-align:right;color:#0f172a">{{ b.total_entree }}</td>
+        <td style="padding:8px 14px;text-align:right;color:#dc2626;font-weight:600">{{ b.sortie_periode }}</td>
+        <td style="padding:8px 14px;text-align:right;font-weight:700;color:#4f46e5">{{ b.existant_fin_periode }}</td>
+        <td style="padding:8px 14px;text-align:right;color:#475569">{{ b.montant_existant|floatformat:0 }}</td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="9" style="padding:40px;text-align:center;color:#94a3b8">Aucune donnée.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

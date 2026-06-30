@@ -1,0 +1,438 @@
+{% extends 'base.html' %}
+{% block title %}Import de données{% endblock %}
+
+{% block content %}
+<style>
+  /* ── Zone d'upload drag & drop ── */
+  .drop-zone {
+    border: 2px dashed #c7d2fe;
+    border-radius: 16px;
+    background: linear-gradient(135deg, #eef2ff 0%, #f5f3ff 100%);
+    padding: 48px 32px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 200ms ease;
+    position: relative;
+  }
+  .drop-zone:hover, .drop-zone.drag-over {
+    border-color: #6366f1;
+    background: linear-gradient(135deg, #e0e7ff 0%, #ede9fe 100%);
+    box-shadow: 0 0 0 4px rgba(99,102,241,.08);
+  }
+  .drop-zone input[type="file"] {
+    position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%;
+  }
+
+  /* ── Table des modèles ── */
+  .model-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 10px;
+  }
+  .model-chip {
+    display: flex; align-items: center; gap: 8px;
+    padding: 8px 12px;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    font-size: 12.5px;
+    color: #475569;
+  }
+  .model-chip .dot {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: #6366f1; flex-shrink: 0;
+  }
+
+  /* ── Résultats ── */
+  .result-row {
+    display: grid;
+    grid-template-columns: 28px 1fr 80px 80px 80px;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    border-radius: 10px;
+    margin-bottom: 6px;
+    border: 1px solid transparent;
+    transition: background 120ms;
+  }
+  .result-row:hover { background: #f8fafc; }
+  .result-row.ok    { border-color: #d1fae5; background: #f0fdf4; }
+  .result-row.warn  { border-color: #fde68a; background: #fffbeb; }
+  .result-row.skip  { border-color: #e2e8f0; background: #f8fafc; opacity: .7; }
+
+  .stat-pill {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 52px; height: 26px;
+    border-radius: 6px;
+    font-size: 12px; font-weight: 700;
+  }
+  .pill-green { background: #dcfce7; color: #166534; }
+  .pill-blue  { background: #dbeafe; color: #1e40af; }
+  .pill-red   { background: #fee2e2; color: #991b1b; }
+  .pill-gray  { background: #f1f5f9; color: #64748b; }
+
+  .error-list {
+    margin-top: 8px; padding: 10px 14px;
+    background: #fef2f2; border: 1px solid #fecaca;
+    border-radius: 8px; display: none;
+  }
+  .error-list li { font-size: 12px; color: #b91c1c; margin-bottom: 3px; }
+
+  /* ── Ordre d'import ── */
+  .order-step {
+    display: flex; align-items: flex-start; gap: 12px;
+    padding: 10px 0;
+  }
+  .order-step:not(:last-child) { border-bottom: 1px solid #f1f5f9; }
+  .step-num {
+    width: 22px; height: 22px;
+    border-radius: 50%; background: #4f46e5; color: white;
+    font-size: 11px; font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0; margin-top: 1px;
+  }
+</style>
+
+<!-- ── Page header ── -->
+<div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:24px">
+  <div>
+    <h1 style="font-size:1.5rem; font-weight:800; color:#0f172a; margin-bottom:4px">
+      Import de données
+    </h1>
+    <p style="font-size:13.5px; color:#64748b">
+      Importez vos données Excel dans GestMat — Structure et Configuration
+    </p>
+  </div>
+  <a href="{% url 'matieres:import_template' %}"
+     style="display:inline-flex; align-items:center; gap:8px; padding:9px 18px;
+            background:linear-gradient(135deg,#059669,#10b981); color:white;
+            border-radius:10px; font-size:13px; font-weight:600; text-decoration:none;
+            box-shadow:0 4px 14px rgba(16,185,129,.3); transition:all 180ms">
+    <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.2">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+    </svg>
+    Télécharger le template
+  </a>
+</div>
+
+<div style="display:grid; grid-template-columns:1fr 320px; gap:20px; align-items:start">
+
+  <!-- ── Colonne principale ── -->
+  <div>
+
+    <!-- Zone upload -->
+    <div class="card" style="margin-bottom:20px">
+      <h2 style="font-size:14px; font-weight:700; color:#0f172a; margin-bottom:16px; display:flex; align-items:center; gap:8px">
+        <span style="width:28px;height:28px;border-radius:8px;background:#eef2ff;display:flex;align-items:center;justify-content:center">
+          <svg width="14" height="14" fill="none" stroke="#6366f1" viewBox="0 0 24 24" stroke-width="2.2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
+          </svg>
+        </span>
+        Upload du fichier Excel
+      </h2>
+
+      <form method="post" enctype="multipart/form-data" id="import-form">
+        {% csrf_token %}
+
+        <div class="drop-zone" id="drop-zone">
+          <input type="file" name="fichier" id="fichier-input" accept=".xlsx" required>
+          <div id="drop-content">
+            <div style="width:52px;height:52px;border-radius:14px;background:#eef2ff;display:flex;align-items:center;justify-content:center;margin:0 auto 16px">
+              <svg width="24" height="24" fill="none" stroke="#6366f1" viewBox="0 0 24 24" stroke-width="1.8">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
+              </svg>
+            </div>
+            <p style="font-size:14px;font-weight:600;color:#3730a3;margin-bottom:6px">
+              Glissez votre fichier ici ou cliquez pour parcourir
+            </p>
+            <p style="font-size:12px;color:#6366f1">Format accepté : .xlsx — Max 20 Mo</p>
+          </div>
+          <div id="file-preview" style="display:none">
+            <div style="width:52px;height:52px;border-radius:14px;background:#d1fae5;display:flex;align-items:center;justify-content:center;margin:0 auto 12px">
+              <svg width="24" height="24" fill="none" stroke="#059669" viewBox="0 0 24 24" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+              </svg>
+            </div>
+            <p id="file-name" style="font-size:14px;font-weight:600;color:#065f46"></p>
+            <p id="file-size" style="font-size:12px;color:#059669;margin-top:4px"></p>
+          </div>
+        </div>
+
+        <div style="display:flex; align-items:center; gap:12px; margin-top:16px">
+          <button type="submit" id="submit-btn"
+                  style="flex:1;padding:11px 0;background:linear-gradient(135deg,#4f46e5,#7c3aed);
+                         color:white;border:none;border-radius:10px;font-size:14px;font-weight:600;
+                         cursor:pointer;box-shadow:0 4px 14px rgba(99,102,241,.3);
+                         transition:all 180ms;display:flex;align-items:center;justify-content:center;gap:8px">
+            <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
+            </svg>
+            Lancer l'import
+          </button>
+          <button type="reset" onclick="resetForm()"
+                  style="padding:11px 20px;background:white;color:#64748b;border:1px solid #e2e8f0;
+                         border-radius:10px;font-size:13px;font-weight:500;cursor:pointer">
+            Annuler
+          </button>
+        </div>
+      </form>
+    </div>
+
+    <!-- ── Résultats ── -->
+    {% if results %}
+    <div class="card">
+      <h2 style="font-size:14px;font-weight:700;color:#0f172a;margin-bottom:4px;display:flex;align-items:center;gap:8px">
+        <span style="width:28px;height:28px;border-radius:8px;background:#f0fdf4;display:flex;align-items:center;justify-content:center">
+          <svg width="14" height="14" fill="none" stroke="#16a34a" viewBox="0 0 24 24" stroke-width="2.2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+          </svg>
+        </span>
+        Rapport d'import
+      </h2>
+
+      <!-- Totaux -->
+      {% with tot_c=0 tot_u=0 tot_e=0 %}
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:16px 0 20px">
+        <div style="text-align:center;padding:14px;background:#f0fdf4;border-radius:10px;border:1px solid #d1fae5">
+          <p style="font-size:2rem;font-weight:900;color:#16a34a;line-height:1">
+            {% for r in results %}{% if not r.skipped %}{% with v=r.created %}{{ v|add:0 }}{% endwith %}{% endif %}{% endfor %}
+          </p>
+          <p style="font-size:11px;font-weight:600;color:#166534;text-transform:uppercase;letter-spacing:.05em;margin-top:4px">Créés</p>
+        </div>
+        <div style="text-align:center;padding:14px;background:#eff6ff;border-radius:10px;border:1px solid #bfdbfe">
+          <p style="font-size:2rem;font-weight:900;color:#1d4ed8;line-height:1">
+            {% for r in results %}{% if not r.skipped %}{{ r.updated|add:0 }}{% endif %}{% endfor %}
+          </p>
+          <p style="font-size:11px;font-weight:600;color:#1e40af;text-transform:uppercase;letter-spacing:.05em;margin-top:4px">Mis à jour</p>
+        </div>
+        <div style="text-align:center;padding:14px;background:#fef2f2;border-radius:10px;border:1px solid #fecaca">
+          <p style="font-size:2rem;font-weight:900;color:#dc2626;line-height:1">
+            {% for r in results %}{% if not r.skipped %}{{ r.errors|length|add:0 }}{% endif %}{% endfor %}
+          </p>
+          <p style="font-size:11px;font-weight:600;color:#991b1b;text-transform:uppercase;letter-spacing:.05em;margin-top:4px">Erreurs</p>
+        </div>
+      </div>
+      {% endwith %}
+
+      <!-- En-tête tableau -->
+      <div style="display:grid;grid-template-columns:28px 1fr 80px 80px 80px;gap:12px;padding:0 16px 8px;border-bottom:2px solid #f1f5f9">
+        <span></span>
+        <span style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.05em">Feuille</span>
+        <span style="font-size:11px;font-weight:700;color:#16a34a;text-transform:uppercase;letter-spacing:.05em;text-align:center">Créés</span>
+        <span style="font-size:11px;font-weight:700;color:#1d4ed8;text-transform:uppercase;letter-spacing:.05em;text-align:center">MàJ</span>
+        <span style="font-size:11px;font-weight:700;color:#dc2626;text-transform:uppercase;letter-spacing:.05em;text-align:center">Erreurs</span>
+      </div>
+
+      <!-- Lignes -->
+      {% for r in results %}
+        {% if r.skipped %}
+        <div class="result-row skip">
+          <span>
+            <svg width="14" height="14" fill="none" stroke="#94a3b8" viewBox="0 0 24 24" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"/>
+            </svg>
+          </span>
+          <span style="font-size:13px;color:#94a3b8;font-style:italic">{{ r.label }} — non reconnue</span>
+          <span></span><span></span><span></span>
+        </div>
+        {% elif r.errors and not r.created and not r.updated %}
+        <div class="result-row warn" style="flex-direction:column;display:block;padding:12px 16px">
+          <div style="display:grid;grid-template-columns:28px 1fr 80px 80px 80px;gap:12px;align-items:center">
+            <svg width="16" height="16" fill="none" stroke="#d97706" viewBox="0 0 24 24" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+            </svg>
+            <span style="font-size:13px;font-weight:600;color:#0f172a">{{ r.label }}</span>
+            <span class="stat-pill pill-gray" style="margin:auto">{{ r.created }}</span>
+            <span class="stat-pill pill-gray" style="margin:auto">{{ r.updated }}</span>
+            <button onclick="toggleErrors(this)" class="stat-pill pill-red"
+                    style="margin:auto;cursor:pointer;border:none">{{ r.errors|length }}</button>
+          </div>
+          <div class="error-list"><ul style="list-style:disc;padding-left:18px">
+            {% for e in r.errors %}<li>{{ e }}</li>{% endfor %}
+          </ul></div>
+        </div>
+        {% else %}
+        <div class="result-row {% if r.errors %}warn{% else %}ok{% endif %}">
+          {% if r.errors %}
+          <svg width="16" height="16" fill="none" stroke="#d97706" viewBox="0 0 24 24" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+          </svg>
+          {% else %}
+          <svg width="16" height="16" fill="none" stroke="#16a34a" viewBox="0 0 24 24" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
+          </svg>
+          {% endif %}
+          <div>
+            <p style="font-size:13px;font-weight:600;color:#0f172a">{{ r.label }}</p>
+            <p style="font-size:11px;color:#94a3b8;margin-top:1px">{{ r.rows }} ligne{{ r.rows|pluralize }} lue{{ r.rows|pluralize }}</p>
+          </div>
+          <span class="stat-pill pill-green" style="margin:auto">{{ r.created }}</span>
+          <span class="stat-pill pill-blue"  style="margin:auto">{{ r.updated }}</span>
+          {% if r.errors %}
+          <button onclick="toggleErrors(this)" class="stat-pill pill-red"
+                  style="cursor:pointer;border:none;margin:auto">{{ r.errors|length }}</button>
+          {% else %}
+          <span class="stat-pill pill-gray"  style="margin:auto">0</span>
+          {% endif %}
+        </div>
+        {% if r.errors %}
+        <div class="error-list" style="margin-bottom:6px">
+          <ul style="list-style:disc;padding-left:18px">
+            {% for e in r.errors %}<li>{{ e }}</li>{% endfor %}
+          </ul>
+        </div>
+        {% endif %}
+        {% endif %}
+      {% endfor %}
+    </div>
+    {% endif %}
+
+  </div><!-- /colonne principale -->
+
+  <!-- ── Sidebar droite ── -->
+  <div>
+
+    <!-- Données supportées -->
+    <div class="card" style="margin-bottom:16px">
+      <h3 style="font-size:13px;font-weight:700;color:#0f172a;margin-bottom:12px;display:flex;align-items:center;gap:7px">
+        <svg width="14" height="14" fill="none" stroke="#6366f1" viewBox="0 0 24 24" stroke-width="2.2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 10h16M4 14h16M4 18h16"/>
+        </svg>
+        Feuilles reconnues
+      </h3>
+      <div class="model-grid">
+        {% for key, info in importers.items %}
+        <div class="model-chip">
+          <span class="dot"></span>
+          <span>{{ info.0 }}</span>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- Ordre recommandé -->
+    <div class="card" style="margin-bottom:16px">
+      <h3 style="font-size:13px;font-weight:700;color:#0f172a;margin-bottom:12px;display:flex;align-items:center;gap:7px">
+        <svg width="14" height="14" fill="none" stroke="#f59e0b" viewBox="0 0 24 24" stroke-width="2.2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+        </svg>
+        Ordre d'import recommandé
+      </h3>
+      <div class="order-step">
+        <div class="step-num">1</div>
+        <div>
+          <p style="font-size:12.5px;font-weight:600;color:#0f172a">Référentiels de base</p>
+          <p style="font-size:11.5px;color:#64748b;margin-top:2px">Dépôts · Unités · Types d'opération</p>
+        </div>
+      </div>
+      <div class="order-step">
+        <div class="step-num">2</div>
+        <div>
+          <p style="font-size:12.5px;font-weight:600;color:#0f172a">Plan comptable</p>
+          <p style="font-size:11.5px;color:#64748b;margin-top:2px">Comptes principaux → Sous-comptes</p>
+        </div>
+      </div>
+      <div class="order-step">
+        <div class="step-num">3</div>
+        <div>
+          <p style="font-size:12.5px;font-weight:600;color:#0f172a">Tiers</p>
+          <p style="font-size:11.5px;color:#64748b;margin-top:2px">Fournisseurs · Bénéficiaires</p>
+        </div>
+      </div>
+      <div class="order-step">
+        <div class="step-num">4</div>
+        <div>
+          <p style="font-size:12.5px;font-weight:600;color:#0f172a">Produits / Matières</p>
+          <p style="font-size:11.5px;color:#64748b;margin-top:2px">Dépend des comptes et unités</p>
+        </div>
+      </div>
+      <div class="order-step">
+        <div class="step-num">5</div>
+        <div>
+          <p style="font-size:12.5px;font-weight:600;color:#0f172a">Configuration</p>
+          <p style="font-size:11.5px;color:#64748b;margin-top:2px">Membres commission · Années d'exercice</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Conseils -->
+    <div style="background:#fefce8;border:1px solid #fde68a;border-radius:12px;padding:14px 16px">
+      <p style="font-size:12.5px;font-weight:700;color:#92400e;margin-bottom:8px;display:flex;align-items:center;gap:6px">
+        <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>
+        </svg>
+        Conseils
+      </p>
+      <ul style="font-size:12px;color:#78350f;line-height:1.7;padding-left:14px;list-style:disc">
+        <li>Téléchargez d'abord le template Excel</li>
+        <li>Les doublons sont mis à jour, pas dupliqués</li>
+        <li>Une erreur de ligne n'arrête pas l'import</li>
+        <li>Vous pouvez ré-importer pour corriger</li>
+        <li>Respectez l'ordre pour les dépendances</li>
+      </ul>
+    </div>
+
+  </div><!-- /sidebar -->
+
+</div><!-- /grid -->
+
+<script>
+  /* ── Drag & drop ── */
+  const zone   = document.getElementById('drop-zone');
+  const input  = document.getElementById('fichier-input');
+  const prev   = document.getElementById('file-preview');
+  const content = document.getElementById('drop-content');
+  const nameEl = document.getElementById('file-name');
+  const sizeEl = document.getElementById('file-size');
+
+  function showFile(f) {
+    if (!f) return;
+    const mb = (f.size / 1024 / 1024).toFixed(2);
+    nameEl.textContent = f.name;
+    sizeEl.textContent = mb + ' Mo';
+    content.style.display = 'none';
+    prev.style.display = 'block';
+  }
+
+  input.addEventListener('change', () => showFile(input.files[0]));
+
+  zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('drag-over'); });
+  zone.addEventListener('dragleave', () => zone.classList.remove('drag-over'));
+  zone.addEventListener('drop', e => {
+    e.preventDefault();
+    zone.classList.remove('drag-over');
+    const f = e.dataTransfer.files[0];
+    if (f) { const dt = new DataTransfer(); dt.items.add(f); input.files = dt.files; showFile(f); }
+  });
+
+  function resetForm() {
+    content.style.display = 'block';
+    prev.style.display = 'none';
+    nameEl.textContent = '';
+    sizeEl.textContent = '';
+  }
+
+  /* ── Afficher/masquer erreurs ── */
+  function toggleErrors(btn) {
+    const list = btn.closest('.result-row, div').nextElementSibling ||
+                 btn.closest('div').querySelector('.error-list');
+    if (!list) return;
+    const hidden = list.style.display === 'none' || !list.style.display;
+    list.style.display = hidden ? 'block' : 'none';
+    btn.textContent = hidden ? '▲ ' + btn.textContent : btn.textContent.replace('▲ ', '');
+  }
+
+  /* ── Loading state ── */
+  document.getElementById('import-form').addEventListener('submit', () => {
+    const btn = document.getElementById('submit-btn');
+    btn.innerHTML = '<svg class="spin" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg> Import en cours…';
+    btn.disabled = true;
+    btn.style.opacity = '.8';
+  });
+</script>
+
+<style>
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .spin { animation: spin .8s linear infinite; }
+</style>
+{% endblock %}

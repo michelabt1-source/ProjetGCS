@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block content %}
+<div style="display:flex;gap:24px;align-items:flex-start">
+
+  <!-- Liste -->
+  <div style="flex:1">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+      <div>
+        <h1 style="font-size:22px;font-weight:700;color:#0f172a">Unités de mesure</h1>
+        <p style="color:#64748b;font-size:13px;margin-top:4px">{{ unites.count }} unité(s)</p>
+      </div>
+    </div>
+    <div class="card" style="padding:0;overflow:hidden">
+      <table style="width:100%;border-collapse:collapse;font-size:13px">
+        <thead>
+          <tr style="background:#f8fafc;border-bottom:2px solid #e2e8f0">
+            <th style="padding:12px 20px;text-align:left;font-weight:600;color:#475569">Libellé</th>
+            <th style="padding:12px 20px;text-align:center;font-weight:600;color:#475569;width:110px">Produits</th>
+            <th style="padding:12px 20px;text-align:center;font-weight:600;color:#475569;width:80px"></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for u in unites %}
+          <tr class="table-row">
+            <td style="padding:12px 20px;font-weight:500;color:#0f172a">{{ u.libelle }}</td>
+            <td style="padding:12px 20px;text-align:center"><span class="badge-info">{{ u.nb }}</span></td>
+            <td style="padding:12px 20px;text-align:center">
+              {% if u.nb == 0 %}
+              <a href="?delete={{ u.pk }}" onclick="return confirm('Supprimer ?')"
+                style="font-size:11px;color:#ef4444;text-decoration:none;font-weight:600">Suppr.</a>
+              {% endif %}
+            </td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="3" style="padding:40px;text-align:center;color:#94a3b8">Aucune unité.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Formulaire d'ajout -->
+  <div style="width:280px;flex-shrink:0">
+    <div class="card">
+      <h3 style="font-size:14px;font-weight:700;color:#0f172a;margin-bottom:16px">Ajouter une unité</h3>
+      <form method="post">
+        {% csrf_token %}
+        <div style="margin-bottom:14px">
+          <label style="font-size:12px;font-weight:600;color:#475569;display:block;margin-bottom:6px">Libellé *</label>
+          <input name="libelle" placeholder="ex: Kg, Litre, Unité…" required
+            style="width:100%;padding:9px 14px;border:1px solid #e2e8f0;border-radius:8px;font-size:13px;outline:none">
+        </div>
+        <button class="btn-primary" type="submit" style="width:100%;justify-content:center">Ajouter</button>
+      </form>
+    </div>
+  </div>
+
+</div>
+{% endblock %}

@@ -1,0 +1,11 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="flex items-center gap-4 mb-6">
+  <a href="{% url 'matieres:produits_list' %}" class="btn-secondary">← Retour</a>
+  <h2 class="text-xl font-bold text-slate-800">{{ page_title }}</h2>
+</div>
+<div class="card max-w-2xl">
+  <p class="text-slate-500 text-sm">Cette fonctionnalité sera disponible prochainement.</p>
+  <a href="/admin/matieres/produit/add/" class="btn-primary mt-4 inline-flex">Créer via l'administration →</a>
+</div>
+{% endblock %}

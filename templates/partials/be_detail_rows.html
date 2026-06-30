@@ -1,0 +1,83 @@
+{% load humanize %}
+
+<table class="lines-table">
+  <thead>
+    <tr>
+      <th>Désignation</th>
+      <th>Nomenclature</th>
+      <th>Spécification</th>
+      <th class="r">QTé BE</th>
+      <th>Unité</th>
+      <th class="r">Prix Unitaire HT</th>
+      <th class="r">Prix Unitaire TTC</th>
+      <th class="r">Montant TTC</th>
+      <th>Observation</th>
+      {% if not bon.valide %}<th></th>{% endif %}
+    </tr>
+  </thead>
+  <tbody>
+    {% for d in details %}
+    <tr onclick="selectLine({{ d.pk }}, this)">
+      <td>
+        <div style="max-width:180px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:500;color:#1e293b"
+             title="{{ d.designation }}">{{ d.designation }}</div>
+      </td>
+      <td class="mono">{{ d.nomenclature }}</td>
+      <td style="color:#64748b;font-size:11.5px">
+        <div style="max-width:120px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"
+             title="{{ d.specification }}">{{ d.specification|default:"—" }}</div>
+      </td>
+      <td class="r" style="font-weight:600">{{ d.qte }}</td>
+      <td style="color:#64748b">{{ d.unite|default:"—" }}</td>
+      <td class="r" style="color:#475569">{{ d.prix_ht|floatformat:0|intcomma }}</td>
+      <td class="r" style="color:#475569">{{ d.prix_ttc|floatformat:0|intcomma }}</td>
+      <td class="r" style="font-weight:700;color:#059669">{{ d.montant_ttc|floatformat:0|intcomma }}</td>
+      <td style="color:#64748b;font-size:11.5px">
+        <div style="max-width:120px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"
+             title="{{ d.observation }}">{{ d.observation|default:"" }}</div>
+      </td>
+      {% if not bon.valide %}
+      <td style="text-align:center">
+        <button type="button" class="btn-del-line"
+                hx-post="{% url 'matieres:htmx_be_delete_detail' detail_pk=d.pk %}"
+                hx-target="#detail-rows-container"
+                hx-swap="innerHTML"
+                hx-confirm="Supprimer cet article ?"
+                title="Supprimer">×</button>
+      </td>
+      {% endif %}
+    </tr>
+    {% empty %}
+    <tr>
+      <td colspan="{% if not bon.valide %}10{% else %}9{% endif %}"
+          style="text-align:center;padding:24px;color:#94a3b8;font-size:12.5px">
+        <div style="display:flex;flex-direction:column;align-items:center;gap:8px">
+          <svg width="28" height="28" fill="none" stroke="#cbd5e1" viewBox="0 0 24 24" stroke-width="1.5">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+          </svg>
+          Aucun article — saisissez un produit dans le panneau de droite
+        </div>
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+  {% if details %}
+  <tfoot>
+    <tr>
+      <td colspan="{% if not bon.valide %}7{% else %}6{% endif %}">
+        <span style="color:#64748b;font-weight:400;font-size:11.5px">Total —</span>
+        {{ details|length }} article{{ details|length|pluralize }}
+      </td>
+      <td class="r">
+        {% with total=0 %}
+          {% for d in details %}
+            {% with total=total|add:d.montant_ttc %}{% endwith %}
+          {% endfor %}
+        {% endwith %}
+        {{ bon.total_ttc|floatformat:0|intcomma }} FCFA
+      </td>
+      <td {% if not bon.valide %}colspan="2"{% endif %}></td>
+    </tr>
+  </tfoot>
+  {% endif %}
+</table>

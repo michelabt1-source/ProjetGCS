@@ -1,0 +1,469 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block content %}
+<style>
+  @keyframes pulseGlow {
+    0%, 100% { box-shadow: 0 0 18px rgba(99,102,241,0.55), 0 0 36px rgba(99,102,241,0.2); }
+    50%       { box-shadow: 0 0 28px rgba(99,102,241,0.75), 0 0 56px rgba(99,102,241,0.3); }
+  }
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(18px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes scaleIn {
+    from { opacity: 0; transform: scale(0.95); }
+    to   { opacity: 1; transform: scale(1); }
+  }
+
+  .hero-icon  { animation: pulseGlow 3.5s ease-in-out infinite; }
+  .hero-text  { animation: fadeUp 0.5s 0.05s ease both; }
+  .hero-kpis  { animation: scaleIn 0.55s 0.2s ease both; }
+
+  .dot-grid {
+    background-image: radial-gradient(circle, rgba(165,180,252,0.16) 1px, transparent 1px);
+    background-size: 28px 28px;
+  }
+
+  .glass-kpi {
+    background: rgba(255,255,255,0.07);
+    border: 1px solid rgba(255,255,255,0.11);
+    border-radius: 18px;
+    padding: 22px 20px;
+    text-decoration: none;
+    display: block;
+    transition: background 200ms ease, transform 200ms ease, box-shadow 200ms ease;
+  }
+  .glass-kpi:hover {
+    background: rgba(255,255,255,0.13);
+    transform: translateY(-4px);
+    box-shadow: 0 14px 36px rgba(0,0,0,0.3);
+    border-color: rgba(255,255,255,0.2);
+  }
+
+  .month-card {
+    border-radius: 18px;
+    padding: 22px;
+    color: white;
+    transition: transform 200ms ease, box-shadow 200ms ease;
+  }
+  .month-card:hover { transform: translateY(-3px); }
+
+  .section-bar { width: 4px; height: 20px; border-radius: 4px; flex-shrink: 0; }
+</style>
+
+<!-- ═══════════════════════════════════════════════════════
+     HERO — Même esthétique que le panneau login gauche
+═══════════════════════════════════════════════════════ -->
+<div class="-mx-6 -mt-6 mb-8 relative overflow-hidden"
+     style="background: linear-gradient(160deg, #0d1117 0%, #18103a 55%, #1e1b4b 100%)">
+
+  <!-- Fond décoratif -->
+  <div class="absolute inset-0 dot-grid pointer-events-none"></div>
+  <div class="absolute -top-20 -left-20 w-72 h-72 rounded-full pointer-events-none"
+       style="background: radial-gradient(circle, rgba(99,102,241,0.22), transparent 70%)"></div>
+  <div class="absolute -bottom-16 -right-16 w-64 h-64 rounded-full pointer-events-none"
+       style="background: radial-gradient(circle, rgba(168,85,247,0.18), transparent 70%)"></div>
+  <div class="absolute top-10 right-40 w-44 h-44 rounded-full pointer-events-none"
+       style="background: radial-gradient(circle, rgba(99,102,241,0.1), transparent 70%)"></div>
+
+  <div class="relative z-10 px-8 pt-10 pb-14">
+
+    <!-- Date -->
+    <div class="flex justify-end mb-6">
+      <p class="text-sm hidden sm:block" style="color:rgba(255,255,255,0.35)">
+        {{ aujourd_hui|date:"l d F Y" }}
+      </p>
+    </div>
+
+    <!-- Accueil -->
+    <div class="mb-10 hero-text">
+      <h2 class="font-extrabold mb-1.5" style="font-size:2rem; color:white; line-height:1.2">
+        Bonjour,
+        <span style="background: linear-gradient(90deg, #a5b4fc, #c084fc);
+                     -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+                     background-clip: text">
+          {{ request.user.get_full_name|default:request.user.username }}
+        </span>
+      </h2>
+      <p style="color:rgba(255,255,255,0.42); font-size:14px">
+        Vue d'ensemble de votre activité &mdash; {{ aujourd_hui|date:"F Y" }}
+      </p>
+    </div>
+
+    <!-- ── KPI Cards glassmorphism ── -->
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 hero-kpis">
+
+      <!-- Produits -->
+      <a href="{% url 'matieres:produits_list' %}" class="glass-kpi">
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:14px">
+          <p style="color:rgba(255,255,255,0.48); font-size:10.5px; font-weight:700;
+                    text-transform:uppercase; letter-spacing:0.1em">Produits</p>
+          <div style="width:30px; height:30px; border-radius:9px; display:flex;
+                      align-items:center; justify-content:center;
+                      background:rgba(99,102,241,0.28); border:1px solid rgba(99,102,241,0.4)">
+            <svg style="width:14px; height:14px; color:#818cf8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"/>
+            </svg>
+          </div>
+        </div>
+        <p style="color:white; font-size:2.6rem; font-weight:900; line-height:1;
+                  font-variant-numeric:tabular-nums">{{ total_produits|intcomma }}</p>
+        <p style="color:rgba(255,255,255,0.36); font-size:12px; margin-top:6px">référencés</p>
+      </a>
+
+      <!-- Dépôts -->
+      <a href="{% url 'matieres:depots_list' %}" class="glass-kpi">
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:14px">
+          <p style="color:rgba(255,255,255,0.48); font-size:10.5px; font-weight:700;
+                    text-transform:uppercase; letter-spacing:0.1em">Dépôts</p>
+          <div style="width:30px; height:30px; border-radius:9px; display:flex;
+                      align-items:center; justify-content:center;
+                      background:rgba(16,185,129,0.2); border:1px solid rgba(16,185,129,0.35)">
+            <svg style="width:14px; height:14px; color:#34d399" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+            </svg>
+          </div>
+        </div>
+        <p style="color:white; font-size:2.6rem; font-weight:900; line-height:1">{{ total_depots }}</p>
+        <p style="color:rgba(255,255,255,0.36); font-size:12px; margin-top:6px">actifs</p>
+      </a>
+
+      <!-- Fournisseurs -->
+      <a href="{% url 'matieres:fournisseurs_list' %}" class="glass-kpi">
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:14px">
+          <p style="color:rgba(255,255,255,0.48); font-size:10.5px; font-weight:700;
+                    text-transform:uppercase; letter-spacing:0.1em">Fournisseurs</p>
+          <div style="width:30px; height:30px; border-radius:9px; display:flex;
+                      align-items:center; justify-content:center;
+                      background:rgba(14,165,233,0.2); border:1px solid rgba(14,165,233,0.35)">
+            <svg style="width:14px; height:14px; color:#38bdf8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
+            </svg>
+          </div>
+        </div>
+        <p style="color:white; font-size:2.6rem; font-weight:900; line-height:1">{{ total_fournisseurs }}</p>
+        <p style="color:rgba(255,255,255,0.36); font-size:12px; margin-top:6px">enregistrés</p>
+      </a>
+
+      <!-- Stock -->
+      <a href="{% url 'matieres:stock_depot_list' %}" class="glass-kpi">
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:14px">
+          <p style="color:rgba(255,255,255,0.48); font-size:10.5px; font-weight:700;
+                    text-transform:uppercase; letter-spacing:0.1em">Stock total</p>
+          <div style="width:30px; height:30px; border-radius:9px; display:flex;
+                      align-items:center; justify-content:center;
+                      background:rgba(168,85,247,0.2); border:1px solid rgba(168,85,247,0.35)">
+            <svg style="width:14px; height:14px; color:#c084fc" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z"/>
+            </svg>
+          </div>
+        </div>
+        <p style="color:white; font-size:2.6rem; font-weight:900; line-height:1;
+                  font-variant-numeric:tabular-nums">{{ valeur_stock|intcomma }}</p>
+        <p style="color:rgba(255,255,255,0.36); font-size:12px; margin-top:6px">articles en stock</p>
+      </a>
+
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════
+     ACTIVITÉ DU MOIS
+═══════════════════════════════════ -->
+<div class="flex items-center gap-3 mb-4">
+  <div class="section-bar" style="background: linear-gradient(180deg, #6366f1, #a855f7)"></div>
+  <p class="text-xs font-bold text-slate-500 uppercase tracking-widest">Activité du mois en cours</p>
+  <div class="flex-1 h-px bg-slate-200"></div>
+</div>
+
+<div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+
+  <div class="month-card"
+       style="background:linear-gradient(135deg,#16a34a,#10b981); box-shadow:0 6px 22px rgba(22,163,74,0.28)">
+    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px">
+      <p style="font-size:13px; font-weight:600; color:rgba(255,255,255,0.82)">Entrées ce mois</p>
+      <svg style="width:18px; height:18px; color:rgba(255,255,255,0.42)" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
+      </svg>
+    </div>
+    <p style="font-size:3rem; font-weight:900; color:white; line-height:1">{{ bons_entree_mois }}</p>
+    {% if bons_entree_attente %}
+      <p style="font-size:11px; color:rgba(255,255,255,0.58); margin-top:4px">{{ bons_entree_attente }} en attente</p>
+    {% endif %}
+    <a href="{% url 'matieres:bons_entree_list' %}" style="display:inline-block; margin-top:12px; font-size:11px; font-weight:600; color:rgba(255,255,255,0.55); text-decoration:none" onmouseover="this.style.color='white'" onmouseout="this.style.color='rgba(255,255,255,0.55)'">Voir tous &rarr;</a>
+  </div>
+
+  <div class="month-card"
+       style="background:linear-gradient(135deg,#1d4ed8,#6366f1); box-shadow:0 6px 22px rgba(29,78,216,0.28)">
+    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px">
+      <p style="font-size:13px; font-weight:600; color:rgba(255,255,255,0.82)">Affectations ce mois</p>
+      <svg style="width:18px; height:18px; color:rgba(255,255,255,0.42)" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/>
+      </svg>
+    </div>
+    <p style="font-size:3rem; font-weight:900; color:white; line-height:1">{{ bons_affectation_mois }}</p>
+    {% if bons_affectation_attente %}
+      <p style="font-size:11px; color:rgba(255,255,255,0.58); margin-top:4px">{{ bons_affectation_attente }} non confirmés</p>
+    {% endif %}
+    <a href="{% url 'matieres:bons_affectation_list' %}" style="display:inline-block; margin-top:12px; font-size:11px; font-weight:600; color:rgba(255,255,255,0.55); text-decoration:none" onmouseover="this.style.color='white'" onmouseout="this.style.color='rgba(255,255,255,0.55)'">Voir tous &rarr;</a>
+  </div>
+
+  <div class="month-card"
+       style="background:linear-gradient(135deg,#c2410c,#f97316); box-shadow:0 6px 22px rgba(194,65,12,0.28)">
+    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px">
+      <p style="font-size:13px; font-weight:600; color:rgba(255,255,255,0.82)">Sorties prov. (année)</p>
+      <svg style="width:18px; height:18px; color:rgba(255,255,255,0.42)" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
+      </svg>
+    </div>
+    <p style="font-size:3rem; font-weight:900; color:white; line-height:1">{{ bons_sortie_prov_mois }}</p>
+    <a href="{% url 'matieres:bons_sortie_prov_list' %}" style="display:inline-block; margin-top:12px; font-size:11px; font-weight:600; color:rgba(255,255,255,0.55); text-decoration:none" onmouseover="this.style.color='white'" onmouseout="this.style.color='rgba(255,255,255,0.55)'">Voir tous &rarr;</a>
+  </div>
+
+  <div class="month-card"
+       style="background:linear-gradient(135deg,#be123c,#f43f5e); box-shadow:0 6px 22px rgba(190,18,60,0.28)">
+    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px">
+      <p style="font-size:13px; font-weight:600; color:rgba(255,255,255,0.82)">Sorties déf. ce mois</p>
+      <svg style="width:18px; height:18px; color:rgba(255,255,255,0.42)" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+      </svg>
+    </div>
+    <p style="font-size:3rem; font-weight:900; color:white; line-height:1">{{ bons_sortie_def_mois }}</p>
+    {% if bons_sortie_def_attente %}
+      <p style="font-size:11px; color:rgba(255,255,255,0.58); margin-top:4px">{{ bons_sortie_def_attente }} non confirmés</p>
+    {% endif %}
+    <a href="{% url 'matieres:bons_sortie_def_list' %}" style="display:inline-block; margin-top:12px; font-size:11px; font-weight:600; color:rgba(255,255,255,0.55); text-decoration:none" onmouseover="this.style.color='white'" onmouseout="this.style.color='rgba(255,255,255,0.55)'">Voir tous &rarr;</a>
+  </div>
+
+</div>
+
+<!-- ═══════════════════════════════════
+     GRAPHIQUES
+═══════════════════════════════════ -->
+<div class="flex items-center gap-3 mb-4">
+  <div class="section-bar" style="background: linear-gradient(180deg, #10b981, #0ea5e9)"></div>
+  <p class="text-xs font-bold text-slate-500 uppercase tracking-widest">Évolution &amp; Répartition</p>
+  <div class="flex-1 h-px bg-slate-200"></div>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+
+  <div class="lg:col-span-2 card">
+    <div class="flex items-center justify-between mb-5">
+      <div>
+        <h3 class="font-bold text-slate-800">Évolution des mouvements</h3>
+        <p class="text-xs text-slate-400 mt-0.5">Entrées et sorties définitives sur 6 mois</p>
+      </div>
+    </div>
+    <div id="chart-evolution"></div>
+  </div>
+
+  <div class="card">
+    <div class="mb-5">
+      <h3 class="font-bold text-slate-800">Stock par dépôt</h3>
+      <p class="text-xs text-slate-400 mt-0.5">Répartition des articles</p>
+    </div>
+    {% if stock_par_depot != "[]" %}
+    <div id="chart-depot"></div>
+    {% else %}
+    <div class="flex items-center justify-center h-48 text-slate-400 text-sm">
+      Aucun stock enregistré
+    </div>
+    {% endif %}
+  </div>
+
+</div>
+
+<!-- ═══════════════════════════════════
+     OPÉRATIONS & ACTIONS
+═══════════════════════════════════ -->
+<div class="flex items-center gap-3 mb-4">
+  <div class="section-bar" style="background: linear-gradient(180deg, #f59e0b, #ef4444)"></div>
+  <p class="text-xs font-bold text-slate-500 uppercase tracking-widest">Journal &amp; Actions</p>
+  <div class="flex-1 h-px bg-slate-200"></div>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+  <!-- Tableau -->
+  <div class="lg:col-span-2 card">
+    <div class="flex items-center justify-between mb-4">
+      <h3 class="font-bold text-slate-800">Dernières opérations</h3>
+      <a href="{% url 'matieres:journal_list' %}" style="font-size:12px; font-weight:700; padding:6px 12px; border-radius:8px; color:#4f46e5; background:#eef2ff; text-decoration:none">Voir le journal &rarr;</a>
+    </div>
+    <div class="overflow-x-auto">
+      <table class="w-full text-sm">
+        <thead>
+          <tr style="border-bottom:2px solid #f1f5f9">
+            <th class="pb-3 pr-4 text-left text-xs font-bold text-slate-400 uppercase tracking-wider">Date</th>
+            <th class="pb-3 pr-4 text-left text-xs font-bold text-slate-400 uppercase tracking-wider">Type</th>
+            <th class="pb-3 pr-4 text-left text-xs font-bold text-slate-400 uppercase tracking-wider">Désignation</th>
+            <th class="pb-3 pr-4 text-left text-xs font-bold text-slate-400 uppercase tracking-wider">Qté</th>
+            <th class="pb-3 text-left text-xs font-bold text-slate-400 uppercase tracking-wider">Bénéficiaire</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for op in dernieres_operations %}
+          <tr class="table-row">
+            <td class="py-3 pr-4 text-slate-400 whitespace-nowrap text-xs font-medium">{{ op.date_creation|date:"d/m/Y"|default:"—" }}</td>
+            <td class="py-3 pr-4">
+              {% if "Entrée" in op.type_entree or "Balance" in op.type_entree %}
+                <span class="badge-success">{{ op.type_entree|truncatechars:18 }}</span>
+              {% elif "Définitive" in op.type_entree %}
+                <span class="badge-red">{{ op.type_entree|truncatechars:18 }}</span>
+              {% elif "Affectation" in op.type_entree %}
+                <span class="badge-info">{{ op.type_entree|truncatechars:18 }}</span>
+              {% else %}
+                <span class="badge-warning">{{ op.type_entree|truncatechars:18 }}</span>
+              {% endif %}
+            </td>
+            <td class="py-3 pr-4 text-slate-700 max-w-xs truncate font-medium">{{ op.designation }}</td>
+            <td class="py-3 pr-4 font-bold text-slate-800">{{ op.qte }}</td>
+            <td class="py-3 text-slate-500 truncate">{{ op.beneficiaire|default:"—" }}</td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="5" class="py-10 text-center text-slate-400">Aucune opération enregistrée</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Alertes + Accès rapide -->
+  <div class="space-y-4">
+
+    {% if stock_faible %}
+    <div class="card" style="border-left:4px solid #f97316">
+      <h3 class="font-bold text-slate-800 mb-3 flex items-center gap-2">
+        <div class="w-7 h-7 rounded-lg bg-orange-100 flex items-center justify-center flex-shrink-0">
+          <svg class="w-3.5 h-3.5 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+          </svg>
+        </div>
+        Alertes stock faible
+      </h3>
+      <div>
+        {% for s in stock_faible %}
+        <div class="flex items-center justify-between py-2 text-sm" style="border-bottom:1px solid #fafafa">
+          <span class="text-slate-600 truncate" style="max-width:148px">{{ s.designation }}</span>
+          <span class="font-bold text-xs px-2 py-0.5 rounded-lg {% if s.qte_stock == 0 %}text-red-700 bg-red-100{% else %}text-orange-700 bg-orange-100{% endif %}">
+            {{ s.qte_stock }}
+          </span>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- Accès rapide -->
+    <div class="card">
+      <h3 class="font-bold text-slate-800 mb-4">Accès rapide</h3>
+      <div class="space-y-2">
+
+        <a href="{% url 'matieres:bon_entree_create' %}"
+           style="display:flex; align-items:center; gap:12px; padding:10px 12px; border-radius:12px; text-decoration:none; color:#374151; transition:background 150ms"
+           onmouseover="this.style.background='#f0fdf4'" onmouseout="this.style.background='transparent'">
+          <div style="width:36px; height:36px; border-radius:10px; flex-shrink:0; display:flex; align-items:center; justify-content:center; background:linear-gradient(135deg,#16a34a,#10b981); box-shadow:0 3px 10px rgba(22,163,74,0.35)">
+            <svg style="width:15px;height:15px;color:white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/>
+            </svg>
+          </div>
+          <span style="font-size:13.5px; font-weight:600">Nouveau bon d'entrée</span>
+        </a>
+
+        <a href="{% url 'matieres:bon_affectation_create' %}"
+           style="display:flex; align-items:center; gap:12px; padding:10px 12px; border-radius:12px; text-decoration:none; color:#374151; transition:background 150ms"
+           onmouseover="this.style.background='#eff6ff'" onmouseout="this.style.background='transparent'">
+          <div style="width:36px; height:36px; border-radius:10px; flex-shrink:0; display:flex; align-items:center; justify-content:center; background:linear-gradient(135deg,#1d4ed8,#4f46e5); box-shadow:0 3px 10px rgba(29,78,216,0.35)">
+            <svg style="width:15px;height:15px;color:white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/>
+            </svg>
+          </div>
+          <span style="font-size:13.5px; font-weight:600">Nouveau bon d'affectation</span>
+        </a>
+
+        <a href="{% url 'matieres:bon_sortie_prov_create' %}"
+           style="display:flex; align-items:center; gap:12px; padding:10px 12px; border-radius:12px; text-decoration:none; color:#374151; transition:background 150ms"
+           onmouseover="this.style.background='#fff7ed'" onmouseout="this.style.background='transparent'">
+          <div style="width:36px; height:36px; border-radius:10px; flex-shrink:0; display:flex; align-items:center; justify-content:center; background:linear-gradient(135deg,#ea580c,#f97316); box-shadow:0 3px 10px rgba(234,88,12,0.35)">
+            <svg style="width:15px;height:15px;color:white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/>
+            </svg>
+          </div>
+          <span style="font-size:13.5px; font-weight:600">Sortie provisoire</span>
+        </a>
+
+        <a href="{% url 'matieres:bon_sortie_def_create' %}"
+           style="display:flex; align-items:center; gap:12px; padding:10px 12px; border-radius:12px; text-decoration:none; color:#374151; transition:background 150ms"
+           onmouseover="this.style.background='#fff1f2'" onmouseout="this.style.background='transparent'">
+          <div style="width:36px; height:36px; border-radius:10px; flex-shrink:0; display:flex; align-items:center; justify-content:center; background:linear-gradient(135deg,#be123c,#ef4444); box-shadow:0 3px 10px rgba(190,18,60,0.35)">
+            <svg style="width:15px;height:15px;color:white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/>
+            </svg>
+          </div>
+          <span style="font-size:13.5px; font-weight:600">Sortie définitive</span>
+        </a>
+
+      </div>
+    </div>
+
+  </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+const labelsData  = {{ labels_mois|safe }};
+const entreesData = {{ data_entrees|safe }};
+const sortiesData = {{ data_sorties|safe }};
+const depotData   = {{ stock_par_depot|safe }};
+
+new ApexCharts(document.querySelector('#chart-evolution'), {
+  series: [
+    { name: "Bons d'entrée",      data: entreesData },
+    { name: 'Sorties définitives', data: sortiesData },
+  ],
+  chart: { type: 'area', height: 265, toolbar: { show: false }, fontFamily: 'inherit', background: 'transparent' },
+  colors: ['#10b981', '#ef4444'],
+  fill: { type: 'gradient', gradient: { opacityFrom: 0.28, opacityTo: 0.02 } },
+  stroke: { curve: 'smooth', width: 2.5 },
+  dataLabels: { enabled: false },
+  xaxis: {
+    categories: labelsData,
+    labels: { style: { fontSize: '11px', colors: '#94a3b8' } },
+    axisBorder: { show: false }, axisTicks: { show: false }
+  },
+  yaxis: { labels: { style: { fontSize: '11px', colors: '#94a3b8' } }, min: 0 },
+  grid: { borderColor: '#f1f5f9', strokeDashArray: 5, padding: { left: 0, right: 0 } },
+  legend: { position: 'top', horizontalAlign: 'right', fontSize: '12px', fontFamily: 'inherit' },
+  tooltip: { theme: 'light', style: { fontFamily: 'inherit' } },
+}).render();
+
+if (depotData.length > 0) {
+  new ApexCharts(document.querySelector('#chart-depot'), {
+    series: depotData.map(d => d.total),
+    labels:  depotData.map(d => d.depot),
+    chart: { type: 'donut', height: 245, fontFamily: 'inherit', background: 'transparent' },
+    colors: ['#6366f1','#10b981','#f59e0b','#ef4444','#8b5cf6','#06b6d4'],
+    legend: { position: 'bottom', fontSize: '11px', fontFamily: 'inherit' },
+    dataLabels: { enabled: true, style: { fontSize: '11px', fontFamily: 'inherit' } },
+    plotOptions: {
+      pie: { donut: { size: '62%', labels: {
+        show: true,
+        total: { show: true, label: 'Total', fontSize: '12px', color: '#64748b', fontFamily: 'inherit' }
+      }}}
+    },
+    tooltip: { theme: 'light', style: { fontFamily: 'inherit' } },
+  }).render();
+}
+</script>
+{% endblock %}

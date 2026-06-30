@@ -1,0 +1,52 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="flex items-center justify-between mb-6">
+  <div>
+    <h2 class="text-xl font-bold text-slate-800">Bons d'affectation</h2>
+    {% if nb_non_valides > 0 %}
+    <p class="text-sm text-orange-600 mt-0.5">{{ nb_non_valides }} bon{{ nb_non_valides|pluralize }} non confirmé{{ nb_non_valides|pluralize }}</p>
+    {% endif %}
+  </div>
+  <a href="{% url 'matieres:bon_affectation_create' %}" class="btn-primary">
+    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+    Nouveau bon d'affectation
+  </a>
+</div>
+
+<div class="card p-0 overflow-hidden">
+  <div class="overflow-x-auto">
+    <table class="w-full text-sm">
+      <thead class="bg-slate-50 border-b border-slate-200">
+        <tr>
+          <th class="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">N° Bon</th>
+          <th class="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Date</th>
+          <th class="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Dépôt</th>
+          <th class="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Bénéficiaire</th>
+          <th class="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Statut</th>
+          <th class="px-4 py-3"></th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-slate-100">
+        {% for bon in bons %}
+        <tr class="hover:bg-slate-50">
+          <td class="px-4 py-3 font-mono font-bold text-blue-700">BA-{{ bon.num_bon|stringformat:"04d" }}</td>
+          <td class="px-4 py-3 text-slate-600">{{ bon.date_affectation|date:"d/m/Y"|default:"—" }}</td>
+          <td class="px-4 py-3"><span class="badge-info">{{ bon.depot|default:"—" }}</span></td>
+          <td class="px-4 py-3 text-slate-700 font-medium">{{ bon.beneficiaire|default:"—" }}</td>
+          <td class="px-4 py-3">
+            {% if bon.valide %}<span class="badge-success">Confirmé</span>{% else %}<span class="badge-warning">En attente</span>{% endif %}
+          </td>
+          <td class="px-4 py-3 text-right">
+            <a href="{% url 'matieres:bon_affectation_update' bon.pk %}" class="text-primary-600 hover:text-primary-800 font-medium text-xs mr-3">Ouvrir →</a>
+            <a href="{% url 'matieres:bon_affectation_detail' bon.pk %}" class="text-slate-400 hover:text-slate-600 font-medium text-xs">Détail</a>
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="6" class="px-4 py-12 text-center text-slate-400">Aucun bon d'affectation</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

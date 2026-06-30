@@ -1,0 +1,17 @@
+{% if produits %}
+<div class="py-1">
+  {% for p in produits %}
+  <a href="/produits/{{ p.id }}/" class="flex items-center justify-between px-4 py-2.5 hover:bg-slate-50 transition-colors group">
+    <div>
+      <p class="text-sm text-slate-800 group-hover:text-primary-700 font-medium">{{ p.designation }}</p>
+      <p class="text-xs text-slate-400 font-mono">{{ p.nomenclature }}</p>
+    </div>
+    <span class="text-xs font-semibold {% if p.stock_global == 0 %}text-red-600{% elif p.stock_global < 5 %}text-orange-600{% else %}text-emerald-600{% endif %}">
+      {{ p.stock_global }}
+    </span>
+  </a>
+  {% endfor %}
+</div>
+{% elif q|length >= 2 %}
+<div class="px-4 py-3 text-sm text-slate-400">Aucun résultat pour "{{ q }}"</div>
+{% endif %}

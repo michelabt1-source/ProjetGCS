@@ -1,0 +1,21 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="flex items-center justify-between mb-6">
+  <h2 class="text-xl font-bold text-slate-800">Bénéficiaires</h2>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+  {% for b in beneficiaires %}
+  <div class="card flex items-center gap-4">
+    <div class="w-10 h-10 bg-indigo-100 rounded-full flex items-center justify-center text-indigo-700 font-bold text-lg flex-shrink-0">
+      {{ b.nom|first|upper }}
+    </div>
+    <div>
+      <p class="font-semibold text-slate-800">{{ b.nom }}</p>
+      {% if b.responsable %}<p class="text-sm text-slate-500">{{ b.responsable }}</p>{% endif %}
+    </div>
+  </div>
+  {% empty %}
+  <p class="text-slate-400 col-span-3">Aucun bénéficiaire enregistré.</p>
+  {% endfor %}
+</div>
+{% endblock %}

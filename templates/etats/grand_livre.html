@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% block content %}
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+  <div>
+    <h1 style="font-size:22px;font-weight:700;color:#0f172a">Grand Livre</h1>
+    <p style="color:#64748b;font-size:13px;margin-top:4px">{{ total }} opération(s)</p>
+  </div>
+</div>
+
+<div class="card" style="margin-bottom:16px;padding:14px 20px">
+  <form method="get" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+    <input name="q" value="{{ query }}" placeholder="Désignation, nomenclature, bénéficiaire…"
+      style="flex:1;min-width:180px;padding:8px 14px;border:1px solid #e2e8f0;border-radius:8px;font-size:13px;outline:none">
+    <select name="type" style="padding:8px 14px;border:1px solid #e2e8f0;border-radius:8px;font-size:13px">
+      <option value="">Tous types</option>
+      {% for t in types %}<option value="{{ t }}" {% if type_op == t %}selected{% endif %}>{{ t }}</option>{% endfor %}
+    </select>
+    <select name="depot" style="padding:8px 14px;border:1px solid #e2e8f0;border-radius:8px;font-size:13px">
+      <option value="">Tous dépôts</option>
+      {% for d in depots %}<option value="{{ d }}" {% if depot_f == d %}selected{% endif %}>{{ d }}</option>{% endfor %}
+    </select>
+    <select name="annee" style="padding:8px 14px;border:1px solid #e2e8f0;border-radius:8px;font-size:13px">
+      <option value="">Toutes années</option>
+      {% for a in annees %}<option value="{{ a }}" {% if annee_f == a|stringformat:"s" %}selected{% endif %}>{{ a }}</option>{% endfor %}
+    </select>
+    <button class="btn-primary" type="submit" style="padding:8px 20px">Filtrer</button>
+    {% if query or type_op or depot_f or annee_f %}<a href="?" class="btn-secondary" style="padding:8px 14px">Effacer</a>{% endif %}
+  </form>
+</div>
+
+<div class="card" style="padding:0;overflow:hidden">
+  <table style="width:100%;border-collapse:collapse;font-size:12px">
+    <thead>
+      <tr style="background:#f8fafc;border-bottom:2px solid #e2e8f0">
+        <th style="padding:10px 14px;text-align:left;font-weight:600;color:#475569;width:90px">Date</th>
+        <th style="padding:10px 14px;text-align:left;font-weight:600;color:#475569;width:60px">N° Bon</th>
+        <th style="padding:10px 14px;text-align:left;font-weight:600;color:#475569;width:100px">Type</th>
+        <th style="padding:10px 14px;text-align:left;font-weight:600;color:#475569;width:100px">Nomenclature</th>
+        <th style="padding:10px 14px;text-align:left;font-weight:600;color:#475569">Désignation</th>
+        <th style="padding:10px 14px;text-align:right;font-weight:600;color:#475569;width:70px">Qté</th>
+        <th style="padding:10px 14px;text-align:left;font-weight:600;color:#475569;width:80px">Unité</th>
+        <th style="padding:10px 14px;text-align:left;font-weight:600;color:#475569;width:100px">Bénéficiaire</th>
+        <th style="padding:10px 14px;text-align:right;font-weight:600;color:#475569;width:90px">Montant TTC</th>
+        <th style="padding:10px 14px;text-align:center;font-weight:600;color:#475569;width:60px">Dépôt</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for j in journal %}
+      <tr class="table-row">
+        <td style="padding:8px 14px;color:#64748b;font-size:11px">{{ j.date_creation|date:"d/m/Y"|default:"—" }}</td>
+        <td style="padding:8px 14px;color:#475569">{{ j.num_bon|default:"—" }}</td>
+        <td style="padding:8px 14px">
+          <span style="background:#f1f5f9;padding:2px 8px;border-radius:4px;font-size:11px;color:#334155">{{ j.type_entree|truncatechars:14 }}</span>
+        </td>
+        <td style="padding:8px 14px"><span style="font-family:monospace;font-size:11px;color:#334155">{{ j.nomenclature }}</span></td>
+        <td style="padding:8px 14px;color:#0f172a;font-weight:500">{{ j.designation|truncatechars:40 }}</td>
+        <td style="padding:8px 14px;text-align:right;font-weight:600;color:#0f172a">{{ j.qte }}</td>
+        <td style="padding:8px 14px;color:#64748b;font-size:11px">{{ j.unite }}</td>
+        <td style="padding:8px 14px;color:#64748b;font-size:11px">{{ j.beneficiaire|truncatechars:14 }}</td>
+        <td style="padding:8px 14px;text-align:right;color:#475569">{{ j.montant_ttc|floatformat:0 }}</td>
+        <td style="padding:8px 14px;text-align:center">
+          {% if j.depot %}<span style="background:#dbeafe;color:#1e40af;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600">{{ j.depot }}</span>{% endif %}
+        </td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="10" style="padding:40px;text-align:center;color:#94a3b8">Aucune opération.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

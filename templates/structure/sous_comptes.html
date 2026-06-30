@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block content %}
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px">
+  <div>
+    <h1 style="font-size:22px;font-weight:700;color:#0f172a">Sous-Comptes</h1>
+    <p style="color:#64748b;font-size:13px;margin-top:4px">{{ total }} sous-compte(s)</p>
+  </div>
+  <a href="{% url 'matieres:compte_principal_list' %}" class="btn-secondary">← Comptes principaux</a>
+</div>
+
+<div class="card" style="margin-bottom:20px;padding:14px 20px">
+  <form method="get" style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+    <input name="q" value="{{ query }}" placeholder="Rechercher famille ou numéro…"
+      style="flex:1;min-width:200px;padding:8px 14px;border:1px solid #e2e8f0;border-radius:8px;font-size:13px;outline:none">
+    <select name="compte" style="padding:8px 14px;border:1px solid #e2e8f0;border-radius:8px;font-size:13px">
+      <option value="">Tous les comptes</option>
+      {% for cp in comptes %}
+      <option value="{{ cp.pk }}" {% if compte_id == cp.pk|stringformat:"s" %}selected{% endif %}>{{ cp.num_compte }} — {{ cp.famille|truncatechars:30 }}</option>
+      {% endfor %}
+    </select>
+    <button class="btn-primary" type="submit" style="padding:8px 20px">Filtrer</button>
+    {% if query or compte_id %}<a href="?" class="btn-secondary" style="padding:8px 16px">Effacer</a>{% endif %}
+  </form>
+</div>
+
+<div class="card" style="padding:0;overflow:hidden">
+  <table style="width:100%;border-collapse:collapse;font-size:13px">
+    <thead>
+      <tr style="background:#f8fafc;border-bottom:2px solid #e2e8f0">
+        <th style="padding:12px 20px;text-align:left;font-weight:600;color:#475569;width:130px">N° Sous-compte</th>
+        <th style="padding:12px 20px;text-align:left;font-weight:600;color:#475569">Famille SC</th>
+        <th style="padding:12px 20px;text-align:left;font-weight:600;color:#475569">Compte principal</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for sc in sous_comptes %}
+      <tr class="table-row">
+        <td style="padding:12px 20px">
+          <span style="background:#dbeafe;color:#1e40af;padding:3px 10px;border-radius:6px;font-weight:600;font-size:12px">{{ sc.num_sous_compte }}</span>
+        </td>
+        <td style="padding:12px 20px;color:#0f172a;font-weight:500">{{ sc.famille_sc }}</td>
+        <td style="padding:12px 20px;color:#64748b;font-size:12px">
+          {% if sc.compte_principal %}
+          <span style="background:#f1f5f9;padding:2px 8px;border-radius:4px">{{ sc.compte_principal.num_compte }} — {{ sc.compte_principal.famille|truncatechars:25 }}</span>
+          {% endif %}
+        </td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="3" style="padding:40px;text-align:center;color:#94a3b8">Aucun sous-compte trouvé.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

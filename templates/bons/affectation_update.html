@@ -1,0 +1,458 @@
+{% extends 'base.html' %}
+{% load humanize %}
+{% block content %}
+{% with bon_num=bon.num_bon|stringformat:"04d" %}
+
+<style>
+  /* ── Layout général ── */
+  .update-grid { display:grid; grid-template-columns:1fr 1fr; gap:20px; margin-bottom:20px; }
+  @media(max-width:900px){ .update-grid{ grid-template-columns:1fr; } }
+
+  /* ── Cartes ── */
+  .section-card { background:#fff; border:1px solid #e2e8f0; border-radius:14px; padding:20px; box-shadow:0 1px 3px rgba(0,0,0,.05); }
+  .section-title { font-size:11px; font-weight:700; color:#64748b; text-transform:uppercase; letter-spacing:.06em; margin-bottom:14px; display:flex; align-items:center; gap:6px; }
+
+  /* ── Inputs ── */
+  .f-label { display:block; font-size:11px; font-weight:600; color:#64748b; margin-bottom:3px; text-transform:uppercase; letter-spacing:.04em; }
+  .f-input { width:100%; padding:7px 10px; border:1.5px solid #e2e8f0; border-radius:7px; font-size:13px; font-family:inherit; color:#1e293b; background:#fff; outline:none; transition:border-color .15s; box-sizing:border-box; }
+  .f-input:focus { border-color:#3b82f6; box-shadow:0 0 0 3px rgba(59,130,246,.1); }
+  .f-input:read-only { background:#f8fafc; color:#64748b; }
+  .f-select { appearance:none; background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E"); background-repeat:no-repeat; background-position:right 9px center; background-size:14px; padding-right:28px; }
+
+  /* ── Barre d'action ── */
+  .action-bar { background:#fff; border:1px solid #e2e8f0; border-radius:12px; padding:12px 16px; margin-bottom:18px; display:flex; align-items:center; gap:10px; flex-wrap:wrap; box-shadow:0 1px 3px rgba(0,0,0,.04); }
+  .btn-action { display:inline-flex; align-items:center; gap:6px; padding:7px 14px; border-radius:8px; font-size:12.5px; font-weight:600; cursor:pointer; border:none; text-decoration:none; transition:all .15s; }
+  .btn-back  { background:#f1f5f9; color:#475569; }
+  .btn-back:hover { background:#e2e8f0; }
+  .btn-valider { background:#059669; color:#fff; }
+  .btn-valider:hover { background:#047857; }
+  .btn-devalider { background:#d97706; color:#fff; }
+  .btn-devalider:hover { background:#b45309; }
+  .btn-print { background:#6366f1; color:#fff; }
+  .btn-print:hover { background:#4f46e5; }
+
+  /* ── Autocomplete produit ── */
+  .produit-wrap { position:relative; }
+  #ba-produit-dropdown { position:absolute; top:100%; left:0; right:0; z-index:200; background:#fff; border:1.5px solid #3b82f6; border-top:none; border-radius:0 0 10px 10px; max-height:220px; overflow-y:auto; display:none; box-shadow:0 8px 24px rgba(0,0,0,.12); }
+  #ba-produit-dropdown.open { display:block; }
+  .prod-item { padding:9px 12px; cursor:pointer; border-bottom:1px solid #f1f5f9; display:flex; align-items:center; gap:8px; }
+  .prod-item:hover { background:#eff6ff; }
+  .prod-item:last-child { border-bottom:none; }
+
+  /* ── Modal produits ── */
+  #ba-produit-modal-overlay { position:fixed; inset:0; background:rgba(15,23,42,.45); z-index:500; display:none; align-items:center; justify-content:center; }
+  #ba-produit-modal-overlay.open { display:flex; }
+  #ba-produit-modal { background:#fff; border-radius:18px; width:min(92vw,760px); max-height:82vh; display:flex; flex-direction:column; box-shadow:0 25px 60px rgba(0,0,0,.25); overflow:hidden; }
+  .modal-header { padding:18px 22px; background:linear-gradient(135deg,#3b82f6,#1d4ed8); display:flex; align-items:center; gap:12px; }
+  .modal-header h3 { color:#fff; font-weight:700; font-size:15px; margin:0; flex:1; }
+  .modal-search { padding:14px 18px; border-bottom:1px solid #f1f5f9; }
+  .modal-search input { width:100%; padding:9px 14px; border:1.5px solid #e2e8f0; border-radius:9px; font-size:13.5px; outline:none; box-sizing:border-box; }
+  .modal-search input:focus { border-color:#3b82f6; }
+  #ba-modal-product-list { overflow-y:auto; flex:1; }
+  .modal-prod-row { display:flex; align-items:center; padding:10px 18px; cursor:pointer; border-bottom:1px solid #f8fafc; gap:10px; }
+  .modal-prod-row:hover { background:#eff6ff; }
+
+  /* ── Tableau détails ── */
+  .lines-table { width:100%; border-collapse:collapse; font-size:12.5px; }
+  .lines-table th { background:#f8fafc; color:#64748b; font-size:10.5px; font-weight:700; text-transform:uppercase; letter-spacing:.05em; padding:8px 12px; text-align:left; border-bottom:1px solid #e2e8f0; position:sticky; top:0; }
+  .lines-table td { padding:8px 12px; border-bottom:1px solid #f1f5f9; vertical-align:middle; }
+  .lines-table tr:hover td { background:#f8fafc; }
+  .lines-table tr.selected-line td { background:#eff6ff; }
+  .delete-btn { background:none; border:none; cursor:pointer; color:#ef4444; font-size:16px; padding:2px 6px; border-radius:4px; line-height:1; }
+  .delete-btn:hover { background:#fee2e2; }
+  .badge-g1 { font-size:10px; font-weight:700; padding:1px 7px; border-radius:20px; background:#dbeafe; color:#1d4ed8; }
+
+  /* ── Boutons formulaire article ── */
+  .line-btns-row { margin-top:14px; display:flex; gap:8px; flex-wrap:wrap; }
+  .line-btn { display:inline-flex; align-items:center; gap:5px; padding:7px 14px; border-radius:7px; font-size:12.5px; font-weight:600; cursor:pointer; border:1.5px solid transparent; transition:all .15s; }
+  .line-btn-save  { background:#059669; color:#fff; border-color:#059669; }
+  .line-btn-save:hover { background:#047857; }
+  .line-btn-clear { background:#f1f5f9; color:#64748b; border-color:#e2e8f0; }
+  .line-btn-clear:hover { background:#e2e8f0; }
+
+  /* ── Montant TTC ── */
+  .ttc-auto { background:#f0fdf4; border-color:#bbf7d0; color:#15803d; font-weight:700; }
+</style>
+
+<!-- Barre d'actions -->
+<div class="action-bar">
+  <a href="{% url 'matieres:bons_affectation_list' %}" class="btn-action btn-back">
+    <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
+    Retour
+  </a>
+  <div style="font-family:monospace;font-size:15px;font-weight:800;color:#1d4ed8;padding:4px 10px;background:#eff6ff;border-radius:8px">
+    BA-{{ bon_num }}
+  </div>
+
+  {% if bon.valide %}
+    <span style="background:#f0fdf4;color:#15803d;font-size:12px;font-weight:700;padding:5px 12px;border-radius:20px;border:1px solid #bbf7d0">
+      Validé
+    </span>
+    <form method="post" action="{% url 'matieres:bon_affectation_devalider' bon.pk %}" style="margin-left:4px">
+      {% csrf_token %}
+      <button type="submit" class="btn-action btn-devalider" onclick="return confirm('Dévalider ce bon ?')">
+        <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+        Dévalider
+      </button>
+    </form>
+  {% else %}
+    <span style="background:#fff7ed;color:#c2410c;font-size:12px;font-weight:700;padding:5px 12px;border-radius:20px;border:1px solid #fed7aa">
+      En attente
+    </span>
+    <form method="post" action="{% url 'matieres:bon_affectation_valider' bon.pk %}">
+      {% csrf_token %}
+      <button type="submit" class="btn-action btn-valider" onclick="return confirm('Valider ce bon d\'affectation ?')">
+        <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        Valider
+      </button>
+    </form>
+  {% endif %}
+
+  <button class="btn-action btn-print" style="margin-left:auto" onclick="window.print()">
+    <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
+    Bon d'affectation
+  </button>
+</div>
+
+{% if messages %}
+<div style="margin-bottom:16px">
+  {% for msg in messages %}
+  <div style="padding:10px 16px;border-radius:9px;font-size:13px;font-weight:500;margin-bottom:6px;
+    {% if msg.tags == 'error' %}background:#fee2e2;color:#991b1b;border:1px solid #fecaca
+    {% elif msg.tags == 'success' %}background:#f0fdf4;color:#166534;border:1px solid #bbf7d0
+    {% else %}background:#fff7ed;color:#92400e;border:1px solid #fed7aa{% endif %}">
+    {{ msg }}
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+<div class="update-grid">
+
+  <!-- ── Panneau gauche : En-tête ── -->
+  <div class="section-card">
+    <div class="section-title">
+      <svg width="13" height="13" fill="none" stroke="#64748b" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+      En-tête du bon
+    </div>
+    <form method="post" action="{% url 'matieres:bon_affectation_update' bon.pk %}">
+      {% csrf_token %}
+      <div style="display:grid;gap:10px">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+          <div>
+            <label class="f-label">N° Bon</label>
+            <input type="text" value="BA-{{ bon_num }}" class="f-input" readonly>
+          </div>
+          <div>
+            <label class="f-label">Date</label>
+            <input type="date" name="date_affectation" class="f-input {% if bon.valide %}{% endif %}"
+                   value="{{ bon.date_affectation|date:'Y-m-d' }}" {% if bon.valide %}readonly{% endif %}>
+          </div>
+        </div>
+        <div>
+          <label class="f-label">Bénéficiaire</label>
+          <select name="beneficiaire_id" class="f-input f-select" {% if bon.valide %}disabled{% endif %}>
+            <option value="">— Sélectionner —</option>
+            {% for b in beneficiaires %}
+            <option value="{{ b.pk }}" {% if bon.beneficiaire_id == b.pk %}selected{% endif %}>{{ b.nom }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div>
+          <label class="f-label">Observation</label>
+          <textarea name="observation" class="f-input" rows="2" style="resize:vertical" {% if bon.valide %}readonly{% endif %}>{{ bon.observation }}</textarea>
+        </div>
+        {% if not bon.valide %}
+        <div>
+          <button type="submit" class="btn-action btn-valider" style="width:100%;justify-content:center">
+            <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+            Enregistrer l'en-tête
+          </button>
+        </div>
+        {% endif %}
+      </div>
+    </form>
+  </div>
+
+  <!-- ── Panneau droit : Saisie article ── -->
+  {% if not bon.valide %}
+  <div class="section-card">
+    <div class="section-title">
+      <svg width="13" height="13" fill="none" stroke="#64748b" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+      Saisie d'un article <span class="badge-g1">Groupe 1</span>
+    </div>
+
+    <!-- Champs visibles -->
+    <div style="display:grid;gap:9px">
+      <!-- Désignation + œil -->
+      <div>
+        <label class="f-label">Désignation *</label>
+        <div class="produit-wrap" id="ba-produit-wrap">
+          <div style="display:flex;gap:6px">
+            <input type="text" id="ba-f-designation" class="f-input" placeholder="Tapez pour rechercher (Groupe 1)…"
+                   hx-get="{% url 'matieres:htmx_ba_produit_search' %}"
+                   hx-trigger="input changed delay:250ms"
+                   hx-target="#ba-produit-dropdown"
+                   hx-include="[id='ba-f-designation']"
+                   name="q" autocomplete="off">
+            <button type="button" onclick="baOpenModal()"
+                    style="flex-shrink:0;padding:0 11px;background:#eff6ff;border:1.5px solid #bfdbfe;border-radius:7px;cursor:pointer;color:#3b82f6" title="Voir tous les produits G1">
+              <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                <path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+              </svg>
+            </button>
+          </div>
+          <div id="ba-produit-dropdown"></div>
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:9px">
+        <div>
+          <label class="f-label">Nomenclature</label>
+          <input type="text" id="ba-f-nomenclature" class="f-input" readonly style="font-family:monospace;color:#6366f1;font-weight:700">
+        </div>
+        <div>
+          <label class="f-label">Unité</label>
+          <select id="ba-f-unite-sel" class="f-input f-select">
+            <option value="">—</option>
+            {% for u in unites %}
+            <option value="{{ u.pk }}">{{ u.libelle }}</option>
+            {% endfor %}
+          </select>
+          <input type="hidden" id="ba-f-unite-id">
+        </div>
+      </div>
+
+      <div>
+        <label class="f-label">Spécification</label>
+        <input type="text" id="ba-f-specification" class="f-input">
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:9px">
+        <div>
+          <label class="f-label">Quantité</label>
+          <input type="number" id="ba-f-qte" class="f-input" value="0" min="0" step="0.5" oninput="baCalcMontant()">
+        </div>
+        <div>
+          <label class="f-label">Stock dispo</label>
+          <input type="text" id="ba-f-stock" class="f-input" readonly style="color:#059669;font-weight:700">
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:9px">
+        <div>
+          <label class="f-label">Prix Unitaire HT</label>
+          <input type="number" id="ba-f-prix-ht" class="f-input" value="0" min="0" step="1" oninput="baCalcAutoTTC()">
+        </div>
+        <div>
+          <label class="f-label">Prix Unitaire TTC <span style="color:#15803d;font-size:10px">(TVA 18% — auto)</span></label>
+          <input type="number" id="ba-f-prix-ttc" class="f-input ttc-auto" readonly>
+        </div>
+      </div>
+
+      <div>
+        <label class="f-label">Montant TTC</label>
+        <input type="text" id="ba-f-montant-ttc" class="f-input ttc-auto" readonly value="0,00 FCFA">
+      </div>
+
+      <div>
+        <label class="f-label">Observation</label>
+        <textarea id="ba-f-observation" class="f-input" rows="1" style="resize:none"></textarea>
+      </div>
+    </div>
+
+    <input type="hidden" id="ba-f-produit-id">
+
+    <!-- Boutons -->
+    <div class="line-btns-row">
+      <button type="button" class="line-btn line-btn-save"
+              hx-post="{% url 'matieres:htmx_ba_add_detail' pk=bon.pk %}"
+              hx-target="#ba-detail-rows-container"
+              hx-swap="innerHTML"
+              hx-include="#ba-article-form-data"
+              onclick="baPrepareSubmit()"
+              style="font-size:13px;padding:8px 18px">
+        <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
+        </svg>
+        Saisir
+        <span class="htmx-indicator" style="font-size:10px;opacity:.7">…</span>
+      </button>
+      <button type="button" class="line-btn line-btn-clear" onclick="baClearForm()">
+        <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+        </svg>
+        Effacer
+      </button>
+    </div>
+
+    <!-- Formulaire caché HTMX -->
+    <div id="ba-article-form-data" style="display:none">
+      {% csrf_token %}
+      <input type="hidden" name="produit_id"   id="ba-h-produit-id">
+      <input type="hidden" name="designation"  id="ba-h-designation">
+      <input type="hidden" name="nomenclature" id="ba-h-nomenclature">
+      <input type="hidden" name="specification" id="ba-h-specification">
+      <input type="hidden" name="qte"          id="ba-h-qte">
+      <input type="hidden" name="unite_id"     id="ba-h-unite-id">
+      <input type="hidden" name="prix_ht"      id="ba-h-prix-ht">
+      <input type="hidden" name="prix_ttc"     id="ba-h-prix-ttc">
+      <input type="hidden" name="observation"  id="ba-h-observation">
+    </div>
+  </div>
+  {% else %}
+  <div class="section-card" style="background:#f0fdf4;border-color:#bbf7d0;display:flex;align-items:center;justify-content:center">
+    <div style="text-align:center;color:#166534">
+      <svg width="40" height="40" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5" style="margin:0 auto 10px;display:block"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+      <p style="font-weight:700;font-size:15px">Bon validé</p>
+      <p style="font-size:12px;opacity:.7;margin-top:4px">Saisie verrouillée — dévalidez pour modifier</p>
+    </div>
+  </div>
+  {% endif %}
+</div>
+
+<!-- ── Tableau des détails ── -->
+<div class="section-card" style="padding:0">
+  <div style="padding:14px 18px;border-bottom:1px solid #f1f5f9;display:flex;align-items:center;gap:10px">
+    <span style="font-size:12px;font-weight:700;color:#1e293b;text-transform:uppercase;letter-spacing:.05em">Détails du bon d'affectation</span>
+    <span class="badge-g1">Matières Groupe 1</span>
+    {% if bon.details.count > 0 %}
+    <span style="margin-left:auto;font-size:12px;color:#64748b">
+      <strong>{{ bon.details.count }}</strong> article{{ bon.details.count|pluralize }} —
+      <strong style="color:#059669">{% with bon.total_ttc as t %}{{ t|floatformat:0|intcomma }} FCFA{% endwith %}</strong>
+    </span>
+    {% endif %}
+  </div>
+  <div style="overflow-x:auto">
+    <div id="ba-detail-rows-container">
+      {% include 'partials/ba_detail_rows.html' with details=details bon=bon %}
+    </div>
+  </div>
+</div>
+
+<!-- ── Modal catalogue produits G1 ── -->
+<div id="ba-produit-modal-overlay" onclick="baCloseModalOnBg(event)">
+  <div id="ba-produit-modal">
+    <div class="modal-header">
+      <svg width="18" height="18" fill="none" stroke="#fff" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
+      <h3>Catalogue — Matières Groupe 1</h3>
+      <button onclick="baCloseModal()" style="background:rgba(255,255,255,.2);border:none;border-radius:6px;padding:5px 9px;cursor:pointer;color:#fff;font-size:16px">✕</button>
+    </div>
+    <div class="modal-search">
+      <input type="text" id="ba-modal-search-input" placeholder="Rechercher par désignation ou nomenclature…"
+             hx-get="{% url 'matieres:htmx_ba_modal_produits' %}"
+             hx-trigger="input changed delay:250ms, load"
+             hx-target="#ba-modal-product-list"
+             name="q" autocomplete="off">
+    </div>
+    <div id="ba-modal-product-list" style="overflow-y:auto;flex:1">
+      <div style="padding:40px;text-align:center;color:#94a3b8">Chargement…</div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── Calculs ──
+function baCalcMontant() {
+  const qte = parseFloat(document.getElementById('ba-f-qte').value) || 0;
+  const ttc = parseFloat(document.getElementById('ba-f-prix-ttc').value) || 0;
+  const m   = qte * ttc;
+  document.getElementById('ba-f-montant-ttc').value =
+    new Intl.NumberFormat('fr-FR',{minimumFractionDigits:2,maximumFractionDigits:2}).format(m) + ' FCFA';
+}
+function baCalcAutoTTC() {
+  const ht  = parseFloat(document.getElementById('ba-f-prix-ht').value) || 0;
+  document.getElementById('ba-f-prix-ttc').value = (Math.round(ht * 118) / 100).toFixed(2);
+  baCalcMontant();
+}
+
+// ── Effacer formulaire ──
+function baClearForm() {
+  ['ba-f-designation','ba-f-nomenclature','ba-f-specification','ba-f-observation'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.value = '';
+  });
+  ['ba-f-qte','ba-f-prix-ht','ba-f-prix-ttc'].forEach(id => document.getElementById(id).value = '0');
+  document.getElementById('ba-f-montant-ttc').value = '0,00 FCFA';
+  document.getElementById('ba-f-produit-id').value  = '';
+  document.getElementById('ba-f-unite-id').value    = '';
+  document.getElementById('ba-f-stock').value       = '';
+  document.getElementById('ba-f-unite-sel').value   = '';
+  const dd = document.getElementById('ba-produit-dropdown');
+  if (dd) { dd.classList.remove('open'); dd.innerHTML = ''; }
+  document.getElementById('ba-f-designation').focus();
+}
+
+// ── Préparer l'envoi HTMX ──
+function baPrepareSubmit() {
+  document.getElementById('ba-h-produit-id').value   = document.getElementById('ba-f-produit-id').value;
+  document.getElementById('ba-h-designation').value  = document.getElementById('ba-f-designation').value;
+  document.getElementById('ba-h-nomenclature').value = document.getElementById('ba-f-nomenclature').value;
+  document.getElementById('ba-h-specification').value = document.getElementById('ba-f-specification').value;
+  document.getElementById('ba-h-qte').value          = document.getElementById('ba-f-qte').value;
+  document.getElementById('ba-h-unite-id').value     = document.getElementById('ba-f-unite-sel').value || document.getElementById('ba-f-unite-id').value;
+  document.getElementById('ba-h-prix-ht').value      = document.getElementById('ba-f-prix-ht').value;
+  document.getElementById('ba-h-prix-ttc').value     = document.getElementById('ba-f-prix-ttc').value;
+  document.getElementById('ba-h-observation').value  = document.getElementById('ba-f-observation').value;
+}
+
+// ── Sélectionner un produit ──
+function baPickProduit(id, designation, nomenclature, specification, uniteId, uniteLibelle, stockDispo) {
+  document.getElementById('ba-f-produit-id').value    = id;
+  document.getElementById('ba-f-designation').value  = designation;
+  document.getElementById('ba-f-nomenclature').value = nomenclature;
+  document.getElementById('ba-f-specification').value = specification;
+  document.getElementById('ba-f-unite-id').value     = uniteId;
+  document.getElementById('ba-f-stock').value        = stockDispo;
+  const sel = document.getElementById('ba-f-unite-sel');
+  for (const opt of sel.options) { if (opt.value == uniteId) { sel.value = uniteId; break; } }
+  const dd = document.getElementById('ba-produit-dropdown');
+  if (dd) { dd.classList.remove('open'); dd.innerHTML = ''; }
+  baCloseModal();
+  document.getElementById('ba-f-qte').focus();
+}
+
+// ── Modal ──
+function baOpenModal() {
+  document.getElementById('ba-produit-modal-overlay').style.display = 'flex';
+  document.getElementById('ba-modal-search-input').focus();
+}
+function baCloseModal() {
+  document.getElementById('ba-produit-modal-overlay').style.display = 'none';
+}
+function baCloseModalOnBg(e) {
+  if (e.target === document.getElementById('ba-produit-modal-overlay')) baCloseModal();
+}
+
+// ── Autocomplete dropdown ──
+document.addEventListener('click', function(e) {
+  const wrap = document.getElementById('ba-produit-wrap');
+  if (wrap && !wrap.contains(e.target)) {
+    const dd = document.getElementById('ba-produit-dropdown');
+    if (dd) dd.classList.remove('open');
+  }
+});
+document.body.addEventListener('htmx:afterSwap', function(e) {
+  if (e.target && e.target.id === 'ba-produit-dropdown') {
+    e.target.classList.toggle('open', !!e.target.innerHTML.trim());
+  }
+  if (e.target && e.target.id === 'ba-detail-rows-container') {
+    baClearForm();
+  }
+});
+
+// ── Sélection ligne tableau ──
+let selectedDetailId = null;
+function baSelectLine(pk, tr) {
+  document.querySelectorAll('.lines-table tbody tr').forEach(r => r.classList.remove('selected-line'));
+  tr.classList.add('selected-line');
+  selectedDetailId = pk;
+}
+
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') baCloseModal();
+});
+</script>
+
+{% endwith %}
+{% endblock %}

@@ -1,0 +1,19 @@
+{% for p in produits %}
+<div class="prod-item"
+     onclick="baPickProduit('{{ p.pk }}','{{ p.designation|escapejs }}','{{ p.nomenclature|escapejs }}','{{ p.specification|escapejs }}','{{ p.unite_id|default:'' }}','{{ p.unite.libelle|default:''|escapejs }}',{{ p.stock_disponible }})">
+  <div style="flex:1;min-width:0">
+    <div style="font-size:13px;font-weight:600;color:#1e293b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ p.designation }}</div>
+    <div style="font-size:11px;color:#64748b;margin-top:1px">
+      <span style="font-family:monospace;color:#6366f1;font-weight:700">{{ p.nomenclature }}</span>
+      {% if p.unite %} · {{ p.unite }}{% endif %}
+    </div>
+  </div>
+  <span style="font-size:11px;font-weight:700;padding:2px 8px;border-radius:20px;flex-shrink:0;
+               background:{% if p.stock_disponible > 0 %}#dcfce7{% else %}#fef3c7{% endif %};
+               color:{% if p.stock_disponible > 0 %}#15803d{% else %}#92400e{% endif %}">
+    {{ p.stock_disponible }}
+  </span>
+</div>
+{% empty %}
+<div style="padding:16px;text-align:center;color:#94a3b8;font-size:12px">Aucun produit Groupe 1 trouvé</div>
+{% endfor %}

@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% block content %}
+<div style="max-width:760px">
+  <h1 style="font-size:22px;font-weight:700;color:#0f172a;margin-bottom:6px">Société GCS</h1>
+  <p style="color:#64748b;font-size:13px;margin-bottom:28px">Informations de l'établissement</p>
+
+  <form method="post">
+    {% csrf_token %}
+    <div class="card" style="margin-bottom:20px">
+      <h3 style="font-size:14px;font-weight:700;color:#0f172a;margin-bottom:20px;padding-bottom:12px;border-bottom:1px solid #f1f5f9">Identification</h3>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+        <div style="grid-column:1/-1">
+          <label style="font-size:12px;font-weight:600;color:#475569;display:block;margin-bottom:6px">Nom de l'établissement *</label>
+          <input name="nom" value="{{ societe.nom|default:'' }}" required style="width:100%;padding:9px 14px;border:1px solid #e2e8f0;border-radius:8px;font-size:13px;outline:none">
+        </div>
+        <div>
+          <label style="font-size:12px;font-weight:600;color:#475569;display:block;margin-bottom:6px">Téléphone</label>
+          <input name="telephone" value="{{ societe.telephone|default:'' }}" style="width:100%;padding:9px 14px;border:1px solid #e2e8f0;border-radius:8px;font-size:13px;outline:none">
+        </div>
+        <div>
+          <label style="font-size:12px;font-weight:600;color:#475569;display:block;margin-bottom:6px">Email</label>
+          <input name="email" type="email" value="{{ societe.email|default:'' }}" style="width:100%;padding:9px 14px;border:1px solid #e2e8f0;border-radius:8px;font-size:13px;outline:none">
+        </div>
+        <div>
+          <label style="font-size:12px;font-weight:600;color:#475569;display:block;margin-bottom:6px">Fax</label>
+          <input name="fax" value="{{ societe.fax|default:'' }}" style="width:100%;padding:9px 14px;border:1px solid #e2e8f0;border-radius:8px;font-size:13px;outline:none">
+        </div>
+        <div>
+          <label style="font-size:12px;font-weight:600;color:#475569;display:block;margin-bottom:6px">Ville</label>
+          <input name="ville" value="{{ societe.ville|default:'' }}" style="width:100%;padding:9px 14px;border:1px solid #e2e8f0;border-radius:8px;font-size:13px;outline:none">
+        </div>
+        <div style="grid-column:1/-1">
+          <label style="font-size:12px;font-weight:600;color:#475569;display:block;margin-bottom:6px">Adresse</label>
+          <input name="adresse" value="{{ societe.adresse|default:'' }}" style="width:100%;padding:9px 14px;border:1px solid #e2e8f0;border-radius:8px;font-size:13px;outline:none">
+        </div>
+        <div style="grid-column:1/-1">
+          <label style="font-size:12px;font-weight:600;color:#475569;display:block;margin-bottom:6px">Ministère de tutelle</label>
+          <input name="ministere" value="{{ societe.ministere|default:'' }}" style="width:100%;padding:9px 14px;border:1px solid #e2e8f0;border-radius:8px;font-size:13px;outline:none">
+        </div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-bottom:24px">
+      <h3 style="font-size:14px;font-weight:700;color:#0f172a;margin-bottom:20px;padding-bottom:12px;border-bottom:1px solid #f1f5f9">Responsables</h3>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+        {% for field, label in "administrateur:Administrateur,comptable:Comptable,receptionnaire:Réceptionnaire,responsable:Responsable"|split_items %}
+        {% endfor %}
+        <div>
+          <label style="font-size:12px;font-weight:600;color:#475569;display:block;margin-bottom:6px">Administrateur</label>
+          <input name="administrateur" value="{{ societe.administrateur|default:'' }}" style="width:100%;padding:9px 14px;border:1px solid #e2e8f0;border-radius:8px;font-size:13px;outline:none">
+        </div>
+        <div>
+          <label style="font-size:12px;font-weight:600;color:#475569;display:block;margin-bottom:6px">Comptable</label>
+          <input name="comptable" value="{{ societe.comptable|default:'' }}" style="width:100%;padding:9px 14px;border:1px solid #e2e8f0;border-radius:8px;font-size:13px;outline:none">
+        </div>
+        <div>
+          <label style="font-size:12px;font-weight:600;color:#475569;display:block;margin-bottom:6px">Réceptionnaire</label>
+          <input name="receptionnaire" value="{{ societe.receptionnaire|default:'' }}" style="width:100%;padding:9px 14px;border:1px solid #e2e8f0;border-radius:8px;font-size:13px;outline:none">
+        </div>
+        <div>
+          <label style="font-size:12px;font-weight:600;color:#475569;display:block;margin-bottom:6px">Responsable</label>
+          <input name="responsable" value="{{ societe.responsable|default:'' }}" style="width:100%;padding:9px 14px;border:1px solid #e2e8f0;border-radius:8px;font-size:13px;outline:none">
+        </div>
+      </div>
+    </div>
+
+    <div style="display:flex;gap:12px">
+      <button class="btn-primary" type="submit">Enregistrer</button>
+    </div>
+  </form>
+</div>
+{% endblock %}
