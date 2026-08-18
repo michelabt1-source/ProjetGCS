@@ -1,0 +1,904 @@
+{% extends 'base.html' %}
+{% load humanize %}
+{% block content %}
+{% with bon_num=bon.num_bon|stringformat:"04d" %}
+
+<style>
+/* Plein écran : supprimer le padding du conteneur base.html */
+.main-inner { padding: 0 !important; }
+
+/* ══════════════════════════════════════════════
+   DESIGN TOKENS
+══════════════════════════════════════════════ */
+:root {
+  --clr-primary:    #dc2626;
+  --clr-primary-dk: #991b1b;
+  --clr-success:    #059669;
+  --clr-warn:       #d97706;
+  --clr-danger:     #dc2626;
+  --clr-surface:    #ffffff;
+  --clr-bg:         #f1f5f9;
+  --clr-border:     #e2e8f0;
+  --clr-border-dk:  #cbd5e1;
+  --clr-text:       #0f172a;
+  --clr-muted:      #64748b;
+  --clr-subtle:     #94a3b8;
+  --radius-sm:  6px;
+  --radius-md:  10px;
+  --radius-lg:  14px;
+  --shadow-sm:  0 1px 3px rgba(0,0,0,.06), 0 1px 2px rgba(0,0,0,.04);
+  --shadow-md:  0 4px 12px rgba(0,0,0,.08);
+  --shadow-lg:  0 20px 50px rgba(0,0,0,.18);
+  --font-mono:  'IBM Plex Mono', monospace;
+}
+
+body { background: var(--clr-bg); }
+
+/* ══════════════════════════════════════════════
+   TOP BAR
+══════════════════════════════════════════════ */
+.bon-topbar {
+  position: sticky; top: 0; z-index: 100;
+  background: var(--clr-surface);
+  border-bottom: 1px solid var(--clr-border);
+  box-shadow: var(--shadow-sm);
+  padding: 0 20px;
+  display: flex; align-items: center; gap: 12px;
+  height: 54px;
+}
+.bon-num {
+  font-family: var(--font-mono); font-size: 16px; font-weight: 800;
+  color: var(--clr-primary);
+  background: #fef2f2; border: 1px solid #fecaca;
+  padding: 4px 12px; border-radius: var(--radius-md);
+  letter-spacing: .04em; white-space: nowrap;
+}
+.bon-status {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-size: 11.5px; font-weight: 700; padding: 4px 11px;
+  border-radius: 20px; white-space: nowrap;
+}
+.bon-status.valide  { background: #f0fdf4; color: #15803d; border: 1px solid #bbf7d0; }
+.bon-status.attente { background: #fff7ed; color: #c2410c; border: 1px solid #fed7aa; }
+.bon-sep { width: 1px; height: 24px; background: var(--clr-border); flex-shrink: 0; }
+.bon-meta { font-size: 12px; color: var(--clr-muted); white-space: nowrap; }
+.bon-meta strong { color: var(--clr-text); }
+.topbar-right { margin-left: auto; display: flex; gap: 8px; align-items: center; }
+
+.btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 7px 14px; border-radius: var(--radius-md);
+  font-size: 12.5px; font-weight: 600; cursor: pointer;
+  border: 1.5px solid transparent; text-decoration: none;
+  transition: all .15s; white-space: nowrap;
+}
+.btn:focus-visible { outline: 2px solid var(--clr-primary); outline-offset: 2px; }
+.btn-ghost  { background: var(--clr-bg); color: var(--clr-muted); border-color: var(--clr-border); }
+.btn-ghost:hover { background: var(--clr-border); color: var(--clr-text); }
+.btn-primary { background: var(--clr-primary); color: #fff; border-color: var(--clr-primary-dk); }
+.btn-primary:hover { background: var(--clr-primary-dk); }
+.btn-success { background: var(--clr-success); color: #fff; }
+.btn-success:hover { background: #047857; }
+.btn-warn   { background: var(--clr-warn); color: #fff; }
+.btn-warn:hover { background: #b45309; }
+.btn-print  { background: #6366f1; color: #fff; }
+.btn-print:hover { background: #4f46e5; }
+
+.msg-bar { padding: 0 20px 10px; }
+.msg {
+  padding: 10px 16px; border-radius: var(--radius-md);
+  font-size: 13px; font-weight: 500; margin-bottom: 6px;
+  display: flex; align-items: center; gap: 8px;
+}
+.msg-success { background: #f0fdf4; color: #166534; border: 1px solid #bbf7d0; }
+.msg-error   { background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; }
+.msg-warning { background: #fff7ed; color: #92400e; border: 1px solid #fed7aa; }
+
+/* ══════════════════════════════════════════════
+   LAYOUT
+══════════════════════════════════════════════ */
+.bon-workspace {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  grid-template-rows: auto 1fr;
+  gap: 16px;
+  padding: 16px 20px 20px;
+  min-height: calc(100vh - 54px);
+}
+@media (max-width: 900px) { .bon-workspace { grid-template-columns: 1fr; } }
+
+.panel {
+  background: var(--clr-surface);
+  border: 1px solid var(--clr-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+}
+.panel-header {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--clr-border);
+  display: flex; align-items: center; gap: 8px;
+  background: #fafafa;
+}
+.panel-title {
+  font-size: 11px; font-weight: 800; color: var(--clr-muted);
+  text-transform: uppercase; letter-spacing: .07em;
+}
+.panel-body { padding: 14px 16px; }
+
+.entete-panel { grid-column: 1; grid-row: 1 / 3; }
+@media (max-width: 900px) { .entete-panel { grid-column: 1; grid-row: auto; } }
+.saisie-panel { grid-column: 2; grid-row: 1; }
+@media (max-width: 900px) { .saisie-panel { grid-column: 1; grid-row: auto; } }
+.table-panel { grid-column: 2; grid-row: 2; }
+@media (max-width: 900px) { .table-panel { grid-column: 1; grid-row: auto; } }
+
+/* ══════════════════════════════════════════════
+   FORMULAIRES
+══════════════════════════════════════════════ */
+.f-group { display: flex; flex-direction: column; gap: 4px; }
+.f-label {
+  font-size: 10.5px; font-weight: 700; color: var(--clr-muted);
+  text-transform: uppercase; letter-spacing: .05em;
+}
+.f-input {
+  width: 100%; padding: 7px 10px;
+  border: 1.5px solid var(--clr-border); border-radius: var(--radius-sm);
+  font-size: 13px; font-family: inherit; color: var(--clr-text);
+  background: var(--clr-surface); outline: none;
+  transition: border-color .15s, box-shadow .15s;
+  box-sizing: border-box;
+}
+.f-input:focus { border-color: var(--clr-primary); box-shadow: 0 0 0 3px rgba(220,38,38,.1); }
+.f-input:read-only, .f-input[readonly] { background: #f8fafc; color: var(--clr-muted); cursor: default; }
+.f-input.auto-fill { background: #fef2f2; border-color: #fecaca; color: var(--clr-primary-dk); font-weight: 600; }
+.f-input.mono { font-family: var(--font-mono); color: #b91c1c; font-weight: 700; }
+.f-select {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: right 9px center; background-size: 13px;
+  padding-right: 28px; cursor: pointer;
+}
+.f-select:focus { border-color: var(--clr-primary); box-shadow: 0 0 0 3px rgba(220,38,38,.1); }
+.f-select:disabled { background-color: #f8fafc; color: #94a3b8; }
+.f-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.f-stack  { display: flex; flex-direction: column; gap: 10px; }
+
+.stock-alert {
+  background: #fef2f2; color: #991b1b;
+  border: 1px solid #fecaca; border-radius: var(--radius-sm);
+  padding: 6px 10px; font-size: 12px; font-weight: 600;
+  display: none; align-items: center; gap: 6px;
+}
+.stock-alert.show { display: flex; }
+
+.action-row { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+.btn-saisir {
+  flex: 1; background: var(--clr-success); color: #fff;
+  border: none; border-radius: var(--radius-md);
+  padding: 9px 16px; font-size: 13px; font-weight: 700;
+  cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;
+  transition: background .15s;
+}
+.btn-saisir:hover { background: #047857; }
+.btn-saisir:disabled { background: #cbd5e1; cursor: not-allowed; }
+.btn-clear-form {
+  background: var(--clr-bg); color: var(--clr-muted);
+  border: 1.5px solid var(--clr-border); border-radius: var(--radius-md);
+  padding: 9px 14px; font-size: 12.5px; font-weight: 600;
+  cursor: pointer; display: flex; align-items: center; gap: 5px;
+  transition: all .15s;
+}
+.btn-clear-form:hover { background: var(--clr-border); color: var(--clr-text); }
+
+.produit-wrap { position: relative; }
+#bg-produit-dropdown {
+  position: absolute; top: calc(100% + 2px); left: 0; right: 0; z-index: 200;
+  background: var(--clr-surface); border: 1.5px solid var(--clr-primary);
+  border-radius: var(--radius-md); max-height: 240px; overflow-y: auto;
+  display: none; box-shadow: var(--shadow-md);
+}
+#bg-produit-dropdown.open { display: block; }
+.prod-item {
+  padding: 9px 12px; cursor: pointer; border-bottom: 1px solid #f1f5f9;
+  display: flex; align-items: center; gap: 8px;
+  transition: background .1s;
+}
+.prod-item:hover { background: #fef2f2; }
+.prod-item:last-child { border-bottom: none; }
+
+/* ══════════════════════════════════════════════
+   TABLEAU DÉTAILS
+══════════════════════════════════════════════ */
+.lines-table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+.lines-table thead th {
+  background: #f8fafc; color: var(--clr-muted);
+  font-size: 10.5px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .05em; padding: 9px 12px; text-align: left;
+  border-bottom: 2px solid var(--clr-border);
+  position: sticky; top: 0; z-index: 1;
+  white-space: nowrap;
+}
+.lines-table td {
+  padding: 9px 12px; border-bottom: 1px solid #f1f5f9;
+  vertical-align: middle; color: var(--clr-text);
+}
+.lines-table tbody tr { transition: background .1s; }
+.lines-table tbody tr:hover td { background: #f8fafc; }
+.lines-table tbody tr.selected-line td { background: #fef2f2; }
+.lines-table tbody tr:last-child td { border-bottom: none; }
+.lines-table tfoot td {
+  padding: 10px 12px; background: #fafafa;
+  border-top: 2px solid var(--clr-border);
+}
+.delete-btn {
+  background: none; border: none; cursor: pointer;
+  color: #ef4444; font-size: 16px; padding: 3px 7px;
+  border-radius: var(--radius-sm); line-height: 1;
+  transition: background .1s;
+}
+.delete-btn:hover { background: #fee2e2; }
+
+.badge { font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 20px; }
+.badge-g2 { background: #fee2e2; color: var(--clr-primary-dk); }
+.badge-lock { background: #f0fdf4; color: #15803d; border: 1px solid #bbf7d0; }
+
+/* ══════════════════════════════════════════════
+   MODAL CATALOGUE
+══════════════════════════════════════════════ */
+#bg-produit-modal-overlay {
+  position: fixed; inset: 0; background: rgba(15,23,42,.5);
+  z-index: 500; display: none; align-items: center; justify-content: center;
+  backdrop-filter: blur(3px);
+}
+#bg-produit-modal-overlay.open { display: flex; }
+#bg-produit-modal {
+  background: var(--clr-surface); border-radius: 18px;
+  width: min(94vw, 780px); max-height: 85vh;
+  display: flex; flex-direction: column;
+  box-shadow: var(--shadow-lg); overflow: hidden;
+}
+.modal-header {
+  padding: 18px 22px;
+  background: linear-gradient(135deg, var(--clr-primary), var(--clr-primary-dk));
+  display: flex; align-items: center; gap: 12px; flex-shrink: 0;
+}
+.modal-header h3 { color: #fff; font-weight: 700; font-size: 15px; margin: 0; flex: 1; }
+.modal-close-btn {
+  background: rgba(255,255,255,.2); border: none; border-radius: var(--radius-sm);
+  padding: 5px 10px; cursor: pointer; color: #fff; font-size: 16px; line-height: 1;
+}
+.modal-close-btn:hover { background: rgba(255,255,255,.35); }
+.modal-search { padding: 14px 18px; border-bottom: 1px solid var(--clr-border); flex-shrink: 0; }
+.modal-search input {
+  width: 100%; padding: 9px 14px;
+  border: 1.5px solid var(--clr-border); border-radius: var(--radius-md);
+  font-size: 13.5px; outline: none; box-sizing: border-box;
+}
+.modal-search input:focus { border-color: var(--clr-primary); }
+#bg-modal-product-list { overflow-y: auto; flex: 1; }
+.modal-prod-row {
+  display: flex; align-items: center; padding: 10px 18px;
+  cursor: pointer; border-bottom: 1px solid #f8fafc; gap: 10px;
+  transition: background .1s;
+}
+.modal-prod-row:hover { background: #fef2f2; }
+
+.validated-notice {
+  display: flex; flex-direction: column; align-items: center;
+  justify-content: center; text-align: center;
+  padding: 32px 20px; gap: 10px; color: #15803d;
+  background: #f0fdf4; border-radius: var(--radius-lg);
+  border: 1px dashed #86efac;
+}
+
+@media print {
+  .bon-topbar, .entete-panel, .saisie-panel { display: none !important; }
+  .bon-workspace { display: block; padding: 0; }
+  .table-panel { box-shadow: none; border: none; }
+}
+</style>
+
+<!-- ══════════════════════ TOP BAR ══════════════════════ -->
+<div class="bon-topbar" role="toolbar" aria-label="Actions bon de sortie définitive Groupe 2">
+  <a href="{% url 'matieres:bons_sortie_def_g2_list' %}" class="btn btn-ghost" aria-label="Retour à la liste">
+    <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+    </svg>
+    Retour
+  </a>
+
+  <span class="bon-num" aria-label="Numéro bon">BSD-{{ bon_num }}</span>
+
+  {% if bon.valide %}
+    <span class="bon-status valide" role="status">
+      <svg width="11" height="11" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
+      Validé
+    </span>
+  {% else %}
+    <span class="bon-status attente" role="status">
+      <svg width="11" height="11" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"/></svg>
+      En attente
+    </span>
+  {% endif %}
+
+  <div class="bon-sep" aria-hidden="true"></div>
+  <span class="badge badge-g2">Groupe 2 — consommables</span>
+
+  {% if bon.service %}
+  <div class="bon-sep" aria-hidden="true"></div>
+  <span class="bon-meta">Service : <strong>{{ bon.service.code }}{% if bon.bureau %} / {{ bon.bureau.code }}{% endif %}</strong></span>
+  {% endif %}
+  {% if bon.depot %}
+  <div class="bon-sep" aria-hidden="true"></div>
+  <span class="bon-meta">Dépôt : <strong>{{ bon.depot.code }}</strong></span>
+  {% endif %}
+
+  <div class="topbar-right">
+    {% if bon.valide %}
+      <form method="post" action="{% url 'matieres:bon_sortie_def_g2_devalider' bon.pk %}" style="margin:0">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-warn"
+                onclick="return confirm('Dévalider BSD-{{ bon_num }} ? Le stock sera restauré.')"
+                aria-label="Dévalider ce bon">
+          <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+          </svg>
+          Dévalider
+        </button>
+      </form>
+    {% else %}
+      <form method="post" action="{% url 'matieres:bon_sortie_def_g2_valider' bon.pk %}" style="margin:0">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-success"
+                onclick="return confirm('Valider BSD-{{ bon_num }} ? Les articles quitteront définitivement le stock.')"
+                aria-label="Valider ce bon">
+          <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+          </svg>
+          Valider
+        </button>
+      </form>
+    {% endif %}
+
+    <a href="{% url 'matieres:bon_sortie_def_g2_etat' bon.pk %}" target="_blank" class="btn btn-print" aria-label="Imprimer l'état officiel du bon">
+      <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/>
+      </svg>
+      Imprimer
+    </a>
+  </div>
+</div>
+
+<!-- Messages -->
+{% if messages %}
+<div class="msg-bar" role="alert" aria-live="polite">
+  {% for msg in messages %}
+  <div class="msg {% if msg.tags == 'error' %}msg-error{% elif msg.tags == 'success' %}msg-success{% else %}msg-warning{% endif %}">
+    {{ msg }}
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+<!-- ══════════════════════ WORKSPACE ══════════════════════ -->
+<div class="bon-workspace">
+
+  <!-- ── PANNEAU EN-TÊTE ── -->
+  <aside class="panel entete-panel" aria-label="En-tête du bon">
+    <div class="panel-header">
+      <svg width="13" height="13" fill="none" stroke="var(--clr-muted)" viewBox="0 0 24 24" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+      </svg>
+      <span class="panel-title">En-tête du bon</span>
+      {% if bon.valide %}<span class="badge badge-lock" style="margin-left:auto">Verrouillé</span>{% endif %}
+    </div>
+    <div class="panel-body">
+      <form method="post" action="{% url 'matieres:bon_sortie_def_g2_update' bon.pk %}">
+        {% csrf_token %}
+        <div class="f-stack">
+          <div class="f-group">
+            <label class="f-label" for="id-num-bon">N° Bon</label>
+            <input id="id-num-bon" type="text" value="BSD-{{ bon_num }}" class="f-input mono" readonly>
+          </div>
+
+          <div class="f-group">
+            <label class="f-label" for="id-date">Date de sortie</label>
+            <input id="id-date" type="date" name="date_creation" class="f-input"
+                   value="{{ bon.date_creation|date:'Y-m-d' }}"
+                   {% if bon.valide %}readonly{% endif %}>
+          </div>
+
+          <div class="f-group">
+            <label class="f-label" for="id-annee">Année</label>
+            <input id="id-annee" type="number" name="annee_exercice" class="f-input"
+                   value="{{ bon.annee_exercice|default:'' }}" placeholder="YYYY"
+                   {% if bon.valide %}readonly{% endif %}>
+          </div>
+
+          <div class="f-group">
+            <label class="f-label" for="id-type-sortie">Type de sortie</label>
+            <select id="id-type-sortie" name="type_sortie" class="f-input f-select" {% if bon.valide %}disabled{% endif %}>
+              <option value="">—</option>
+              {% for t in types_sortie %}
+              <option value="{{ t }}" {% if bon.type_sortie == t %}selected{% endif %}>{{ t }}</option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <div class="f-group">
+            <label class="f-label" for="id-service">Service *</label>
+            <select id="id-service" name="service_id" class="f-input f-select" {% if bon.valide %}disabled{% endif %}
+                    hx-get="{% url 'matieres:htmx_bureaux_options' %}"
+                    hx-trigger="change"
+                    hx-target="#id-bureau-select"
+                    hx-include="this">
+              <option value="">— Sélectionner —</option>
+              {% for s in services %}
+              <option value="{{ s.pk }}" {% if bon.service_id == s.pk %}selected{% endif %}>{{ s.code }} — {{ s.libelle }}</option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <div class="f-group">
+            <label class="f-label" for="id-bureau-select">Bureau *</label>
+            <select id="id-bureau-select" name="bureau_id" class="f-input f-select" {% if bon.valide %}disabled{% endif %}>
+              {% include 'partials/bureaux_options.html' with bureaux=bureaux selected_id=bon.bureau_id %}
+            </select>
+          </div>
+
+          <div class="f-group">
+            <label class="f-label" for="id-depot">Dépôt</label>
+            <select id="id-depot" name="depot_id" class="f-input f-select" {% if bon.valide %}disabled{% endif %}>
+              <option value="">— Sélectionner —</option>
+              {% for d in depots %}
+              <option value="{{ d.pk }}" {% if bon.depot_id == d.pk %}selected{% endif %}>{{ d.code }}</option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <div class="f-group">
+            <label class="f-label" for="id-chapitre">Chapitre</label>
+            <input id="id-chapitre" type="text" name="chapitre" class="f-input"
+                   value="{{ bon.chapitre|default:'' }}" {% if bon.valide %}readonly{% endif %}>
+          </div>
+
+          {% if not bon.valide %}
+          <button type="submit" class="btn btn-primary" style="width:100%;justify-content:center;margin-top:4px">
+            <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
+            </svg>
+            Enregistrer l'en-tête
+          </button>
+          {% endif %}
+        </div>
+      </form>
+
+      {% if bon.valide and bon.details.count %}
+      <div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--clr-border)">
+        <div style="font-size:11px;color:var(--clr-muted);font-weight:600;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">Résumé</div>
+        <div style="display:flex;flex-direction:column;gap:6px">
+          <div style="display:flex;justify-content:space-between;font-size:12px">
+            <span style="color:var(--clr-muted)">Articles</span>
+            <strong>{{ bon.details.count }}</strong>
+          </div>
+          <div style="display:flex;justify-content:space-between;font-size:12px">
+            <span style="color:var(--clr-muted)">Total TTC</span>
+            <strong style="color:var(--clr-success)">{{ bon.total_ttc|floatformat:0|intcomma }} FCFA</strong>
+          </div>
+        </div>
+      </div>
+      {% endif %}
+    </div>
+  </aside>
+
+  <!-- ── PANNEAU SAISIE ARTICLE ── -->
+  {% if not bon.valide %}
+  <section class="panel saisie-panel" aria-label="Saisie d'un article">
+    <div class="panel-header">
+      <svg width="13" height="13" fill="none" stroke="var(--clr-muted)" viewBox="0 0 24 24" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
+      </svg>
+      <span class="panel-title">Saisie article</span>
+      <span class="badge badge-g2" style="margin-left:6px">Groupe 2</span>
+      <span style="margin-left:auto;font-size:10.5px;color:var(--clr-subtle)">Ctrl+Entrée pour saisir</span>
+    </div>
+    <div class="panel-body">
+      <div class="f-stack">
+
+        {% if bcs_ouverts %}
+        <div class="f-group" style="background:#fef2f2;border:1px solid #fecaca;border-radius:10px;padding:10px">
+          <label class="f-label" for="bg-bcs-select">Depuis un bon de commande de service (optionnel)</label>
+          <select id="bg-bcs-select" name="bon_commande_service_id" class="f-input f-select"
+                  hx-get="{% url 'matieres:htmx_bcs_lignes' %}"
+                  hx-trigger="change"
+                  hx-target="#bg-bcs-lignes"
+                  hx-include="this">
+            <option value="">— Sélectionner un BCS validé —</option>
+            {% for b in bcs_ouverts %}
+            <option value="{{ b.pk }}">BCS-{{ b.num_bon|stringformat:"04d" }} — {{ b.service|default:"—" }}{% if b.bureau %} / {{ b.bureau }}{% endif %}</option>
+            {% endfor %}
+          </select>
+          <div id="bg-bcs-lignes" style="margin-top:8px"></div>
+        </div>
+        {% endif %}
+
+        <div class="f-group">
+          <label class="f-label" for="bg-f-designation">Désignation *</label>
+          <div class="produit-wrap" id="bg-produit-wrap">
+            <div style="display:flex;gap:6px">
+              <input type="text" id="bg-f-designation" class="f-input"
+                     placeholder="Tapez pour rechercher un consommable (Groupe 2)…"
+                     hx-get="{% url 'matieres:htmx_bsdg2_produit_search' %}"
+                     hx-trigger="input changed delay:250ms"
+                     hx-target="#bg-produit-dropdown"
+                     hx-include="[id='bg-f-designation']"
+                     name="q" autocomplete="off">
+              <button type="button" onclick="bgOpenModal()"
+                      class="btn btn-ghost" style="flex-shrink:0;padding:0 11px"
+                      title="Ouvrir le catalogue complet (F2)">
+                <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                </svg>
+              </button>
+            </div>
+            <div id="bg-produit-dropdown" role="listbox"></div>
+          </div>
+        </div>
+
+        <div class="f-grid-2">
+          <div class="f-group">
+            <label class="f-label" for="bg-f-nomenclature">Nomenclature</label>
+            <input id="bg-f-nomenclature" type="text" class="f-input mono" readonly>
+          </div>
+          <div class="f-group">
+            <label class="f-label" for="bg-f-unite-sel">Unité</label>
+            <select id="bg-f-unite-sel" class="f-input f-select">
+              <option value="">—</option>
+              {% for u in unites %}
+              <option value="{{ u.pk }}">{{ u.libelle }}</option>
+              {% endfor %}
+            </select>
+            <input type="hidden" id="bg-f-unite-id">
+          </div>
+        </div>
+
+        <div class="f-group">
+          <label class="f-label" for="bg-f-specification">Spécification</label>
+          <input id="bg-f-specification" type="text" class="f-input" placeholder="Optionnel">
+        </div>
+
+        <div class="f-group">
+          <label class="f-label" for="bg-f-qte">Quantité *</label>
+          <input id="bg-f-qte" type="number" class="f-input" value="0" min="0" step="1"
+                 oninput="bgCalcMontant(); bgCheckQte()">
+        </div>
+        <input type="hidden" id="bg-f-stock">
+        <input type="hidden" id="bg-f-stock-depot">
+
+        <div id="bg-stock-alert" class="stock-alert" role="alert" aria-live="polite">
+          <svg width="14" height="14" fill="currentColor" viewBox="0 0 20 20">
+            <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+          </svg>
+          <span id="bg-stock-alert-text"></span>
+        </div>
+
+        <div class="f-grid-2">
+          <div class="f-group">
+            <label class="f-label">
+              Prix HT
+              <span style="color:var(--clr-primary);font-size:9px;font-weight:700;margin-left:4px">AUTO BE</span>
+            </label>
+            <input id="bg-f-prix-ht" type="number" class="f-input auto-fill" value="0" min="0" step="0.01"
+                   oninput="bgCalcAutoTTC()">
+          </div>
+          <div class="f-group">
+            <label class="f-label">
+              Prix TTC
+              <span style="color:var(--clr-primary);font-size:9px;font-weight:700;margin-left:4px">(TVA 18%)</span>
+            </label>
+            <input id="bg-f-prix-ttc" type="number" class="f-input auto-fill" value="0" readonly>
+          </div>
+        </div>
+
+        <div class="f-group">
+          <label class="f-label">Montant TTC</label>
+          <input id="bg-f-montant-ttc" type="text" class="f-input auto-fill"
+                 style="font-size:15px;font-weight:800;color:var(--clr-success)"
+                 readonly value="0,00 FCFA">
+        </div>
+
+        <div class="action-row">
+          <button type="button" class="btn-saisir" id="bg-btn-saisir"
+                  hx-post="{% url 'matieres:htmx_bsdg2_add_detail' pk=bon.pk %}"
+                  hx-target="#bg-detail-rows-container"
+                  hx-swap="innerHTML"
+                  hx-include="#bg-article-form-data"
+                  onclick="bgPrepareSubmit()">
+            <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
+            </svg>
+            Saisir la ligne
+            <span class="htmx-indicator" style="font-size:10px;opacity:.7">…</span>
+          </button>
+          <button type="button" class="btn-clear-form" onclick="bgClearForm()">
+            <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+            </svg>
+            Effacer
+          </button>
+        </div>
+      </div>
+
+      <div id="bg-article-form-data" style="display:none">
+        {% csrf_token %}
+        <input type="hidden" name="produit_id"    id="bg-h-produit-id">
+        <input type="hidden" name="designation"   id="bg-h-designation">
+        <input type="hidden" name="nomenclature"  id="bg-h-nomenclature">
+        <input type="hidden" name="specification" id="bg-h-specification">
+        <input type="hidden" name="qte"           id="bg-h-qte">
+        <input type="hidden" name="unite_id"      id="bg-h-unite-id">
+        <input type="hidden" name="prix_ht"       id="bg-h-prix-ht">
+        <input type="hidden" name="prix_ttc"      id="bg-h-prix-ttc">
+        <input type="hidden" name="observation"   id="bg-h-observation">
+        <input type="hidden" name="detail_commande_service_id" id="bg-h-detail-commande-service-id">
+      </div>
+      <input type="hidden" id="bg-f-produit-id">
+      <input type="hidden" id="bg-f-detail-commande-service-id">
+    </div>
+  </section>
+
+  {% else %}
+  <div class="validated-notice saisie-panel" role="status">
+    <svg width="48" height="48" fill="none" stroke="#22c55e" viewBox="0 0 24 24" stroke-width="1.2">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+    </svg>
+    <p style="font-weight:800;font-size:15px;margin:0">Bon validé</p>
+    <p style="font-size:12.5px;opacity:.7;margin:0">Les articles ont définitivement quitté le stock.<br>Dévalidez pour corriger.</p>
+  </div>
+  {% endif %}
+
+  <!-- ── TABLEAU DES DÉTAILS ── -->
+  <section class="panel table-panel" aria-label="Détails du bon" aria-live="polite">
+    <div class="panel-header">
+      <svg width="13" height="13" fill="none" stroke="var(--clr-muted)" viewBox="0 0 24 24" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 10h16M4 14h16M4 18h16"/>
+      </svg>
+      <span class="panel-title">Articles du bon</span>
+      <span class="badge badge-g2" style="margin-left:6px">Matières Groupe 2</span>
+      {% if bon.details.count > 0 %}
+      <span style="margin-left:auto;font-size:12px;color:var(--clr-muted)">
+        <strong style="color:var(--clr-text)">{{ bon.details.count }}</strong> article{{ bon.details.count|pluralize }}
+        &nbsp;·&nbsp;
+        <strong style="color:var(--clr-success)">{{ bon.total_ttc|floatformat:0|intcomma }} FCFA</strong>
+      </span>
+      {% endif %}
+    </div>
+    <div style="overflow-x:auto">
+      <div id="bg-detail-rows-container">
+        {% include 'partials/bsdg2_detail_rows.html' with details=details bon=bon %}
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<!-- ══════════════════════ MODAL CATALOGUE ══════════════════════ -->
+<div id="bg-produit-modal-overlay" role="dialog" aria-modal="true" onclick="bgCloseModalOnBg(event)">
+  <div id="bg-produit-modal">
+    <div class="modal-header">
+      <svg width="18" height="18" fill="none" stroke="#fff" viewBox="0 0 24 24" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/>
+      </svg>
+      <h3>Catalogue — Matières Groupe 2 (consommables)</h3>
+      <button class="modal-close-btn" onclick="bgCloseModal()">✕</button>
+    </div>
+    <div class="modal-search">
+      <input type="text" id="bg-modal-search-input"
+             placeholder="Rechercher par désignation ou nomenclature…"
+             hx-get="{% url 'matieres:htmx_bsdg2_modal_produits' %}"
+             hx-trigger="input changed delay:250ms, load"
+             hx-target="#bg-modal-product-list"
+             name="q" autocomplete="off">
+    </div>
+    <div id="bg-modal-product-list" role="listbox">
+      <div style="padding:40px;text-align:center;color:var(--clr-subtle)">Chargement…</div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════ JAVASCRIPT ══════════════════════ -->
+<script>
+function bgCalcMontant() {
+  const qte = parseFloat(document.getElementById('bg-f-qte').value) || 0;
+  const ttc = parseFloat(document.getElementById('bg-f-prix-ttc').value) || 0;
+  document.getElementById('bg-f-montant-ttc').value =
+    new Intl.NumberFormat('fr-FR', {minimumFractionDigits:2, maximumFractionDigits:2}).format(qte * ttc) + ' FCFA';
+}
+function bgCalcAutoTTC() {
+  const ht = parseFloat(document.getElementById('bg-f-prix-ht').value) || 0;
+  document.getElementById('bg-f-prix-ttc').value = (Math.round(ht * 118) / 100).toFixed(2);
+  bgCalcMontant();
+}
+
+let bgStockGlobal = 0;
+function bgCheckQte() {
+  const qte = parseFloat(document.getElementById('bg-f-qte').value) || 0;
+  const alert = document.getElementById('bg-stock-alert');
+  const txt   = document.getElementById('bg-stock-alert-text');
+  const btn   = document.getElementById('bg-btn-saisir');
+  if (bgStockGlobal > 0 && qte > bgStockGlobal) {
+    txt.textContent = 'Quantité (' + qte + ') dépasse le stock disponible (' + bgStockGlobal + ')';
+    alert.classList.add('show');
+    btn.disabled = true;
+  } else {
+    alert.classList.remove('show');
+    btn.disabled = false;
+  }
+}
+
+function bgPickProduit(id, designation, nomenclature, specification, uniteId, uniteLibelle, stockDispo, stockDepot, prixHT, prixTTC) {
+  bgStockGlobal = parseFloat(stockDispo) || 0;
+  document.getElementById('bg-f-produit-id').value    = id;
+  document.getElementById('bg-f-designation').value   = designation;
+  document.getElementById('bg-f-nomenclature').value  = nomenclature;
+  document.getElementById('bg-f-specification').value = specification;
+  document.getElementById('bg-f-unite-id').value      = uniteId;
+  document.getElementById('bg-f-stock').value         = stockDispo;
+  document.getElementById('bg-f-stock-depot').value   = (stockDepot !== undefined && stockDepot !== '') ? stockDepot : '—';
+
+  const ht  = parseFloat(prixHT)  || 0;
+  const ttc = parseFloat(prixTTC) || 0;
+  document.getElementById('bg-f-prix-ht').value  = ht;
+  document.getElementById('bg-f-prix-ttc').value = ttc > 0 ? ttc : (Math.round(ht * 118) / 100).toFixed(2);
+
+  const sel = document.getElementById('bg-f-unite-sel');
+  for (const opt of sel.options) { if (opt.value == uniteId) { sel.value = uniteId; break; } }
+  const dd = document.getElementById('bg-produit-dropdown');
+  if (dd) { dd.classList.remove('open'); dd.innerHTML = ''; }
+  bgCloseModal();
+  document.getElementById('bg-f-qte').value = '';
+  document.getElementById('bg-stock-alert').classList.remove('show');
+  document.getElementById('bg-btn-saisir').disabled = false;
+  bgCalcMontant();
+  document.getElementById('bg-f-qte').focus();
+}
+
+function bgPickFromBCS(detailPk, produitId, designation, nomenclature, specification, uniteId, uniteLibelle, qteRestante) {
+  bgStockGlobal = 0;
+  document.getElementById('bg-f-produit-id').value    = produitId;
+  document.getElementById('bg-f-detail-commande-service-id').value = detailPk;
+  document.getElementById('bg-f-designation').value   = designation;
+  document.getElementById('bg-f-nomenclature').value  = nomenclature;
+  document.getElementById('bg-f-specification').value = specification;
+  document.getElementById('bg-f-unite-id').value      = uniteId;
+
+  const sel = document.getElementById('bg-f-unite-sel');
+  for (const opt of sel.options) { if (opt.value == uniteId) { sel.value = uniteId; break; } }
+  const dd = document.getElementById('bg-produit-dropdown');
+  if (dd) { dd.classList.remove('open'); dd.innerHTML = ''; }
+
+  const typeSel = document.querySelector('select[name="type_sortie"]');
+  if (typeSel) { for (const opt of typeSel.options) { if (opt.value === 'Commande de service') { typeSel.value = opt.value; break; } } }
+
+  document.getElementById('bg-f-qte').value = qteRestante;
+  document.getElementById('bg-stock-alert').classList.remove('show');
+  document.getElementById('bg-btn-saisir').disabled = false;
+  bgCalcMontant();
+  document.getElementById('bg-f-qte').focus();
+}
+
+function bgClearForm() {
+  ['bg-f-designation','bg-f-nomenclature','bg-f-specification'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.value = '';
+  });
+  ['bg-f-qte','bg-f-prix-ht','bg-f-prix-ttc'].forEach(id => document.getElementById(id).value = '0');
+  document.getElementById('bg-f-montant-ttc').value  = '0,00 FCFA';
+  document.getElementById('bg-f-produit-id').value   = '';
+  document.getElementById('bg-f-detail-commande-service-id').value = '';
+  document.getElementById('bg-f-unite-id').value     = '';
+  document.getElementById('bg-f-stock').value        = '';
+  document.getElementById('bg-f-stock-depot').value  = '—';
+  document.getElementById('bg-f-unite-sel').value    = '';
+  document.getElementById('bg-stock-alert').classList.remove('show');
+  document.getElementById('bg-btn-saisir').disabled  = false;
+  bgStockGlobal = 0;
+  const dd = document.getElementById('bg-produit-dropdown');
+  if (dd) { dd.classList.remove('open'); dd.innerHTML = ''; }
+  document.getElementById('bg-f-designation').focus();
+}
+
+function bgPrepareSubmit() {
+  document.getElementById('bg-h-produit-id').value    = document.getElementById('bg-f-produit-id').value;
+  document.getElementById('bg-h-detail-commande-service-id').value = document.getElementById('bg-f-detail-commande-service-id').value;
+  document.getElementById('bg-h-designation').value   = document.getElementById('bg-f-designation').value;
+  document.getElementById('bg-h-nomenclature').value  = document.getElementById('bg-f-nomenclature').value;
+  document.getElementById('bg-h-specification').value = document.getElementById('bg-f-specification').value;
+  document.getElementById('bg-h-qte').value           = document.getElementById('bg-f-qte').value;
+  document.getElementById('bg-h-unite-id').value      = document.getElementById('bg-f-unite-sel').value
+                                                         || document.getElementById('bg-f-unite-id').value;
+  document.getElementById('bg-h-prix-ht').value       = document.getElementById('bg-f-prix-ht').value;
+  document.getElementById('bg-h-prix-ttc').value      = document.getElementById('bg-f-prix-ttc').value;
+  document.getElementById('bg-h-observation').value   = '';
+}
+
+function bgOpenModal() {
+  const overlay = document.getElementById('bg-produit-modal-overlay');
+  overlay.classList.add('open');
+  overlay.style.display = 'flex';
+  document.getElementById('bg-modal-search-input').focus();
+}
+function bgCloseModal() {
+  const overlay = document.getElementById('bg-produit-modal-overlay');
+  overlay.classList.remove('open');
+  overlay.style.display = 'none';
+}
+function bgCloseModalOnBg(e) {
+  if (e.target === document.getElementById('bg-produit-modal-overlay')) bgCloseModal();
+}
+
+document.addEventListener('click', function(e) {
+  const wrap = document.getElementById('bg-produit-wrap');
+  if (wrap && !wrap.contains(e.target)) {
+    const dd = document.getElementById('bg-produit-dropdown');
+    if (dd) dd.classList.remove('open');
+  }
+});
+
+let bgPendingBureauId = null;
+document.body.addEventListener('htmx:afterSwap', function(e) {
+  if (e.target?.id === 'bg-produit-dropdown')
+    e.target.classList.toggle('open', !!e.target.innerHTML.trim());
+  if (e.target?.id === 'bg-detail-rows-container')
+    bgClearForm();
+  if (e.target?.id === 'bg-bcs-lignes') {
+    const wrap = document.getElementById('bcs-lignes-wrap');
+    const serviceSel = document.getElementById('id-service');
+    if (wrap && serviceSel) {
+      const serviceId = wrap.dataset.serviceId || '';
+      bgPendingBureauId = wrap.dataset.bureauId || '';
+      if (serviceId) {
+        serviceSel.value = serviceId;
+        serviceSel.dispatchEvent(new Event('change', { bubbles: true }));
+      }
+    }
+  }
+  if (e.target?.id === 'id-bureau-select' && bgPendingBureauId) {
+    e.target.value = bgPendingBureauId;
+    bgPendingBureauId = null;
+  }
+});
+
+let bgSelectedDetailId = null;
+function bgSelectLine(pk, tr) {
+  document.querySelectorAll('.lines-table tbody tr').forEach(r => r.classList.remove('selected-line'));
+  tr.classList.add('selected-line');
+  bgSelectedDetailId = pk;
+}
+
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') {
+    const modal = document.getElementById('bg-produit-modal-overlay');
+    if (modal && modal.classList.contains('open')) { bgCloseModal(); return; }
+    bgClearForm();
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+    const btn = document.getElementById('bg-btn-saisir');
+    if (btn && !btn.disabled) { bgPrepareSubmit(); btn.click(); }
+  }
+  if (e.key === 'F2') { e.preventDefault(); bgOpenModal(); }
+});
+</script>
+
+{% endwith %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+  document.querySelectorAll('.side-panel').forEach(function (p) { p.classList.remove('visible'); });
+  document.querySelectorAll('.tab-btn').forEach(function (b) { b.classList.remove('active'); });
+})();
+</script>
+{% endblock %}

@@ -12,6 +12,8 @@ from .models import (
     BonSortieDefinitive, DetailBonSortieDefinitive,
     BonSortieDefinitiveG1, DetailBonSortieDefinitiveG1,
     BalancePeriodique, Journal,
+    Marche, DetailMarche, ExpressionBesoin, DetailExpressionBesoin,
+    BonCommandeService, DetailBonCommandeService,
 )
 
 admin.site.site_header = "Comptabilité des Matières - Administration"
@@ -54,6 +56,21 @@ class DetailBonSortieDefG1Inline(admin.TabularInline):
     extra = 1
 
 
+class DetailMarcheInline(admin.TabularInline):
+    model = DetailMarche
+    extra = 1
+
+
+class DetailExpressionBesoinInline(admin.TabularInline):
+    model = DetailExpressionBesoin
+    extra = 1
+
+
+class DetailBonCommandeServiceInline(admin.TabularInline):
+    model = DetailBonCommandeService
+    extra = 1
+
+
 @admin.register(AnneeExercice)
 class AnneeExerciceAdmin(admin.ModelAdmin):
     list_display = ['annee', 'date_debut', 'date_fin']
@@ -78,9 +95,9 @@ class ComptePrincipaleAdmin(admin.ModelAdmin):
 
 @admin.register(SousCompte)
 class SousCompteAdmin(admin.ModelAdmin):
-    list_display = ['num_sous_compte', 'famille_sc', 'compte_principal']
+    list_display = ['compte', 'famille_sc', 'compte_principal', 'num_cb', 'intitule_cb']
     list_filter = ['compte_principal']
-    search_fields = ['famille_sc']
+    search_fields = ['compte', 'famille_sc', 'num_cb', 'intitule_cb', 'compte_principal__famille', 'compte_principal__num_compte']
 
 
 @admin.register(Fournisseur)
@@ -156,44 +173,44 @@ class BonEntreeAdmin(admin.ModelAdmin):
 
 @admin.register(BonAffectation)
 class BonAffectationAdmin(admin.ModelAdmin):
-    list_display = ['num_bon', 'date_affectation', 'depot', 'beneficiaire', 'valide']
-    list_filter = ['valide', 'depot', 'beneficiaire']
+    list_display = ['num_bon', 'date_affectation', 'depot', 'service', 'bureau', 'valide']
+    list_filter = ['valide', 'depot', 'service']
     search_fields = ['num_bon']
     inlines = [DetailBonAffectationInline]
 
 
 @admin.register(BonRetourAffectation)
 class BonRetourAffectationAdmin(admin.ModelAdmin):
-    list_display = ['num_bon', 'date_creation', 'depot', 'beneficiaire']
-    list_filter = ['depot', 'beneficiaire']
+    list_display = ['num_bon', 'date_creation', 'depot', 'service', 'bureau']
+    list_filter = ['depot', 'service']
     inlines = [DetailBonRetourAffectationInline]
 
 
 @admin.register(BonSortieProvisoire)
 class BonSortieProvAdmin(admin.ModelAdmin):
-    list_display = ['num_bon', 'annee_creation', 'depot', 'beneficiaire', 'valide']
-    list_filter = ['valide', 'depot', 'beneficiaire']
+    list_display = ['num_bon', 'annee_creation', 'depot', 'service', 'bureau', 'valide']
+    list_filter = ['valide', 'depot', 'service']
     inlines = [DetailBonSortieProvInline]
 
 
 @admin.register(BonRetourSortieProvisoire)
 class BonRetourSortieProvAdmin(admin.ModelAdmin):
-    list_display = ['num_bon', 'date_retour', 'depot', 'beneficiaire', 'valide']
+    list_display = ['num_bon', 'date_retour', 'depot', 'service', 'bureau', 'valide']
     list_filter = ['valide', 'depot']
     inlines = [DetailBonRetourSortieProvInline]
 
 
 @admin.register(BonSortieDefinitive)
 class BonSortieDefAdmin(admin.ModelAdmin):
-    list_display = ['num_bon', 'date_creation', 'groupe', 'type_sortie', 'depot', 'beneficiaire', 'valide']
-    list_filter = ['valide', 'groupe', 'depot', 'beneficiaire', 'type_sortie']
+    list_display = ['num_bon', 'date_creation', 'groupe', 'type_sortie', 'depot', 'service', 'bureau', 'valide']
+    list_filter = ['valide', 'groupe', 'depot', 'service', 'type_sortie']
     inlines = [DetailBonSortieDefInline]
 
 
 @admin.register(BonSortieDefinitiveG1)
 class BonSortieDefG1Admin(admin.ModelAdmin):
-    list_display = ['num_bon', 'date_creation', 'type_sortie', 'depot', 'beneficiaire', 'valide']
-    list_filter = ['valide', 'depot', 'type_sortie']
+    list_display = ['num_bon', 'date_creation', 'depot', 'service', 'bureau', 'valide']
+    list_filter = ['valide', 'depot']
     inlines = [DetailBonSortieDefG1Inline]
 
 
@@ -210,3 +227,25 @@ class JournalAdmin(admin.ModelAdmin):
     list_filter = ['type_entree', 'depot', 'annee_exercice']
     search_fields = ['designation', 'nomenclature', 'beneficiaire']
     date_hierarchy = 'date_creation'
+
+
+@admin.register(Marche)
+class MarcheAdmin(admin.ModelAdmin):
+    list_display = ['num_marche', 'date_creation', 'date_debut', 'date_fin', 'fournisseur', 'num_bon_engagement']
+    search_fields = ['num_marche', 'reference_marche']
+    inlines = [DetailMarcheInline]
+
+
+@admin.register(ExpressionBesoin)
+class ExpressionBesoinAdmin(admin.ModelAdmin):
+    list_display = ['id', 'reference', 'date_creation', 'demandeur_service', 'recu_par_comptable', 'statut']
+    list_filter = ['statut', 'recu_par_comptable', 'demandeur_service']
+    inlines = [DetailExpressionBesoinInline]
+
+
+@admin.register(BonCommandeService)
+class BonCommandeServiceAdmin(admin.ModelAdmin):
+    list_display = ['num_bon', 'date_creation', 'service', 'bureau', 'statut', 'date_validation']
+    list_filter = ['statut', 'service']
+    search_fields = ['num_bon']
+    inlines = [DetailBonCommandeServiceInline]

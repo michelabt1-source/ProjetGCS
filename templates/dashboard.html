@@ -304,7 +304,7 @@
             <th class="pb-3 pr-4 text-left text-xs font-bold text-slate-400 uppercase tracking-wider">Type</th>
             <th class="pb-3 pr-4 text-left text-xs font-bold text-slate-400 uppercase tracking-wider">Désignation</th>
             <th class="pb-3 pr-4 text-left text-xs font-bold text-slate-400 uppercase tracking-wider">Qté</th>
-            <th class="pb-3 text-left text-xs font-bold text-slate-400 uppercase tracking-wider">Bénéficiaire</th>
+            <th class="pb-3 text-left text-xs font-bold text-slate-400 uppercase tracking-wider">Service / Bureau</th>
           </tr>
         </thead>
         <tbody>
@@ -324,7 +324,7 @@
             </td>
             <td class="py-3 pr-4 text-slate-700 max-w-xs truncate font-medium">{{ op.designation }}</td>
             <td class="py-3 pr-4 font-bold text-slate-800">{{ op.qte }}</td>
-            <td class="py-3 text-slate-500 truncate">{{ op.beneficiaire|default:"—" }}</td>
+            <td class="py-3 text-slate-500 truncate">{{ op.bureau|default:op.service|default:"—" }}</td>
           </tr>
           {% empty %}
           <tr>
@@ -401,7 +401,7 @@
           <span style="font-size:13.5px; font-weight:600">Sortie provisoire</span>
         </a>
 
-        <a href="{% url 'matieres:bon_sortie_def_create' %}"
+        <a href="{% url 'matieres:bon_sortie_def_g1_create' %}"
            style="display:flex; align-items:center; gap:12px; padding:10px 12px; border-radius:12px; text-decoration:none; color:#374151; transition:background 150ms"
            onmouseover="this.style.background='#fff1f2'" onmouseout="this.style.background='transparent'">
           <div style="width:36px; height:36px; border-radius:10px; flex-shrink:0; display:flex; align-items:center; justify-content:center; background:linear-gradient(135deg,#be123c,#ef4444); box-shadow:0 3px 10px rgba(190,18,60,0.35)">
@@ -409,7 +409,7 @@
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/>
             </svg>
           </div>
-          <span style="font-size:13.5px; font-weight:600">Sortie définitive</span>
+          <span style="font-size:13.5px; font-weight:600">Réforme (Sortie définitive)</span>
         </a>
 
       </div>

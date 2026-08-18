@@ -1,15 +1,17 @@
 <!DOCTYPE html>
+{% load static %}
 <html lang="fr" class="h-full">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>{% block title %}{{ page_title|default:"GestMat" }}{% endblock %} — GestMat</title>
+  <title>{% block title %}{{ page_title|default:"Gestima" }}{% endblock %} — Gestima</title>
+  <link rel="icon" type="image/svg+xml" href="{% static 'brand/gestima-icon.svg' %}">
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/htmx.org@1.9.10"></script>
   <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-  <script>tailwind.config={theme:{extend:{colors:{primary:{50:'#eef2ff',100:'#e0e7ff',200:'#c7d2fe',300:'#a5b4fc',400:'#818cf8',500:'#6366f1',600:'#4f46e5',700:'#4338ca',800:'#3730a3',900:'#312e81',950:'#1e1b4b'}}}}}</script>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@600;700&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <script>tailwind.config={theme:{extend:{colors:{primary:{50:'#f5f3ff',100:'#ede9fe',200:'#ddd6fe',300:'#c4b5fd',400:'#a78bfa',500:'#8b5cf6',600:'#7c4fe0',700:'#6d28d9',800:'#5b21b6',900:'#4c1d95',950:'#2e1065'}}}}}</script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -20,9 +22,21 @@
       --bg-card:     #0f1e36;
       --border:      rgba(255,255,255,0.06);
       --border-md:   rgba(255,255,255,0.10);
-      --indigo:      #6366f1;
+      /* ── Identité Gestima ── */
+      --brand-violet: #8b5cf6;
+      --brand-indigo: #6366f1;
+      --brand-cyan:   #22d3ee;
+      --brand-ink:    #101017;
+      --brand-success: #34d399;
+      --brand-warning: #fbbf24;
+      --brand-danger:  #fb7185;
+      --font-display: 'Space Grotesk', sans-serif;
+      --font-body:    'IBM Plex Sans', sans-serif;
+      --font-mono:    'IBM Plex Mono', monospace;
+      /* Alias historiques (utilisés dans le reste des templates) */
+      --indigo:      var(--brand-indigo);
       --indigo-dark: #4f46e5;
-      --violet:      #7c3aed;
+      --violet:      var(--brand-violet);
       --text-1: #e2e8f0;
       --text-2: #94a3b8;
       --text-3: #475569;
@@ -35,7 +49,7 @@
     html, body { height: 100%; }
 
     body {
-      font-family: 'Inter', system-ui, sans-serif;
+      font-family: var(--font-body);
       background: var(--bg-root);
       color: var(--text-1);
       overflow: hidden;
@@ -43,6 +57,8 @@
       flex-direction: column;
       -webkit-font-smoothing: antialiased;
     }
+
+    h1, h2, h3, .logo-text, .section-title { font-family: var(--font-display); }
 
     /* ─────────────── SCROLLBAR ─────────────── */
     ::-webkit-scrollbar { width: 4px; height: 4px; }
@@ -71,22 +87,14 @@
     .logo-wrap {
       display: flex;
       align-items: center;
-      gap: 10px;
+      gap: 12px;
       padding-right: 24px;
       margin-right: 20px;
       border-right: 1px solid var(--border-md);
       flex-shrink: 0;
     }
-    .logo-icon {
-      width: 32px; height: 32px;
-      border-radius: 8px;
-      background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
-      display: flex; align-items: center; justify-content: center;
-      flex-shrink: 0;
-      box-shadow: 0 0 18px rgba(99,102,241,0.4);
-    }
-    .logo-text { font-size: 15px; font-weight: 700; color: #fff; letter-spacing: -.3px; }
-    .logo-sub  { font-size: 10px; color: var(--text-3); font-weight: 500; margin-top: 1px; line-height: 1; }
+    .logo-wrap img.brand-logo { height: 34px; width: auto; display: block; }
+    .logo-sub  { font-size: 10px; color: var(--text-3); font-weight: 500; margin-top: 2px; line-height: 1; letter-spacing: .04em; text-transform: uppercase; }
 
     /* Tab navigation */
     .tab-nav { display: flex; align-items: center; gap: 2px; flex: 1; }
@@ -116,7 +124,7 @@
     }
     .tab-btn.active {
       color: #fff;
-      background: linear-gradient(135deg, rgba(79,70,229,.2) 0%, rgba(124,58,237,.14) 100%);
+      background: linear-gradient(135deg, rgba(79,70,229,.2) 0%, rgba(139,92,246,.14) 100%);
       border-color: rgba(99,102,241,.38);
       box-shadow: 0 0 16px rgba(99,102,241,.12), inset 0 1px 0 rgba(255,255,255,.06);
     }
@@ -174,7 +182,7 @@
     .user-avatar {
       width: 30px; height: 30px;
       border-radius: 50%;
-      background: linear-gradient(135deg, #4f46e5, #7c3aed);
+      background: linear-gradient(135deg, #4f46e5, #8b5cf6);
       display: flex; align-items: center; justify-content: center;
       font-size: 12px; font-weight: 700; color: #fff; flex-shrink: 0;
       border: 1.5px solid rgba(255,255,255,0.12);
@@ -285,7 +293,7 @@
     }
     .panel-btn:hover svg { color: #818cf8; }
     .panel-btn.active {
-      background: linear-gradient(135deg, rgba(79,70,229,.18), rgba(124,58,237,.12));
+      background: linear-gradient(135deg, rgba(79,70,229,.18), rgba(139,92,246,.12));
       border-color: rgba(99,102,241,.45);
       color: #a5b4fc;
       box-shadow: 0 0 14px rgba(99,102,241,.12);
@@ -317,6 +325,15 @@
     }
 
     .main-inner { padding: 24px; flex: 1; }
+
+    /* Filet de sécurité : les inputs/select/textarea des pages claires (.card)
+       héritent sinon la couleur de texte claire du thème sombre → illisible sur fond blanc */
+    .main-area input:not([type=checkbox]):not([type=radio]),
+    .main-area select,
+    .main-area textarea {
+      color: #1e293b;
+      background: #fff;
+    }
 
     /* Messages */
     .messages-wrap { padding: 12px 24px 0; }
@@ -384,14 +401,9 @@
 
   <!-- Logo -->
   <div class="logo-wrap">
-    <div class="logo-icon">
-      <svg width="16" height="16" fill="none" stroke="#fff" viewBox="0 0 24 24" stroke-width="2.2">
-        <path stroke-linecap="round" stroke-linejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
-      </svg>
-    </div>
+    <img class="brand-logo" src="{% static 'brand/gestima-logo-dark.svg' %}" alt="Gestima">
     <div>
-      <div class="logo-text">GestMat</div>
-      <div class="logo-sub">{% if societe %}{{ societe.nom|truncatechars:20 }}{% else %}Comptabilité Matières{% endif %}</div>
+      <div class="logo-sub">Comptabilité des Matières</div>
     </div>
   </div>
 
@@ -417,6 +429,15 @@
         <path stroke-linecap="round" stroke-linejoin="round" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/>
       </svg>
       Traitement
+    </span>
+    <span class="tab-btn" data-tab="marches" role="tab" style="cursor:pointer">
+      <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+          <path d="M3 9l1-5h16l1 5"/>
+          <path d="M3 9a2 2 0 0 0 4 0 2 2 0 0 0 4 0 2 2 0 0 0 4 0 2 2 0 0 0 4 0"/>
+          <path d="M4 9v10a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1V9"/>
+          <path d="M9 21v-6a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v6"/>
+      </svg>
+     Marchés
     </span>
 
     <span class="tab-btn" data-tab="etat" role="tab" style="cursor:pointer">
@@ -452,11 +473,14 @@
     <div class="user-wrap">
       <div class="user-avatar">{{ request.user.username|first|upper }}</div>
       <span class="user-name">{{ request.user.get_full_name|default:request.user.username }}</span>
-      <a href="{% url 'logout' %}" class="btn-logout" title="Déconnexion">
-        <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
-        </svg>
-      </a>
+      <form action="{% url 'logout' %}" method="post" style="margin:0">
+        {% csrf_token %}
+        <button type="submit" class="btn-logout" title="Déconnexion" style="border:none;background:transparent;cursor:pointer;display:inline-flex;align-items:center;justify-content:center">
+          <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
+          </svg>
+        </button>
+      </form>
     </div>
   </div>
 
@@ -508,6 +532,22 @@
             <path stroke-linecap="round" stroke-linejoin="round" d="M16 17H4m0 0l4-4m-4 4l4 4"/>
           </svg>
           Fournisseur
+        </a>
+
+        <a href="{% url 'matieres:service_list' %}"
+           class="panel-btn {% if 'service' in request.resolver_match.url_name %}active{% endif %}">
+          <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.8">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+          </svg>
+          Service
+        </a>
+
+        <a href="{% url 'matieres:bureau_list' %}"
+           class="panel-btn {% if 'bureau' in request.resolver_match.url_name %}active{% endif %}">
+          <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.8">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/>
+          </svg>
+          Bureau
         </a>
 
         <a href="{% url 'matieres:beneficiaires_list' %}"
@@ -582,12 +622,21 @@
           Bon retour S. provisoire
         </a>
 
-        <a href="{% url 'matieres:bons_sortie_def_list' %}"
-           class="panel-btn {% if 'sortie_def' in request.resolver_match.url_name and 'g1' not in request.resolver_match.url_name %}active{% endif %}">
+        <a href="{% url 'matieres:bons_mutation_list' %}"
+           class="panel-btn {% if 'mutation' in request.resolver_match.url_name %}active{% endif %}">
           <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.8">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+            <path stroke-linecap="round" stroke-linejoin="round" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/>
           </svg>
-          Bon de Sortie Définitive
+          Bordereau de mutation
+        </a>
+
+        <a href="{% url 'matieres:bons_sortie_def_g1_list' %}"
+           class="panel-btn {% if 'g1' in request.resolver_match.url_name %}active{% endif %}">
+          <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.8">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+            <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+          </svg>
+          Sortie Définitive (Réformes)
         </a>
       </div>
 
@@ -600,15 +649,45 @@
           Matières deuxième groupe
         </div>
 
-        <a href="{% url 'matieres:bons_sortie_def_g1_list' %}"
-           class="panel-btn {% if 'g1' in request.resolver_match.url_name %}active{% endif %}">
+        <a href="{% url 'matieres:bons_sortie_def_g2_list' %}"
+           class="panel-btn {% if 'g2' in request.resolver_match.url_name %}active{% endif %}">
           <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.8">
             <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
           </svg>
           Bon de Sortie Définitive
         </a>
+
+        <a href="{% url 'matieres:bons_commande_service_list' %}"
+           class="panel-btn {% if 'commande_service' in request.resolver_match.url_name %}active{% endif %}">
+          <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.8">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-5 8l2 2 4-4"/>
+          </svg>
+          Bon de commande de service
+        </a>
       </div>
 
+    </div>
+  </aside>
+
+  <aside id="panel-marches" class="side-panel w-double" role="navigation" aria-label="Marchés">
+    <div class="panel-grid-2">
+      <div class="panel-col">
+        <a href="{% url 'matieres:marches_list' %}"
+           class="panel-btn {% if 'marche' in request.resolver_match.url_name %}active{% endif %}">
+          <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.8">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
+          </svg>
+          Gestion des marchés
+        </a>
+
+        <a href="{% url 'matieres:expressions_list' %}"
+           class="panel-btn {% if 'expression' in request.resolver_match.url_name %}active{% endif %}">
+          <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.8">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+          </svg>
+          Expressions de besoins
+        </a>
+      </div>
     </div>
   </aside>
 
@@ -638,7 +717,38 @@
           <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.8">
             <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
           </svg>
-          Journal
+          Livre Journal
+        </a>
+
+        <a href="{% url 'matieres:grand_livre' %}"
+           class="panel-btn {% if request.resolver_match.url_name == 'grand_livre' %}active{% endif %}">
+          <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.8">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 10h16M4 14h16M4 18h7"/>
+            <path stroke-linecap="round" stroke-linejoin="round" d="M15 18l2 2 4-4"/>
+          </svg>
+          Grand Livre
+        </a>
+
+        <a href="{% url 'matieres:inventaire_individuel' %}"
+           class="panel-btn {% if request.resolver_match.url_name == 'inventaire_individuel' or request.resolver_match.url_name == 'fiche_stock' %}active{% endif %}">
+          <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.8">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01m-.01 4h.01"/>
+          </svg>
+          Fiche de Stock
+        </a>
+        <a href="{% url 'matieres:balance_periodique_list' %}"
+           class="panel-btn {% if request.resolver_match.url_name == 'balance_periodique_list' %}active{% endif %}">
+          <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.8">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6l4 2m5 0a9 9 0 11-18 0 9 9 0 0118 0z"/>
+          </svg>
+          Balance Périodique
+        </a> 
+        <a href="{% url 'matieres:balance_list' %}"
+           class="panel-btn {% if request.resolver_match.url_name == 'balance_list' %}active{% endif %}">
+          <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.8">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+          </svg>
+          Balance Générale des Comptes
         </a>
       </div>
 
@@ -676,10 +786,10 @@
           Relevé Récapitulatif
         </a>
 
-        <a href="{% url 'matieres:inventaire_individuel' %}"
-           class="panel-btn {% if request.resolver_match.url_name == 'inventaire_individuel' %}active{% endif %}">
+        <a href="{% url 'matieres:inventaire_individuel_etat' %}"
+           class="panel-btn {% if request.resolver_match.url_name == 'inventaire_individuel_etat' %}active{% endif %}">
           <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.8">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
           </svg>
           Inventaire Contradictoire
         </a>
@@ -691,7 +801,7 @@
           <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5">
             <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 10h16M4 14h16M4 18h16"/>
           </svg>
-          Matières deuxième groupe
+          Matières deuxième groupe 
         </div>
 
         <a href="{% url 'matieres:inventaire_global' %}"
@@ -710,28 +820,12 @@
           Inventaire par dépôt
         </a>
 
-        <a href="{% url 'matieres:grand_livre' %}"
-           class="panel-btn {% if request.resolver_match.url_name == 'grand_livre' %}active{% endif %}">
+        <a href="{% url 'matieres:inventaire_global' %}"
+           class="panel-btn {% if request.resolver_match.url_name == 'inventaire_global' %}active{% endif %}">
           <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.8">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13"/>
+            <path stroke-linecap="round" stroke-linejoin="round" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064"/>
           </svg>
-          Grand Livre
-        </a>
-
-        <a href="{% url 'matieres:inventaire_individuel' %}"
-           class="panel-btn {% if request.resolver_match.url_name == 'fiche_stock' %}active{% endif %}">
-          <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.8">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
-          </svg>
-          Fiche de Stock
-        </a>
-
-        <a href="{% url 'matieres:balance_list' %}"
-           class="panel-btn {% if request.resolver_match.url_name == 'balance_list' %}active{% endif %}">
-          <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.8">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
-          </svg>
-          Balance périodique
+          Inventaire Global
         </a>
       </div>
 
@@ -889,8 +983,10 @@ document.body.addEventListener('htmx:configRequest', function (evt) {
   const path = window.location.pathname;
   let activeTab = 'accueil';
 
-  if (/\/(produits|depots|fournisseurs|beneficiaires)\//.test(path)) {
+  if (/\/(produits|depots|fournisseurs|beneficiaires|services|bureaux)\//.test(path)) {
     activeTab = 'structure';
+  } else if (/\/(marches|expressions-besoin)\//.test(path)) {
+    activeTab = 'marches';
   } else if (/\/bons-/.test(path)) {
     activeTab = 'traitement';
   } else if (/\/(stock-depot|journal|balance)\//.test(path)) {

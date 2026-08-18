@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+{% load humanize %}
+<meta charset="UTF-8">
+<title>Livre-Journal des Matières</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Segoe UI', Arial, sans-serif;
+    background: #64748b;
+    padding: 24px 0 60px;
+    color: #0f172a;
+  }
+
+  .toolbar {
+    max-width: 1400px;
+    margin: 0 auto 16px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .toolbar a, .toolbar button {
+    display: inline-flex; align-items: center; gap: 7px;
+    padding: 8px 16px; border-radius: 8px;
+    font-size: 13px; font-weight: 600; font-family: inherit;
+    text-decoration: none; cursor: pointer; border: none;
+    transition: all 150ms;
+  }
+  .btn-retour { background: #fff; color: #334155; border: 1px solid #cbd5e1 !important; }
+  .btn-retour:hover { background: #f1f5f9; }
+  .btn-imprimer { background: #4f46e5; color: #fff; margin-left: auto; }
+  .btn-imprimer:hover { background: #4338ca; }
+
+  .sheet {
+    max-width: 1400px;
+    margin: 0 auto;
+    background: #fff;
+    padding: 26px 24px 28px;
+    box-shadow: 0 4px 24px rgba(0,0,0,.25);
+    position: relative;
+  }
+
+  .modele-box {
+    border: 1px solid #0f172a;
+    padding: 8px 12px;
+    font-size: 11px;
+    line-height: 1.35;
+    position: absolute;
+    top: 26px;
+    right: 24px;
+    width: 170px;
+    background: #fff;
+  }
+  .titre-principal {
+    text-align: center;
+    font-size: 17px;
+    font-weight: 800;
+    letter-spacing: .03em;
+    margin: 0 0 20px;
+  }
+
+  .meta-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 28px;
+    margin: 0 0 14px;
+    padding-right: 184px;
+    font-size: 12px;
+  }
+  .meta-row .label { font-weight: 700; }
+  .dotted { border-bottom: 1px dotted #64748b; display: inline-block; min-width: 120px; }
+
+  table.lignes {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 10px;
+    table-layout: fixed;
+  }
+  table.lignes th, table.lignes td {
+    border: 1px solid #0f172a;
+    padding: 4px 5px;
+    vertical-align: middle;
+    word-wrap: break-word;
+  }
+  table.lignes thead th { font-weight: 700; text-align: center; background: #f8fafc; }
+  table.lignes td.r, table.lignes th.r { text-align: right; }
+  table.lignes td.c, table.lignes th.c { text-align: center; }
+  table.lignes tbody td { height: 22px; }
+  table.lignes .group-head { background: #e2e8f0; font-size: 9px; text-transform: uppercase; letter-spacing: .04em; }
+  table.lignes .sub-head { font-size: 9px; font-weight: 600; }
+
+  .totals-row td {
+    font-weight: 700;
+    background: #f1f5f9;
+  }
+
+  .notes {
+    margin-top: 10px;
+    font-size: 9.5px;
+    line-height: 1.45;
+    color: #1f2937;
+  }
+  .notes p { margin-bottom: 2px; }
+
+  @media print {
+    body { background: #fff; padding: 0; }
+    .toolbar { display: none !important; }
+    .sheet { box-shadow: none; max-width: 100%; padding: 8mm 10mm; }
+    @page { size: A4 landscape; margin: 6mm; }
+  }
+</style>
+</head>
+<body onload="window.print()">
+
+  <div class="toolbar">
+    <a href="{% url 'matieres:journal_list' %}" class="btn-retour">← Retour au journal</a>
+    <button type="button" class="btn-imprimer" onclick="window.print()">Imprimer</button>
+  </div>
+
+  <div class="sheet">
+    <div class="modele-box">
+      Modèle 11<br>
+      Instruction Générale<br>
+      Art14c, 70a, 76a, 76b
+    </div>
+
+    <div class="titre-principal">LIVRE-JOURNAL DES MATIERES (1)</div>
+
+    <div class="meta-row">
+      <div><span class="label">Section :</span> <span class="dotted">&nbsp;</span></div>
+      <div><span class="label">Chapitre :</span> <span class="dotted">&nbsp;</span></div>
+    </div>
+
+    <table class="lignes">
+      <colgroup>
+        <col style="width:6%">
+        <col style="width:4%">
+        <col style="width:5%">
+        <col style="width:5%">
+        <col style="width:5%">
+        <col style="width:8%">
+        <col style="width:11%">
+        <col style="width:5.5%">
+        <col style="width:4.8%">
+        <col style="width:5.5%">
+        <col style="width:5.5%">
+        <col style="width:4.8%">
+        <col style="width:5.5%">
+        <col style="width:6.8%">
+        <col style="width:6.8%">
+        <col style="width:6.8%">
+        <col style="width:5.2%">
+        <col style="width:4.5%">
+      </colgroup>
+      <thead>
+        <tr>
+          <th rowspan="3">Date</th>
+          <th colspan="5">N° comptes nomenclature</th>
+          <th rowspan="2">Nature des matières (2)</th>
+          <th colspan="3">ENTREES</th>
+          <th colspan="3">SORTIES</th>
+          <th rowspan="3">PRIX<br>UNITAIRE</th>
+          <th colspan="2">MONTANT</th>
+          <th rowspan="3">Pour mémoire<br>sorties provisoires</th>
+          <th rowspan="3">Observations</th>
+        </tr>
+        <tr>
+          <th rowspan="2">Groupe</th>
+          <th rowspan="2">Compte principal</th>
+          <th rowspan="2">Compte secondaire</th>
+          <th rowspan="2">Compte divisionnaire</th>
+          <th rowspan="2">Sous compte</th>
+          <th rowspan="2">No du bon (3)</th>
+          <th rowspan="2">Nbre unités</th>
+          <th rowspan="2">Nature unités</th>
+          <th rowspan="2">No du bon (3)</th>
+          <th rowspan="2">Nbre unités</th>
+          <th rowspan="2">Nature unités</th>
+          <th rowspan="2">Entrées</th>
+          <th rowspan="2">Sorties</th>
+        </tr>
+        <tr>
+          <th class="sub-head">&nbsp;</th>
+          <th class="sub-head">&nbsp;</th>
+          <th class="sub-head">&nbsp;</th>
+          <th class="sub-head">&nbsp;</th>
+          <th class="sub-head">&nbsp;</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="c"></td>
+          <td colspan="5" class="c" style="font-weight:700">Report</td>
+          <td colspan="12"></td>
+        </tr>
+        {% for j in journal %}
+        <tr>
+          <td class="c">{{ j.date|date:"d/m/Y"|default:"—" }}</td>
+          <td class="c">{{ j.groupe }}</td>
+          <td class="c">{{ j.compte_principal }}</td>
+          <td class="c">{{ j.compte_secondaire }}</td>
+          <td class="c">{{ j.compte_divisionnaire }}</td>
+          <td class="c">{{ j.sous_compte }}</td>
+          <td>{{ j.nature_matiere|default:"—" }}</td>
+          <td class="c">{{ j.num_bon_entree|default:"—" }}</td>
+          <td class="r">{{ j.qte_entree|floatformat:"-2" }}</td>
+          <td class="c">{{ j.nature_unite_entree|default:"—" }}</td>
+          <td class="c">{{ j.num_bon_sortie|default:"—" }}</td>
+          <td class="r">{{ j.qte_sortie|floatformat:"-2" }}</td>
+          <td class="c">{{ j.nature_unite_sortie|default:"—" }}</td>
+          <td class="r">{{ j.prix_unitaire|floatformat:2 }}</td>
+          <td class="r">{{ j.montant_entree|floatformat:0|intcomma }}</td>
+          <td class="r">{{ j.montant_sortie|floatformat:0|intcomma }}</td>
+          <td class="r">{{ j.qte_sp|floatformat:"-2" }}</td>
+          <td>{{ j.observation|default:"—" }}</td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="18" class="c" style="color:#64748b">Aucun mouvement enregistré{% if query or type_op or depot or groupe or annee %} pour ces critères{% endif %}</td>
+        </tr>
+        {% endfor %}
+        {% if journal %}
+        <tr class="totals-row">
+          <td></td>
+          <td colspan="5" class="c">Totaux à reporter</td>
+          <td></td>
+          <td></td>
+          <td class="r">{{ totaux.total_entrees|floatformat:"-2" }}</td>
+          <td></td>
+          <td></td>
+          <td class="r">{{ totaux.total_sorties|floatformat:"-2" }}</td>
+          <td></td>
+          <td></td>
+          <td class="r">{{ totaux.total_montant_entree|floatformat:0|intcomma }}</td>
+          <td class="r">{{ totaux.total_montant_sortie|floatformat:0|intcomma }}</td>
+          <td class="r">{{ totaux.total_qte_sp|floatformat:"-2" }}</td>
+          <td></td>
+        </tr>
+        {% endif %}
+      </tbody>
+    </table>
+
+    <div class="notes">
+      <p>(4) Il concerne les opérations des groupes 1 et 2</p>
+      <p>(5) Inscription détaillée des comptes affectés par chaque opération d'entrée ou de sortie dans l'ordre chronologique des bons. Les matières étant inscrites dans l'ordre des pièces justificatives.</p>
+      <p>(6) Série ininterrompue pendant une gestion.</p>
+    </div>
+  </div>
+
+</body>
+</html>

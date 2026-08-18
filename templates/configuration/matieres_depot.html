@@ -22,7 +22,8 @@
               <span style="background:#dbeafe;color:#1e40af;padding:3px 10px;border-radius:6px;font-weight:600">{{ lien.depot.code }}</span>
             </td>
             <td style="padding:12px 20px;color:#0f172a;font-weight:500">{{ lien.num_sous_compte }}</td>
-            <td style="padding:12px 20px;text-align:center">
+            <td style="padding:12px 20px;text-align:center;display:flex;gap:8px;justify-content:center">
+              <a href="?edit={{ lien.pk }}" style="font-size:11px;color:#4f46e5;text-decoration:none;font-weight:600">Modifier</a>
               <a href="?delete={{ lien.pk }}" onclick="return confirm('Supprimer ?')"
                 style="font-size:11px;color:#ef4444;text-decoration:none;font-weight:600">Suppr.</a>
             </td>
@@ -36,22 +37,26 @@
   </div>
   <div style="width:280px;flex-shrink:0">
     <div class="card">
-      <h3 style="font-size:14px;font-weight:700;color:#0f172a;margin-bottom:16px">Ajouter un lien</h3>
+      <h3 style="font-size:14px;font-weight:700;color:#0f172a;margin-bottom:16px">{% if editing %}Modifier le lien{% else %}Ajouter un lien{% endif %}</h3>
       <form method="post">
         {% csrf_token %}
+        {% if editing %}<input type="hidden" name="pk" value="{{ editing.pk }}">{% endif %}
         <div style="margin-bottom:12px">
           <label style="font-size:12px;font-weight:600;color:#475569;display:block;margin-bottom:6px">Dépôt *</label>
           <select name="depot" required style="width:100%;padding:9px 14px;border:1px solid #e2e8f0;border-radius:8px;font-size:13px">
             <option value="">— Sélectionner —</option>
-            {% for d in depots %}<option value="{{ d.pk }}">{{ d.code }}</option>{% endfor %}
+            {% for d in depots %}<option value="{{ d.pk }}" {% if editing and editing.depot_id == d.pk %}selected{% endif %}>{{ d.code }}</option>{% endfor %}
           </select>
         </div>
         <div style="margin-bottom:16px">
           <label style="font-size:12px;font-weight:600;color:#475569;display:block;margin-bottom:6px">N° Sous-compte *</label>
-          <input name="num_sous_compte" type="number" placeholder="ex: 20" required
+          <input name="num_sous_compte" value="{{ editing.num_sous_compte|default:'' }}" type="number" placeholder="ex: 20" required
             style="width:100%;padding:9px 14px;border:1px solid #e2e8f0;border-radius:8px;font-size:13px;outline:none">
         </div>
-        <button class="btn-primary" type="submit" style="width:100%;justify-content:center">Ajouter</button>
+        <div style="display:flex;gap:8px">
+          <button class="btn-primary" type="submit" style="flex:1;justify-content:center">{% if editing %}Enregistrer{% else %}Ajouter{% endif %}</button>
+          {% if editing %}<a href="{% url 'matieres:matieres_depot_config' %}" class="btn-secondary" style="flex:1;justify-content:center;text-decoration:none">Annuler</a>{% endif %}
+        </div>
       </form>
     </div>
   </div>

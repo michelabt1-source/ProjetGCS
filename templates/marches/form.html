@@ -1,0 +1,63 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="p-6 max-w-2xl mx-auto">
+
+  <div class="flex items-center gap-2 mb-5 text-sm text-slate-400">
+    <a href="{% url 'matieres:marches_list' %}" class="hover:text-indigo-600 transition-colors">Marchés</a>
+    <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <span class="text-slate-600 font-semibold">Nouveau marché</span>
+  </div>
+
+  <div class="bg-white border border-slate-200 rounded-2xl shadow-sm p-6">
+    <form method="post" action="{% url 'matieres:marche_create' %}">
+      {% csrf_token %}
+      <div class="grid grid-cols-2 gap-4">
+        <div>
+          <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1">Numéro du marché *</label>
+          <input type="text" name="num_marche" required
+                 class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none">
+        </div>
+        <div>
+          <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1">Date de création *</label>
+          <input type="date" name="date_creation" value="{{ today|date:'Y-m-d' }}" required
+                 class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none">
+        </div>
+        <div class="col-span-2">
+          <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1">Fournisseur</label>
+          <select name="fournisseur"
+                  class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm bg-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none">
+            <option value="">— Sélectionner —</option>
+            {% for f in fournisseurs %}<option value="{{ f.pk }}">{{ f.nom }}</option>{% endfor %}
+          </select>
+        </div>
+        <div>
+          <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1">N° Bon d'engagement</label>
+          <input type="number" name="num_bon_engagement" min="0" value="0"
+                 class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm text-right focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none">
+        </div>
+        <div>
+          <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1">Chapitre</label>
+          <input type="text" name="chapitre"
+                 class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none">
+        </div>
+        <div class="col-span-2">
+          <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1">Référence du marché</label>
+          <input type="text" name="reference_marche" placeholder="Ex. AO n° 2026/003/MEN"
+                 class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none">
+        </div>
+      </div>
+
+      <p class="text-xs text-slate-400 mt-3">Les dates de début / fin du marché se renseignent une fois le marché créé, depuis sa fiche.</p>
+
+      <div class="mt-5 flex items-center gap-2">
+        <a href="{% url 'matieres:marches_list' %}" class="px-4 py-2 text-sm font-semibold text-slate-500 hover:text-slate-700">Annuler</a>
+        <button type="submit"
+                class="ml-auto inline-flex items-center gap-2 px-5 py-2.5 bg-indigo-600 text-white rounded-xl text-sm font-semibold shadow-sm hover:bg-indigo-700 transition-colors">
+          <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+          Créer et saisir les articles
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

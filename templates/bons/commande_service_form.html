@@ -1,0 +1,268 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="p-6 max-w-6xl mx-auto">
+
+  <div class="flex items-center gap-2 mb-5 text-sm text-slate-400">
+    <a href="{% url 'matieres:bons_commande_service_list' %}" class="hover:text-indigo-600 transition-colors">Bons de commande de services</a>
+    <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <span class="text-slate-600 font-semibold">Nouveau</span>
+  </div>
+
+  <form method="post" action="{% url 'matieres:bon_commande_service_create' %}" id="bcs-create-form" class="grid grid-cols-1 lg:grid-cols-[340px_1fr] gap-5 items-start">
+    {% csrf_token %}
+    <input type="hidden" name="details_json" id="bcs-details-json" value="[]">
+
+    <!-- En-tête -->
+    <div class="bg-white border border-slate-200 rounded-2xl shadow-sm p-5">
+      <div class="flex items-center gap-2 mb-4">
+        <div class="w-7 h-7 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center">
+          <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2"/></svg>
+        </div>
+        <div class="text-[11px] font-bold text-indigo-600 uppercase tracking-wide">En-tête du bon</div>
+      </div>
+
+      <div class="space-y-3">
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1">N° Bon *</label>
+            <input type="number" name="num_bon" value="{{ next_num }}" required min="1"
+                   class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm text-right font-mono focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none transition-shadow">
+          </div>
+          <div>
+            <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1">Date *</label>
+            <input type="date" name="date_creation" value="{{ today|date:'Y-m-d' }}" required id="bcs-date"
+                   class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none transition-shadow">
+          </div>
+        </div>
+        <div>
+          <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1">Année</label>
+          <input type="number" name="annee_exercice" id="bcs-annee" value="{{ today.year }}"
+                 class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none transition-shadow">
+        </div>
+        <div>
+          <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1">Service de : *</label>
+          <select name="service_id" required id="bcs-service-select"
+                  class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm bg-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none transition-shadow"
+                  hx-get="{% url 'matieres:htmx_bureaux_options' %}" hx-trigger="change" hx-target="#bcs-bureau-select" hx-include="this"
+                  hx-indicator="#bcs-bureau-loading">
+            <option value="">— Sélectionner —</option>
+            {% for s in services %}<option value="{{ s.pk }}">{{ s.code }} — {{ s.libelle }}</option>{% endfor %}
+          </select>
+        </div>
+        <div>
+          <label class="flex items-center gap-1.5 text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1">
+            Bureau
+            <svg id="bcs-bureau-loading" width="11" height="11" class="htmx-indicator animate-spin text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="3"><path stroke-linecap="round" d="M12 3a9 9 0 11-9 9"/></svg>
+          </label>
+          <select name="bureau_id" id="bcs-bureau-select"
+                  class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm bg-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none transition-shadow">
+            <option value="">— Bureau —</option>
+          </select>
+          <p id="bcs-bureau-hint" class="hidden mt-1.5 text-xs text-amber-600 flex items-start gap-1">
+            <svg width="12" height="12" class="mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+            <span>Aucun bureau enregistré pour ce service — vous pouvez continuer sans bureau.</span>
+          </p>
+        </div>
+        <div>
+          <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1">À M. (destinataire)</label>
+          <input type="text" name="destinataire" placeholder="Nom de la personne qui reçoit"
+                 class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none transition-shadow">
+        </div>
+        <div>
+          <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1">Chef de Service (demandeur)</label>
+          <input type="text" name="demande_par"
+                 class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none transition-shadow">
+        </div>
+        <div>
+          <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1">Observation</label>
+          <textarea name="observation" rows="2"
+                    class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none transition-shadow"></textarea>
+        </div>
+      </div>
+    </div>
+
+    <!-- Articles consommables -->
+    <div class="space-y-5">
+      <div class="bg-white border border-slate-200 rounded-2xl shadow-sm p-5">
+        <div class="flex items-center gap-2 mb-4">
+          <div class="w-7 h-7 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center">
+            <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
+          </div>
+          <div class="text-[11px] font-bold text-emerald-600 uppercase tracking-wide">Articles consommables (Groupe 2)</div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-[1fr_140px_auto] gap-3 items-end">
+          <div class="relative" id="bcs-produit-wrap">
+            <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1">Désignation *</label>
+            <input type="text" id="bcs-f-designation" placeholder="Tapez pour rechercher un consommable…" autocomplete="off"
+                   class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none transition-shadow"
+                   hx-get="{% url 'matieres:htmx_bcs_produit_search' %}" hx-trigger="input changed delay:250ms" hx-target="#bcs-produit-dropdown" name="q"
+                   onkeydown="if(event.key==='Enter'){event.preventDefault(); bcsAddLine();}">
+            <div id="bcs-produit-dropdown" class="absolute left-0 right-0 z-20 bg-white border border-indigo-200 rounded-lg shadow-lg mt-1 max-h-56 overflow-y-auto hidden"></div>
+          </div>
+          <div>
+            <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1">Quantité *</label>
+            <input type="number" id="bcs-f-qte" value="0" min="0" step="1"
+                   class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm text-right font-semibold focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none transition-shadow"
+                   onkeydown="if(event.key==='Enter'){event.preventDefault(); bcsAddLine();}">
+          </div>
+          <button type="button" id="bcs-btn-add-line" onclick="bcsAddLine()"
+                  class="inline-flex items-center justify-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm font-semibold hover:bg-emerald-700 active:scale-[0.97] transition-all shadow-sm">
+            <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+            Ajouter
+          </button>
+        </div>
+        <input type="hidden" id="bcs-f-produit-id">
+        <input type="hidden" id="bcs-f-nomenclature">
+        <input type="hidden" id="bcs-f-specification">
+        <input type="hidden" id="bcs-f-unite-id">
+        <input type="hidden" id="bcs-f-unite-libelle">
+        <p class="text-xs text-slate-400 mt-2">Sélectionnez une suggestion pour lier l'article au catalogue, ou laissez du texte libre — puis « Ajouter » ou <kbd class="px-1 py-0.5 bg-slate-100 rounded border border-slate-200 text-[10px]">Entrée</kbd>.</p>
+      </div>
+
+      <div class="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+        <div class="px-5 py-3 border-b border-slate-100 flex items-center justify-between">
+          <span class="text-[11px] font-bold text-indigo-600 uppercase tracking-wide">Liste des articles</span>
+          <span id="bcs-count-badge" class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-slate-100 text-slate-500">0 article</span>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="w-full text-sm">
+            <thead>
+              <tr class="bg-slate-50 text-slate-500 text-[11px] uppercase tracking-wide font-bold border-b border-slate-200">
+                <th class="text-left px-4 py-2.5">Désignation</th>
+                <th class="text-right px-4 py-2.5">Quantité</th>
+                <th class="px-4 py-2.5"></th>
+              </tr>
+            </thead>
+            <tbody id="bcs-lines-tbody">
+              <tr id="bcs-empty-row"><td colspan="3" class="px-4 py-8 text-center text-slate-400">Aucun article — utilisez le champ ci-dessus pour en ajouter.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-3">
+        <a href="{% url 'matieres:bons_commande_service_list' %}" class="px-4 py-2.5 text-sm font-semibold text-slate-500 hover:text-slate-700 transition-colors">Annuler</a>
+        <button type="submit"
+                class="ml-auto inline-flex items-center gap-2 px-6 py-2.5 bg-indigo-600 text-white rounded-xl text-sm font-semibold shadow-sm hover:bg-indigo-700 hover:shadow-md active:scale-[0.98] transition-all">
+          <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+          <span id="bcs-submit-label">Créer le bon de commande</span>
+        </button>
+      </div>
+    </div>
+  </form>
+</div>
+
+<script>
+document.getElementById('bcs-date').addEventListener('change', function() {
+  document.getElementById('bcs-annee').value = this.value.split('-')[0];
+});
+
+document.body.addEventListener('htmx:afterSwap', function(e) {
+  if (e.target && e.target.id === 'bcs-produit-dropdown') {
+    e.target.classList.toggle('hidden', !e.target.innerHTML.trim());
+  }
+  if (e.target && e.target.id === 'bcs-bureau-select') {
+    const hint = document.getElementById('bcs-bureau-hint');
+    const hasBureaux = e.target.options.length > 1;
+    hint.classList.toggle('hidden', hasBureaux);
+  }
+});
+document.addEventListener('click', function(e) {
+  const wrap = document.getElementById('bcs-produit-wrap');
+  if (wrap && !wrap.contains(e.target)) {
+    const dd = document.getElementById('bcs-produit-dropdown');
+    if (dd) dd.classList.add('hidden');
+  }
+});
+
+function bcsPickProduit(id, designation, nomenclature, specification, uniteId, uniteLibelle) {
+  document.getElementById('bcs-f-designation').value = designation;
+  document.getElementById('bcs-f-produit-id').value = id || '';
+  document.getElementById('bcs-f-nomenclature').value = nomenclature || '';
+  document.getElementById('bcs-f-specification').value = specification || '';
+  document.getElementById('bcs-f-unite-id').value = uniteId || '';
+  document.getElementById('bcs-f-unite-libelle').value = uniteLibelle || '';
+  const dd = document.getElementById('bcs-produit-dropdown');
+  dd.classList.add('hidden'); dd.innerHTML = '';
+  document.getElementById('bcs-f-qte').focus();
+  document.getElementById('bcs-f-qte').select();
+}
+
+let bcsLines = [];
+
+function bcsRenderLines() {
+  const tbody = document.getElementById('bcs-lines-tbody');
+  const badge = document.getElementById('bcs-count-badge');
+  const submitLabel = document.getElementById('bcs-submit-label');
+  if (bcsLines.length === 0) {
+    tbody.innerHTML = '<tr id="bcs-empty-row"><td colspan="3" class="px-4 py-8 text-center text-slate-400">Aucun article — utilisez le champ ci-dessus pour en ajouter.</td></tr>';
+  } else {
+    tbody.innerHTML = bcsLines.map(function(l, i) {
+      const unite = l.unite_libelle ? ' <span class="text-slate-400 font-normal">' + l.unite_libelle + '</span>' : '';
+      const nomen = l.nomenclature ? '<span class="text-slate-400 font-normal text-xs ml-1">(' + l.nomenclature + ')</span>' : '';
+      return '<tr class="border-b border-slate-100 hover:bg-slate-50 transition-colors animate-[fadeIn_.15s_ease-out]">' +
+        '<td class="px-4 py-2.5 font-medium text-slate-800">' + l.designation + ' ' + nomen + '</td>' +
+        '<td class="px-4 py-2.5 text-right font-semibold">' + l.qte_commandee + unite + '</td>' +
+        '<td class="px-4 py-2.5 text-center">' +
+          '<button type="button" onclick="bcsRemoveLine(' + i + ')" class="w-6 h-6 inline-flex items-center justify-center rounded-md bg-red-50 border border-red-200 text-red-500 hover:bg-red-100 transition-colors">×</button>' +
+        '</td></tr>';
+    }).join('');
+  }
+  const n = bcsLines.length;
+  badge.textContent = n + (n === 1 ? ' article' : ' articles');
+  badge.className = 'inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold ' + (n > 0 ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-500');
+  submitLabel.textContent = n > 0 ? 'Créer le bon (' + n + (n === 1 ? ' article)' : ' articles)') : 'Créer le bon de commande';
+  document.getElementById('bcs-details-json').value = JSON.stringify(bcsLines);
+}
+
+function bcsAddLine() {
+  const designation = document.getElementById('bcs-f-designation').value.trim();
+  const qte = parseInt(document.getElementById('bcs-f-qte').value, 10) || 0;
+  if (!designation) {
+    document.getElementById('bcs-f-designation').focus();
+    return;
+  }
+  if (qte <= 0) {
+    document.getElementById('bcs-f-qte').focus();
+    return;
+  }
+  bcsLines.push({
+    produit_id: document.getElementById('bcs-f-produit-id').value || null,
+    designation: designation,
+    nomenclature: document.getElementById('bcs-f-nomenclature').value,
+    specification: document.getElementById('bcs-f-specification').value,
+    unite_id: document.getElementById('bcs-f-unite-id').value || null,
+    unite_libelle: document.getElementById('bcs-f-unite-libelle').value,
+    qte_commandee: qte,
+  });
+  bcsRenderLines();
+  bcsClearForm();
+}
+
+function bcsRemoveLine(i) {
+  bcsLines.splice(i, 1);
+  bcsRenderLines();
+}
+
+function bcsClearForm() {
+  document.getElementById('bcs-f-designation').value = '';
+  document.getElementById('bcs-f-produit-id').value = '';
+  document.getElementById('bcs-f-nomenclature').value = '';
+  document.getElementById('bcs-f-specification').value = '';
+  document.getElementById('bcs-f-unite-id').value = '';
+  document.getElementById('bcs-f-unite-libelle').value = '';
+  document.getElementById('bcs-f-qte').value = '0';
+  document.getElementById('bcs-f-designation').focus();
+}
+
+document.getElementById('bcs-create-form').addEventListener('submit', function() {
+  document.getElementById('bcs-details-json').value = JSON.stringify(bcsLines);
+});
+</script>
+<style>
+@keyframes fadeIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
+.htmx-indicator { opacity: 0; transition: opacity .15s; }
+.htmx-request .htmx-indicator, .htmx-request.htmx-indicator { opacity: 1; }
+</style>
+{% endblock %}

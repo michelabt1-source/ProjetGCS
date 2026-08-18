@@ -1,0 +1,242 @@
+{% extends 'base.html' %}
+{% block content %}
+{% with bon_num=bon.num_bon|stringformat:"04d" %}
+<div class="p-6 max-w-6xl mx-auto">
+
+  <div class="flex items-center gap-2 mb-5 text-sm text-slate-400">
+    <a href="{% url 'matieres:bons_commande_service_list' %}" class="hover:text-indigo-600 transition-colors">Bons de commande de services</a>
+    <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <span class="text-slate-600 font-semibold font-mono">BCS-{{ bon_num }}</span>
+    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold
+      {% if bon.statut == 'valide' %}bg-emerald-50 text-emerald-700 border border-emerald-200
+      {% elif bon.statut == 'envoye' %}bg-amber-50 text-amber-700 border border-amber-200
+      {% elif bon.statut == 'rejete' %}bg-red-50 text-red-700 border border-red-200
+      {% else %}bg-slate-100 text-slate-500 border border-slate-200{% endif %}">
+      <span class="w-1.5 h-1.5 rounded-full bg-current"></span>
+      {{ bon.get_statut_display }}
+    </span>
+    <a href="{% url 'matieres:bon_commande_service_etat' bon.pk %}" target="_blank"
+       class="ml-auto inline-flex items-center gap-1.5 text-xs font-semibold text-indigo-600 hover:text-indigo-700">
+      <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
+      Imprimer
+    </a>
+  </div>
+
+  {% if messages %}
+  <div class="mb-4 space-y-2">
+    {% for msg in messages %}
+    <div class="px-4 py-2.5 rounded-lg text-sm font-medium {% if msg.tags == 'error' %}bg-red-50 text-red-700 border border-red-200{% else %}bg-emerald-50 text-emerald-700 border border-emerald-200{% endif %}">{{ msg }}</div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <!-- Barre d'actions du workflow -->
+  <div class="flex items-center gap-2 mb-5 bg-white border border-slate-200 rounded-xl px-4 py-3 shadow-sm flex-wrap">
+    {% if bon.statut == 'brouillon' or bon.statut == 'rejete' %}
+    <form method="post" action="{% url 'matieres:bon_commande_service_envoyer' bon.pk %}"
+          onsubmit="return confirm('Envoyer BCS-{{ bon_num }} pour validation au chef de service Comptabilité des Matières ?')">
+      {% csrf_token %}
+      <button type="submit" class="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-semibold hover:bg-indigo-700 transition-colors">
+        <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
+        Envoyer pour validation
+      </button>
+    </form>
+    {% elif bon.statut == 'envoye' %}
+    <form method="post" action="{% url 'matieres:bon_commande_service_valider' bon.pk %}" class="flex items-center gap-2"
+          onsubmit="return confirm('Valider BCS-{{ bon_num }} ?')">
+      {% csrf_token %}
+      <input type="text" name="valide_par" placeholder="Nom du S.A.F. (optionnel)"
+             class="px-3 py-2 border border-slate-200 rounded-lg text-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none">
+      <button type="submit" class="inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm font-semibold hover:bg-emerald-700 transition-colors">
+        <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        Valider
+      </button>
+    </form>
+    <form method="post" action="{% url 'matieres:bon_commande_service_rejeter' bon.pk %}" class="flex items-center gap-2"
+          onsubmit="return confirm('Rejeter BCS-{{ bon_num }} ?')">
+      {% csrf_token %}
+      <input type="text" name="motif_rejet" placeholder="Motif du rejet"
+             class="px-3 py-2 border border-slate-200 rounded-lg text-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none">
+      <button type="submit" class="inline-flex items-center gap-2 px-4 py-2 bg-white text-red-600 border border-red-200 rounded-lg text-sm font-semibold hover:bg-red-50 transition-colors">
+        <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+        Rejeter
+      </button>
+    </form>
+    {% elif bon.statut == 'valide' %}
+    <div class="text-sm text-emerald-700 flex items-center gap-2">
+      <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+      Validé{% if bon.valide_par %} par Le S.A.F. <strong>{{ bon.valide_par }}</strong>{% endif %}{% if bon.date_validation %} le {{ bon.date_validation|date:"d/m/Y" }}{% endif %}
+      — disponible pour un Bon de Sortie Définitive.
+    </div>
+    {% endif %}
+
+    {% if bon.statut == 'rejete' and bon.motif_rejet %}
+    <div class="text-xs text-red-600 ml-2">Motif du rejet précédent : « {{ bon.motif_rejet }} » — corrigez le bon puis renvoyez-le.</div>
+    {% endif %}
+  </div>
+
+  <div class="grid grid-cols-1 lg:grid-cols-[320px_1fr] gap-5">
+
+    <!-- En-tête -->
+    <div class="bg-white border border-slate-200 rounded-2xl shadow-sm p-5 h-fit">
+      <div class="text-[11px] font-bold text-indigo-600 uppercase tracking-wide mb-4">En-tête du bon</div>
+      <form method="post" action="{% url 'matieres:bon_commande_service_update' bon.pk %}" class="space-y-3">
+        {% csrf_token %}
+        <div>
+          <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1">N° Bon</label>
+          <input type="text" value="BCS-{{ bon_num }}" readonly
+                 class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm font-mono font-semibold text-indigo-600 bg-slate-50">
+        </div>
+        <div>
+          <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1">Date</label>
+          <input type="date" name="date_creation" value="{{ bon.date_creation|date:'Y-m-d' }}" {% if not editable %}readonly{% endif %}
+                 class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none">
+        </div>
+        <div>
+          <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1">Année</label>
+          <input type="number" name="annee_exercice" value="{{ bon.annee_exercice|default:'' }}" {% if not editable %}readonly{% endif %}
+                 class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none">
+        </div>
+        <div>
+          <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1">Service de :</label>
+          <select name="service_id" {% if not editable %}disabled{% endif %}
+                  class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm bg-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none"
+                  hx-get="{% url 'matieres:htmx_bureaux_options' %}" hx-trigger="change" hx-target="#bcs-bureau-select-u" hx-include="this">
+            <option value="">— Sélectionner —</option>
+            {% for s in services %}<option value="{{ s.pk }}" {% if bon.service_id == s.pk %}selected{% endif %}>{{ s.code }} — {{ s.libelle }}</option>{% endfor %}
+          </select>
+        </div>
+        <div>
+          <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1">Bureau</label>
+          <select name="bureau_id" id="bcs-bureau-select-u" {% if not editable %}disabled{% endif %}
+                  class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm bg-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none">
+            <option value="">— Bureau —</option>
+            {% for b in bureaux %}<option value="{{ b.pk }}" {% if bon.bureau_id == b.pk %}selected{% endif %}>{{ b.code }} — {{ b.libelle }}</option>{% endfor %}
+          </select>
+        </div>
+        <div>
+          <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1">À M. (destinataire)</label>
+          <input type="text" name="destinataire" value="{{ bon.destinataire }}" {% if not editable %}readonly{% endif %}
+                 placeholder="Nom de la personne qui reçoit"
+                 class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none">
+        </div>
+        <div>
+          <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1">Chef de Service (demandeur)</label>
+          <input type="text" name="demande_par" value="{{ bon.demande_par }}" {% if not editable %}readonly{% endif %}
+                 class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none">
+        </div>
+        <div>
+          <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1">Observation</label>
+          <textarea name="observation" rows="2" {% if not editable %}readonly{% endif %}
+                    class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none">{{ bon.observation }}</textarea>
+        </div>
+        {% if editable %}
+        <button type="submit" class="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-indigo-600 text-white rounded-lg text-sm font-semibold hover:bg-indigo-700 transition-colors">
+          <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+          Enregistrer l'en-tête
+        </button>
+        {% endif %}
+      </form>
+    </div>
+
+    <!-- Saisie + tableau des lignes -->
+    <div class="space-y-5">
+      {% if editable %}
+      <div class="bg-white border border-slate-200 rounded-2xl shadow-sm p-5">
+        <div class="text-[11px] font-bold text-indigo-600 uppercase tracking-wide mb-4">Ajouter un article demandé</div>
+
+        <div class="mb-3 relative" id="bcs-produit-wrap">
+          <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1">Désignation *</label>
+          <input type="text" id="bcs-f-designation" placeholder="Tapez pour rechercher un consommable (Groupe 2)…" autocomplete="off"
+                 class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none"
+                 hx-get="{% url 'matieres:htmx_bcs_produit_search' %}" hx-trigger="input changed delay:250ms" hx-target="#bcs-produit-dropdown" name="q">
+          <div id="bcs-produit-dropdown" class="absolute left-0 right-0 z-20 bg-white border border-indigo-200 rounded-lg shadow-lg mt-1 max-h-56 overflow-y-auto hidden"></div>
+        </div>
+
+        <p class="text-xs text-slate-400 mb-3">Tapez le nom de l'article — sélectionnez une suggestion pour le lier au catalogue, ou laissez du texte libre.</p>
+        <input type="hidden" id="bcs-f-nomenclature">
+        <input type="hidden" id="bcs-f-specification">
+        <input type="hidden" id="bcs-f-unite-sel">
+        <div class="mb-4">
+          <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1">Quantité commandée *</label>
+          <input type="number" id="bcs-f-qte" value="0" min="0" step="1"
+                 class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm text-right font-semibold focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none">
+        </div>
+
+        <button type="button" id="bcs-btn-saisir"
+                hx-post="{% url 'matieres:htmx_bcs_add_detail' bon.pk %}"
+                hx-target="#bcs-detail-rows" hx-swap="innerHTML" hx-include="#bcs-article-form-data"
+                hx-on::after-request="bcsClearForm()"
+                onclick="bcsPrepareSubmit()"
+                class="inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm font-semibold hover:bg-emerald-700 transition-colors">
+          <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+          Ajouter la ligne
+        </button>
+
+        <div id="bcs-article-form-data" style="display:none">
+          {% csrf_token %}
+          <input type="hidden" name="produit_id" id="bcs-h-produit-id">
+          <input type="hidden" name="designation" id="bcs-h-designation">
+          <input type="hidden" name="nomenclature" id="bcs-h-nomenclature">
+          <input type="hidden" name="specification" id="bcs-h-specification">
+          <input type="hidden" name="qte_commandee" id="bcs-h-qte">
+          <input type="hidden" name="unite_id" id="bcs-h-unite-id">
+        </div>
+      </div>
+      {% endif %}
+
+      <div class="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+        <div class="px-5 py-3 border-b border-slate-100 text-[11px] font-bold text-indigo-600 uppercase tracking-wide">
+          Articles demandés — {{ details|length }} ligne{{ details|length|pluralize }}
+        </div>
+        <div class="overflow-x-auto" id="bcs-detail-rows">
+          {% include 'partials/bcs_detail_rows.html' with details=details bon=bon %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function bcsPickProduit(id, designation, nomenclature, specification, uniteId, uniteLibelle) {
+  document.getElementById('bcs-f-designation').value = designation;
+  document.getElementById('bcs-f-nomenclature').value = nomenclature;
+  document.getElementById('bcs-f-specification').value = specification;
+  document.getElementById('bcs-f-unite-sel').value = uniteId || '';
+  document.getElementById('bcs-f-designation').dataset.produitId = id;
+  const dd = document.getElementById('bcs-produit-dropdown');
+  dd.classList.add('hidden'); dd.innerHTML = '';
+  document.getElementById('bcs-f-qte').focus();
+}
+function bcsPrepareSubmit() {
+  document.getElementById('bcs-h-produit-id').value = document.getElementById('bcs-f-designation').dataset.produitId || '';
+  document.getElementById('bcs-h-designation').value = document.getElementById('bcs-f-designation').value;
+  document.getElementById('bcs-h-nomenclature').value = document.getElementById('bcs-f-nomenclature').value;
+  document.getElementById('bcs-h-specification').value = document.getElementById('bcs-f-specification').value;
+  document.getElementById('bcs-h-qte').value = document.getElementById('bcs-f-qte').value;
+  document.getElementById('bcs-h-unite-id').value = document.getElementById('bcs-f-unite-sel').value;
+}
+function bcsClearForm() {
+  document.getElementById('bcs-f-designation').value = '';
+  document.getElementById('bcs-f-designation').dataset.produitId = '';
+  document.getElementById('bcs-f-nomenclature').value = '';
+  document.getElementById('bcs-f-specification').value = '';
+  document.getElementById('bcs-f-qte').value = '0';
+  document.getElementById('bcs-f-unite-sel').value = '';
+  document.getElementById('bcs-f-designation').focus();
+}
+document.body.addEventListener('htmx:afterSwap', function(e) {
+  if (e.target && e.target.id === 'bcs-produit-dropdown') {
+    e.target.classList.toggle('hidden', !e.target.innerHTML.trim());
+  }
+});
+document.addEventListener('click', function(e) {
+  const wrap = document.getElementById('bcs-produit-wrap');
+  if (wrap && !wrap.contains(e.target)) {
+    const dd = document.getElementById('bcs-produit-dropdown');
+    if (dd) dd.classList.add('hidden');
+  }
+});
+</script>
+{% endwith %}
+{% endblock %}

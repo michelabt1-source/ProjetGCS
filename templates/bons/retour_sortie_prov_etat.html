@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Bon de retour sortie provisoire N°{{ bon.num_bon|stringformat:"04d" }}</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Segoe UI', Arial, sans-serif;
+    background: #64748b;
+    padding: 24px 0 60px;
+    color: #0f172a;
+  }
+
+  .toolbar {
+    max-width: 1150px;
+    margin: 0 auto 16px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .toolbar a, .toolbar button {
+    display: inline-flex; align-items: center; gap: 7px;
+    padding: 8px 16px; border-radius: 8px;
+    font-size: 13px; font-weight: 600; font-family: inherit;
+    text-decoration: none; cursor: pointer; border: none;
+    transition: all 150ms;
+  }
+  .btn-retour { background: #fff; color: #334155; border: 1px solid #cbd5e1 !important; }
+  .btn-retour:hover { background: #f1f5f9; }
+  .btn-imprimer { background: #d97706; color: #fff; margin-left: auto; }
+  .btn-imprimer:hover { background: #b45309; }
+
+  .sheet {
+    max-width: 1150px;
+    margin: 0 auto;
+    background: #fff;
+    padding: 26px 34px 34px;
+    box-shadow: 0 4px 24px rgba(0,0,0,.25);
+    font-size: 12px;
+  }
+
+  .dotted { border-bottom: 1px dotted #64748b; display: inline-block; min-width: 140px; }
+  .filled { border-bottom: 1px dotted #64748b; display: inline-block; min-width: 140px; font-weight: 700; }
+
+  .head-row { display: grid; grid-template-columns: 1.2fr 1.4fr 0.9fr; gap: 18px; margin-bottom: 14px; }
+
+  .head-col1 div { margin-bottom: 4px; }
+  .head-col1 .dash { letter-spacing: 2px; }
+  .head-col1 .lbl { margin-top: 8px; }
+
+  .head-col2 { text-align: center; padding-top: 6px; }
+  .head-col2 .titre { font-size: 15px; font-weight: 700; letter-spacing: .01em; line-height: 1.3; }
+  .head-col2 .num-line { font-size: 12.5px; margin-top: 6px; }
+
+  .head-col3 { text-align: left; }
+  .modele-box {
+    border: 1px solid #0f172a;
+    padding: 8px 12px;
+    font-size: 11.5px;
+    line-height: 1.5;
+    margin-bottom: 10px;
+  }
+  .head-col3 .ref-line { font-size: 12px; margin-bottom: 6px; }
+
+  table.lignes { width: 100%; border-collapse: collapse; font-size: 10.5px; margin-bottom: 16px; }
+  table.lignes th, table.lignes td { border: 1px solid #0f172a; padding: 4px 5px; vertical-align: middle; }
+  table.lignes thead th { background: #fef3c7; font-weight: 700; text-align: center; }
+  table.lignes td.r, table.lignes th.r { text-align: right; }
+  table.lignes td.c, table.lignes th.c { text-align: center; }
+  table.lignes tbody td { height: 20px; }
+  .totaux-lbl { text-align: right; font-weight: 700; padding-right: 10px !important; }
+
+  .bas-grid { display: grid; grid-template-columns: 1fr 1fr 1fr 0.8fr; gap: 20px; font-size: 10.5px; }
+  .bas-grid .titre { font-weight: 700; text-decoration: underline; text-align: center; margin-bottom: 10px; }
+  .bas-grid p { margin-bottom: 7px; line-height: 1.55; }
+  .bas-grid .signature { margin-top: 22px; }
+  .bas-grid .signature b { display: block; margin-bottom: 4px; }
+  .emploi p { margin-bottom: 5px; line-height: 1.5; }
+
+  @media print {
+    body { background: #fff; padding: 0; }
+    .toolbar { display: none !important; }
+    .sheet { box-shadow: none; max-width: 100%; padding: 8mm 10mm; }
+    @page { size: A4 landscape; margin: 6mm; }
+  }
+</style>
+</head>
+<body>
+
+  <div class="toolbar">
+    <a href="{% url 'matieres:bon_retour_sortie_prov_update' pk=bon.pk %}" class="btn-retour">← Retour au bon</a>
+    <button type="button" class="btn-imprimer" onclick="window.print()">Imprimer</button>
+  </div>
+
+  <div class="sheet">
+
+    <div class="head-row">
+      <div class="head-col1">
+        <div>REPUBLIQUE DU SENEGAL</div>
+        <div class="dash">-----------</div>
+        <div class="lbl">MINISTERE/ORGANISME PUBLIC.</div>
+        <div class="filled">{{ societe.ministere|default:"" }}</div>
+        <div class="lbl">SERVICE OU ETABLISSEMENT</div>
+        <div class="filled">{{ societe.nom|default:"" }}</div>
+      </div>
+
+      <div class="head-col2">
+        <div class="titre">BON DE SORTIE PROVISOIRE<br>N° <span class="filled" style="min-width:80px">{{ bon.num_bon }}</span>&nbsp;(1).</div>
+        <div class="num-line">(SENS RETOUR — réintégration de matières sorties provisoirement)</div>
+      </div>
+
+      <div class="head-col3">
+        <div class="modele-box">
+          Modèle N° 4<br>
+          Instruction. Générale<br>
+          Art. 54c, 68
+        </div>
+      </div>
+    </div>
+
+    <table class="lignes">
+      <thead>
+        <tr>
+          <th colspan="7">DESIGNATION DES MATIERES</th>
+          <th colspan="2">QUANTITE</th>
+          <th rowspan="3">Prix unitaire</th>
+          <th rowspan="3">Montant</th>
+          <th rowspan="3">Observations</th>
+        </tr>
+        <tr>
+          <th colspan="5">N° compte de la Nomenclature<br>(2)</th>
+          <th rowspan="2">Nature des matières</th>
+          <th rowspan="2">Spécification<br>des matières</th>
+          <th rowspan="2">Nombre<br>d'unités</th>
+          <th rowspan="2">Nature de<br>l'unité (3)</th>
+        </tr>
+        <tr>
+          <th>Groupe</th>
+          <th>Compte<br>principal</th>
+          <th>Compte<br>secondaire</th>
+          <th>Compte<br>divisionnaire</th>
+          <th>Sous<br>compte</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for d in details %}
+        <tr>
+          <td class="c">{{ d.groupe_disp|default:"—" }}</td>
+          <td class="c">{{ d.compte_principal_disp|default:"—" }}</td>
+          <td class="c">—</td>
+          <td class="c"></td>
+          <td class="c">{{ d.sous_compte_disp|default:"—" }}</td>
+          <td>{{ d.designation }}</td>
+          <td>{{ d.specification|default:"" }}</td>
+          <td class="r">{{ d.qte }}</td>
+          <td class="c">{{ d.unite|default:"—" }}</td>
+          <td class="r">{{ d.prix_ttc|floatformat:2 }}</td>
+          <td class="r">{{ d.montant_ttc|floatformat:2 }}</td>
+          <td>{{ d.observation|default:"" }}</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="12" class="c" style="color:#64748b">Aucun article</td></tr>
+        {% endfor %}
+        <tr>
+          <td colspan="7" class="totaux-lbl">TOTAUX</td>
+          <td class="r" style="font-weight:700">{{ total_qte|floatformat:2 }}</td>
+          <td></td>
+          <td></td>
+          <td class="r" style="font-weight:700">{{ total_ttc|floatformat:2 }}</td>
+          <td></td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="bas-grid">
+      <div>
+        <div class="titre">CERTIFICATIONS</div>
+        <p>
+          Arrêté le présent bon à <span class="filled" style="min-width:60px">{{ total_qte|floatformat:2 }}</span>
+          unités représentant une valeur de <span class="filled" style="min-width:90px">{{ total_ttc|floatformat:2 }}</span>
+          francs dont je certifie le retour de sortie provisoire.
+        </p>
+        <p>A <span class="dotted">{{ societe.ville|default:"" }}</span> le <span class="dotted">{{ bon.date_retour|date:"d/m/Y" }}</span></p>
+        <div class="signature">
+          <b>L'Ordonnateur des matières (5)</b>
+          {% if societe.administrateur %}Mr {{ societe.administrateur }}{% endif %}
+        </div>
+      </div>
+
+      <div>
+        <div class="titre">REINTEGRATION DES PRISES EN CHARGE</div>
+        <p>
+          Le comptable des matières, soussigné, reconnaît la réintégration des matières
+          portées au présent bon dans l'enceinte du service.
+        </p>
+        <p>A <span class="dotted">{{ societe.ville|default:"" }}</span> le <span class="dotted">{{ bon.date_retour|date:"d/m/Y" }}</span></p>
+        <div class="signature">
+          <b>Le Comptable des matières (5)</b>
+          {% if societe.comptable %}Mr {{ societe.comptable }}{% endif %}
+        </div>
+      </div>
+
+      <div>
+        <div class="titre">RESTITUTION</div>
+        <p>
+          Je, soussigné, <span class="filled">{{ bon.bureau.responsable|default:bon.bureau }}</span>
+          reconnais avoir restitué les matières portées au présent bon.
+        </p>
+        <p>A <span class="dotted">{{ societe.ville|default:"" }}</span> le <span class="dotted">{{ bon.date_retour|date:"d/m/Y" }}</span></p>
+        <div class="signature">
+          <b>Le Restituant (5)</b>
+        </div>
+      </div>
+
+      <div class="emploi">
+        <div class="titre" style="text-align:left">EMPLOI DE L'IMPRIME</div>
+        <p>(1) Numérotation ininterrompue pour la gestion</p>
+        <p>(2) Dans l'ordre des articles décrits sur les pièces justificatives ou dans l'ordre des comptes de la nomenclature.</p>
+        <p>(3) Litre, kg, mètre, nombre etc.</p>
+        <p>(4) Nom et qualité</p>
+        <p>(5) Timbre et signature</p>
+        <p><b>Bon à établir en 03 exemplaires</b></p>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

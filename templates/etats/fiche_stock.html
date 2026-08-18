@@ -6,6 +6,10 @@
     <h1 style="font-size:20px;font-weight:700;color:#0f172a">Fiche de Stock</h1>
     <p style="color:#64748b;font-size:13px;margin-top:2px">{{ produit.nomenclature }} — {{ produit.designation }}</p>
   </div>
+  <a href="{% url 'matieres:fiche_stock_etat' pk=produit.pk %}" target="_blank" class="btn-primary" style="margin-left:auto;padding:7px 14px;font-size:13px">
+    <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
+    État officiel (Modèle N°9)
+  </a>
 </div>
 
 <!-- Infos produit -->
@@ -93,7 +97,7 @@
         <th style="padding:10px 16px;text-align:right;font-weight:600;color:#475569;width:70px">Qté</th>
         <th style="padding:10px 16px;text-align:right;font-weight:600;color:#475569;width:80px">Existant</th>
         <th style="padding:10px 16px;text-align:right;font-weight:600;color:#475569;width:80px">Ex. Fin</th>
-        <th style="padding:10px 16px;text-align:left;font-weight:600;color:#475569">Bénéficiaire</th>
+        <th style="padding:10px 16px;text-align:left;font-weight:600;color:#475569">Service/Bureau</th>
         <th style="padding:10px 16px;text-align:right;font-weight:600;color:#475569;width:100px">Montant TTC</th>
       </tr>
     </thead>
@@ -106,7 +110,7 @@
         <td style="padding:8px 16px;text-align:right;font-weight:700;color:#0f172a">{{ j.qte }}</td>
         <td style="padding:8px 16px;text-align:right;color:#64748b">{{ j.existant }}</td>
         <td style="padding:8px 16px;text-align:right;font-weight:600;color:#4f46e5">{{ j.existant_fin_periode }}</td>
-        <td style="padding:8px 16px;color:#64748b;font-size:11px">{{ j.beneficiaire|default:"—" }}</td>
+        <td style="padding:8px 16px;color:#64748b;font-size:11px">{{ j.bureau|default:j.service|default:"—" }}</td>
         <td style="padding:8px 16px;text-align:right;color:#475569">{{ j.montant_ttc|floatformat:0 }}</td>
       </tr>
       {% endfor %}

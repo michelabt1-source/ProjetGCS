@@ -1,0 +1,32 @@
+{% if produits %}
+<div style="font-size:11px;color:#64748b;padding:8px 16px;border-bottom:1px solid #f1f5f9;background:#fafafa">
+  {% if q %}
+    <strong>{{ produits|length }}</strong> résultat{{ produits|length|pluralize }} pour « {{ q }} »
+  {% else %}
+    <strong>{{ produits|length }}</strong> produit{{ produits|length|pluralize }} Groupe 1 sur {{ total_all }}
+  {% endif %}
+</div>
+{% for p in produits %}
+<div class="modal-prod-row"
+     onclick="bsdg1PickProduit('{{ p.pk }}','{{ p.designation|escapejs }}','{{ p.nomenclature|escapejs }}','{{ p.specification|escapejs }}','{{ p.unite_id|default:'' }}','{{ p.unite.libelle|default:''|escapejs }}',{{ p.stock_disponible }},{{ p.auto_prix_ht|default:0|floatformat:"2u" }},{{ p.auto_prix_ttc|default:0|floatformat:"2u" }})">
+  <div style="min-width:0;flex:1">
+    <div style="font-size:13px;font-weight:600;color:#1e293b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ p.designation }}</div>
+    <div style="font-size:11px;color:#64748b;margin-top:1px">
+      <span style="font-family:monospace;color:#5b21b6;font-weight:700">{{ p.nomenclature }}</span>
+      {% if p.specification %} — {{ p.specification }}{% endif %}
+      {% if p.unite %} · {{ p.unite }}{% endif %}
+    </div>
+  </div>
+  <span style="font-size:11px;font-weight:700;padding:2px 9px;border-radius:20px;flex-shrink:0;margin-left:10px;background:#ede9fe;color:#5b21b6">
+    Dispo : {{ p.stock_disponible }}
+  </span>
+</div>
+{% endfor %}
+{% else %}
+<div style="padding:40px;text-align:center;color:#94a3b8">
+  <svg width="32" height="32" fill="none" stroke="#cbd5e1" viewBox="0 0 24 24" stroke-width="1.5" style="margin:0 auto 10px;display:block">
+    <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+  </svg>
+  Aucun produit Groupe 1{% if q %} pour « {{ q }} »{% endif %}
+</div>
+{% endif %}

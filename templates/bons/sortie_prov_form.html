@@ -56,15 +56,25 @@
           </select>
         </div>
         <div>
-          <label class="bsp-label">Bénéficiaire</label>
-          <select name="beneficiaire_id" class="bsp-input bsp-select">
+          <label class="bsp-label">Service</label>
+          <select name="service_id" class="bsp-input bsp-select"
+                  hx-get="{% url 'matieres:htmx_bureaux_options' %}"
+                  hx-trigger="change"
+                  hx-target="#bsp-bureau"
+                  hx-include="this">
             <option value="">— Sélectionner —</option>
-            {% for b in beneficiaires %}<option value="{{ b.pk }}">{{ b.nom }}</option>{% endfor %}
+            {% for s in services %}<option value="{{ s.pk }}">{{ s.code }} — {{ s.libelle }}</option>{% endfor %}
           </select>
         </div>
-        <div style="grid-column:1/-1">
-          <label class="bsp-label">Observation</label>
-          <textarea name="observation" class="bsp-input" rows="2" style="resize:vertical"></textarea>
+        <div>
+          <label class="bsp-label">Bureau</label>
+          <select name="bureau_id" id="bsp-bureau" class="bsp-input bsp-select">
+            <option value="">— Bureau —</option>
+          </select>
+        </div>
+        <div>
+          <label class="bsp-label">Chapitre</label>
+          <input type="text" name="chapitre" class="bsp-input" placeholder="Optionnel">
         </div>
       </div>
       <div style="height:1px;background:#f1f5f9;margin:20px 0"></div>

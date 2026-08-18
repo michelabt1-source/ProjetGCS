@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Grand-Livre des comptes — {{ nomenclature }}</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Segoe UI', Arial, sans-serif;
+    background: #64748b;
+    padding: 24px 0 60px;
+    color: #0f172a;
+  }
+
+  .toolbar {
+    max-width: 1300px;
+    margin: 0 auto 16px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .toolbar a, .toolbar button {
+    display: inline-flex; align-items: center; gap: 7px;
+    padding: 8px 16px; border-radius: 8px;
+    font-size: 13px; font-weight: 600; font-family: inherit;
+    text-decoration: none; cursor: pointer; border: none;
+    transition: all 150ms;
+  }
+  .btn-retour { background: #fff; color: #334155; border: 1px solid #cbd5e1 !important; }
+  .btn-retour:hover { background: #f1f5f9; }
+  .btn-imprimer { background: #4f46e5; color: #fff; margin-left: auto; }
+  .btn-imprimer:hover { background: #4338ca; }
+
+  .sheet {
+    max-width: 1300px;
+    margin: 0 auto;
+    background: #fff;
+    padding: 26px 34px 34px;
+    box-shadow: 0 4px 24px rgba(0,0,0,.25);
+    font-size: 11.5px;
+  }
+
+  .dotted { border-bottom: 1px dotted #64748b; display: inline-block; min-width: 160px; }
+  .filled { border-bottom: 1px dotted #64748b; display: inline-block; min-width: 160px; font-weight: 700; }
+
+  .head-row { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-bottom: 4px; }
+  .head-col1 div, .head-col2 div { margin-bottom: 5px; }
+  .modele-box {
+    border: 1px solid #0f172a;
+    padding: 8px 12px;
+    font-size: 11.5px;
+    line-height: 1.5;
+    position: absolute;
+    top: 26px;
+    right: 34px;
+  }
+  .sheet { position: relative; }
+  .titre-principal { text-align: center; font-size: 15px; font-weight: 700; letter-spacing: .04em; margin: 0 0 18px; }
+
+  table.lignes { width: 100%; border-collapse: collapse; font-size: 10px; }
+  table.lignes th, table.lignes td { border: 1px solid #0f172a; padding: 5px 6px; vertical-align: middle; }
+  table.lignes thead th { background: #d1d5db; font-weight: 700; text-align: center; }
+  table.lignes td.r, table.lignes th.r { text-align: right; }
+  table.lignes td.c, table.lignes th.c { text-align: center; }
+  table.lignes tbody td { height: 20px; }
+
+  @media print {
+    body { background: #fff; padding: 0; }
+    .toolbar { display: none !important; }
+    .sheet { box-shadow: none; max-width: 100%; padding: 8mm 10mm; }
+    @page { size: A4 landscape; margin: 6mm; }
+  }
+</style>
+</head>
+<body>
+
+  <div class="toolbar">
+    <a href="{% url 'matieres:grand_livre' %}" class="btn-retour">← Retour au Grand Livre</a>
+    <button type="button" class="btn-imprimer" onclick="window.print()">Imprimer</button>
+  </div>
+
+  <div class="sheet">
+
+    <div class="modele-box">
+      Modèle N° 12<br>
+      Instruction Générale<br>
+      Art. 14c, 58a, 58b, 58e, 58f,<br>
+      70b, 76a, 76b, 78a2
+    </div>
+
+    <div class="head-row">
+      <div class="head-col1">
+        <div>REPUBLIQUE DU SENEGAL</div>
+        <div>-----------</div>
+        <div>MINISTERE/ORGANISME PUBLIC</div>
+        <div class="filled">{{ societe.ministere|default:"" }}</div>
+        <div>SERVICE OU ETABLISSEMENT</div>
+        <div class="filled">{{ societe.nom|default:"" }}</div>
+      </div>
+      <div class="head-col2">
+        <div style="height:22px"></div>
+        <div>Nature de l'unité <span class="filled">{{ unite|default:"" }}</span></div>
+        <div>Compte N° <span class="filled">{{ nomenclature }}</span></div>
+        <div>Intitulé <span class="filled" style="min-width:260px">{{ designation }}</span></div>
+      </div>
+    </div>
+
+    <div class="titre-principal">GRAND-LIVRE DES COMPTES</div>
+
+    <table class="lignes">
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>N° Bon</th>
+          <th>Origine des entrées et destinations des sorties</th>
+          <th>Entrées</th>
+          <th>Sorties<br>définitives</th>
+          <th>Prix<br>unitaire</th>
+          <th>Existant</th>
+          <th>Montant de<br>l'existant</th>
+          <th>Pour mémoire<br>sorties provisoires</th>
+          <th>Date de retour des matières<br>Sorties provisoirement</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for l in lignes %}
+        <tr>
+          <td class="c">{{ l.date|date:"d/m/Y"|default:"—" }}</td>
+          <td class="c">{{ l.num_bon|default:"—" }}</td>
+          <td>{{ l.origine_destination }}</td>
+          <td class="r">{{ l.entree|default:"" }}</td>
+          <td class="r">{{ l.sortie_def|default:"" }}</td>
+          <td class="r">{{ l.prix_unitaire|floatformat:"2u" }}</td>
+          <td class="r" style="font-weight:700">{{ l.existant|floatformat:"-2" }}</td>
+          <td class="r">{{ l.montant_existant|floatformat:2 }}</td>
+          <td class="r">{{ l.sortie_prov|default:"" }}</td>
+          <td class="c">{{ l.date_retour|date:"d/m/Y"|default:"" }}</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="10" class="c" style="color:#64748b">Aucun mouvement enregistré pour ce compte</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+  </div>
+
+</body>
+</html>

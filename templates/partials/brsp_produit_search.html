@@ -1,6 +1,6 @@
 {% for p in produits %}
 <div class="prod-item"
-     onclick="brspPickProduit('{{ p.pk }}','{{ p.designation|escapejs }}','{{ p.nomenclature|escapejs }}','{{ p.specification|escapejs }}','{{ p.unite_id|default:'' }}','{{ p.unite.libelle|default:''|escapejs }}',{{ p.qte_sp }})">
+     onclick="brspPickProduit('{{ p.pk }}','{{ p.designation|escapejs }}','{{ p.nomenclature|escapejs }}','{{ p.specification|escapejs }}','{{ p.unite_id|default:'' }}','{{ p.unite.libelle|default:''|escapejs }}',{{ p.qte_sp_dispo }},{{ p.auto_prix_ht|default:0|floatformat:"2u" }},{{ p.auto_prix_ttc|default:0|floatformat:"2u" }})">
   <div style="min-width:0;flex:1">
     <div style="font-size:13px;font-weight:600;color:#1e293b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ p.designation }}</div>
     <div style="font-size:11px;color:#64748b">
@@ -8,12 +8,12 @@
       {% if p.unite %} · {{ p.unite }}{% endif %}
     </div>
   </div>
-  <span style="font-size:11px;font-weight:700;padding:2px 9px;border-radius:20px;flex-shrink:0;margin-left:8px;
-               background:{% if p.qte_sp > 0 %}#fef3c7{% else %}#fee2e2{% endif %};
-               color:{% if p.qte_sp > 0 %}#92400e{% else %}#991b1b{% endif %}">
-    SP: {{ p.qte_sp }}
+  <span style="font-size:11px;font-weight:700;padding:2px 9px;border-radius:20px;flex-shrink:0;margin-left:8px;background:#fef3c7;color:#92400e">
+    SP dispo : {{ p.qte_sp_dispo }}
   </span>
 </div>
 {% empty %}
-<div style="padding:12px 16px;color:#94a3b8;font-size:12px">Aucun produit Groupe 1 trouvé</div>
+<div style="padding:12px 16px;color:#94a3b8;font-size:12px">
+  {% if bureau %}Aucune matière Groupe 1 sortie provisoirement à {{ bureau }}{% if q %} pour « {{ q }} »{% endif %}{% else %}Sélectionnez d'abord un service et un bureau{% endif %}
+</div>
 {% endfor %}

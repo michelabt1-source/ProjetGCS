@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Bordereau de retour d'affectation N°{{ bon.num_bon|stringformat:"04d" }}</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Segoe UI', Arial, sans-serif;
+    background: #64748b;
+    padding: 24px 0 60px;
+    color: #0f172a;
+  }
+
+  .toolbar {
+    max-width: 1150px;
+    margin: 0 auto 16px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .toolbar a, .toolbar button {
+    display: inline-flex; align-items: center; gap: 7px;
+    padding: 8px 16px; border-radius: 8px;
+    font-size: 13px; font-weight: 600; font-family: inherit;
+    text-decoration: none; cursor: pointer; border: none;
+    transition: all 150ms;
+  }
+  .btn-retour { background: #fff; color: #334155; border: 1px solid #cbd5e1 !important; }
+  .btn-retour:hover { background: #f1f5f9; }
+  .btn-imprimer { background: #0891b2; color: #fff; margin-left: auto; }
+  .btn-imprimer:hover { background: #0e7490; }
+
+  .sheet {
+    max-width: 1150px;
+    margin: 0 auto;
+    background: #fff;
+    padding: 26px 34px 34px;
+    box-shadow: 0 4px 24px rgba(0,0,0,.25);
+    font-size: 12px;
+  }
+
+  .dotted { border-bottom: 1px dotted #64748b; display: inline-block; min-width: 140px; }
+  .filled { border-bottom: 1px dotted #64748b; display: inline-block; min-width: 140px; font-weight: 700; }
+
+  .head-row { display: grid; grid-template-columns: 1.6fr 0.9fr; gap: 18px; margin-bottom: 10px; }
+  .head-col1 div { margin-bottom: 4px; }
+  .head-col1 .dash { letter-spacing: 2px; }
+  .head-col1 .lbl { margin-top: 8px; }
+  .modele-box {
+    border: 1px solid #0f172a;
+    padding: 8px 12px;
+    font-size: 11.5px;
+    line-height: 1.5;
+    justify-self: end;
+    align-self: start;
+  }
+
+  .titre-principal { text-align: center; font-size: 15px; font-weight: 700; letter-spacing: .01em; margin: 14px 0 6px; }
+  .sous-titre { text-align: center; font-size: 11px; color: #475569; margin-bottom: 18px; }
+
+  table.lignes { width: 100%; border-collapse: collapse; font-size: 11px; margin-bottom: 18px; }
+  table.lignes th, table.lignes td { border: 1px solid #0f172a; padding: 6px 7px; vertical-align: middle; }
+  table.lignes thead th { background: #cffafe; font-weight: 700; text-align: center; }
+  table.lignes td.r, table.lignes th.r { text-align: right; }
+  table.lignes td.c, table.lignes th.c { text-align: center; }
+  table.lignes tbody td { height: 22px; }
+
+  .bas-grid { display: grid; grid-template-columns: 1fr 1fr 1.2fr 1.2fr; gap: 16px; font-size: 10px; }
+  .bas-grid .titre { font-weight: 700; text-decoration: underline; margin-bottom: 10px; }
+  .bas-grid p { margin-bottom: 6px; line-height: 1.55; }
+  .bas-grid .signature { margin-top: 18px; }
+  .bas-grid .signature-lbl { font-weight: 600; margin-bottom: 3px; }
+
+  @media print {
+    body { background: #fff; padding: 0; }
+    .toolbar { display: none !important; }
+    .sheet { box-shadow: none; max-width: 100%; padding: 8mm 10mm; }
+    @page { size: A4 landscape; margin: 6mm; }
+  }
+</style>
+</head>
+<body>
+
+  <div class="toolbar">
+    <a href="{% url 'matieres:bon_retour_affectation_update' pk=bon.pk %}" class="btn-retour">← Retour au bon</a>
+    <button type="button" class="btn-imprimer" onclick="window.print()">Imprimer</button>
+  </div>
+
+  <div class="sheet">
+
+    <div class="head-row">
+      <div class="head-col1">
+        <div>REPUBLIQUE DU SENEGAL</div>
+        <div class="dash">-----------</div>
+        <div class="lbl">MINISTERE/ORGANISME PUBLIC</div>
+        <div class="filled">{{ societe.ministere|default:"" }}</div>
+        <div class="lbl">SERVICE OU ETABLISSEMENT</div>
+        <div class="filled">{{ societe.nom|default:"" }}</div>
+      </div>
+      <div class="modele-box">
+        Modèle N° 7<br>
+        Instruction Générale<br>
+        Art .52b, 69
+      </div>
+    </div>
+
+    <div class="titre-principal">
+      BORDEREAU D'AFFECTATION N° <span class="filled" style="min-width:80px">{{ bon.num_bon }}</span>
+    </div>
+    <div class="sous-titre">(SENS RETOUR — restitution de matières précédemment affectées)</div>
+
+    <table class="lignes">
+      <thead>
+        <tr>
+          <th>Numéro compte<br>nomenclature</th>
+          <th>Code<br>d'immatriculation</th>
+          <th>Désignation des matières</th>
+          <th>Nature des<br>unités</th>
+          <th>Nombre<br>d'unités</th>
+          <th>Prix unitaire</th>
+          <th>Montant</th>
+          <th>Observation</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for d in details %}
+        <tr>
+          <td class="c">{{ d.nomenclature }}</td>
+          <td class="c"></td>
+          <td>{{ d.designation }}</td>
+          <td class="c">{{ d.unite|default:"—" }}</td>
+          <td class="r">{{ d.qte }}</td>
+          <td class="r">{{ d.prix_ttc|floatformat:2 }}</td>
+          <td class="r">{{ d.montant_ttc|floatformat:2 }}</td>
+          <td>{{ d.observation|default:"" }}</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="8" class="c" style="color:#64748b">Aucun article</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    <div class="bas-grid">
+      <div>
+        <div class="titre">L'Ordonnateur des matières :</div>
+        <p>Vu et approuvé,</p>
+        <p>A <span class="dotted">{{ societe.ville|default:"" }}</span> le <span class="dotted">{{ bon.date_retour|date:"d/m/Y" }}</span></p>
+        <div class="signature">
+          <div class="signature-lbl">Prénoms et nom de l'ordonnateur des matières</div>
+          {% if societe.administrateur %}Mr {{ societe.administrateur }}{% endif %}
+          <div style="margin-top:10px">Signature</div>
+        </div>
+      </div>
+
+      <div>
+        <div class="titre">Le comptable des matières ;</div>
+        <p>Vu</p>
+        <p>A <span class="dotted">{{ societe.ville|default:"" }}</span> le <span class="dotted">{{ bon.date_retour|date:"d/m/Y" }}</span></p>
+        <div class="signature">
+          <div class="signature-lbl">Prénoms et nom du comptable des matières</div>
+          {% if societe.comptable %}Mr {{ societe.comptable }}{% endif %}
+          <div style="margin-top:10px">Signatures</div>
+        </div>
+      </div>
+
+      <div>
+        <div class="titre">Le magasinier fichiste</div>
+        <p>
+          Je, soussigné, reconnais avoir augmenté mes prises en charge des matières
+          portées au présent bordereau de retour d'affectation de <span class="filled" style="min-width:60px">{{ total_qte }}</span>
+          unités représentant une valeur de <span class="filled" style="min-width:100px">{{ total_ttc|floatformat:2 }}</span> F CFA
+        </p>
+        <p>A <span class="dotted">{{ societe.ville|default:"" }}</span> le <span class="dotted">{{ bon.date_retour|date:"d/m/Y" }}</span></p>
+        <div class="signature">
+          <div class="signature-lbl">Prénoms et nom du magasinier</div>
+          <div style="margin-top:10px">Signature du magasinier fichiste</div>
+        </div>
+      </div>
+
+      <div>
+        <div class="titre">Le bureau restituant</div>
+        <p>
+          Je, soussigné, reconnais avoir restitué les matières portées au présent bordereau
+          de retour d'affectation
+        </p>
+        <p>Service <span class="filled">{{ bon.service|default:"" }}</span> — Bureau <span class="filled">{{ bon.bureau|default:"" }}</span></p>
+        <p>A <span class="dotted">{{ societe.ville|default:"" }}</span> le <span class="dotted">{{ bon.date_retour|date:"d/m/Y" }}</span></p>
+        <div class="signature">
+          <div class="signature-lbl">Prénoms et nom du détenteur restituant</div>
+          {{ bon.bureau.responsable|default:"" }}
+          <div style="margin-top:10px">Signature</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

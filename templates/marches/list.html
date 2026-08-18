@@ -1,0 +1,60 @@
+{% extends 'base.html' %}
+{% load humanize %}
+{% block content %}
+<div class="p-6 max-w-6xl mx-auto">
+
+  <div class="flex items-center justify-between mb-5">
+    <div>
+      <h1 class="text-2xl font-bold text-slate-800">Gestion des marchés</h1>
+      <p class="text-sm text-slate-500 mt-0.5">Contrats annuels signés avec les fournisseurs suite aux appels d'offres</p>
+    </div>
+    <a href="{% url 'matieres:marche_create' %}"
+       class="inline-flex items-center gap-2 px-4 py-2.5 bg-indigo-600 text-white rounded-xl text-sm font-semibold shadow-sm hover:bg-indigo-700 transition-colors">
+      <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
+      </svg>
+      Nouveau marché
+    </a>
+  </div>
+
+  <div class="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+    <div class="overflow-x-auto">
+      <table class="w-full text-sm">
+        <thead>
+          <tr class="bg-slate-50 text-slate-500 text-[11px] uppercase tracking-wide font-bold border-b border-slate-200">
+            <th class="text-left px-4 py-3">N° Marché</th>
+            <th class="text-left px-4 py-3">Date de création</th>
+            <th class="text-left px-4 py-3">Période</th>
+            <th class="text-left px-4 py-3">Fournisseur</th>
+            <th class="text-left px-4 py-3">Référence</th>
+            <th class="text-right px-4 py-3">Total TTC</th>
+            <th class="px-4 py-3"></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for m in marches %}
+          <tr class="border-b border-slate-100 hover:bg-slate-50 transition-colors">
+            <td class="px-4 py-3 font-mono font-semibold text-indigo-600">{{ m.num_marche }}</td>
+            <td class="px-4 py-3 text-slate-600">{{ m.date_creation|date:"d/m/Y" }}</td>
+            <td class="px-4 py-3 text-slate-600">
+              {% if m.date_debut or m.date_fin %}
+                {{ m.date_debut|date:"d/m/Y"|default:"—" }} → {{ m.date_fin|date:"d/m/Y"|default:"—" }}
+              {% else %}—{% endif %}
+            </td>
+            <td class="px-4 py-3 text-slate-700">{{ m.fournisseur|default:"—" }}</td>
+            <td class="px-4 py-3 text-slate-600">{{ m.reference_marche|default:"—" }}</td>
+            <td class="px-4 py-3 text-right font-semibold text-emerald-600">{{ m.total_ttc|floatformat:0|intcomma }} FCFA</td>
+            <td class="px-4 py-3 text-right whitespace-nowrap">
+              <a href="{% url 'matieres:marche_detail' m.pk %}" class="text-slate-500 hover:text-indigo-600 text-xs font-semibold mr-3">Voir</a>
+              <a href="{% url 'matieres:marche_update' m.pk %}" class="text-slate-500 hover:text-indigo-600 text-xs font-semibold">Modifier</a>
+            </td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="7" class="px-4 py-10 text-center text-slate-400">Aucun marché enregistré.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

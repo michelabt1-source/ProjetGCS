@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>PV de vente/destruction N°{{ bon.num_bon|stringformat:"04d" }}</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Segoe UI', Arial, sans-serif;
+    background: #64748b;
+    padding: 24px 0 60px;
+    color: #0f172a;
+  }
+
+  .toolbar {
+    max-width: 1200px;
+    margin: 0 auto 16px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .toolbar a, .toolbar button {
+    display: inline-flex; align-items: center; gap: 7px;
+    padding: 8px 16px; border-radius: 8px;
+    font-size: 13px; font-weight: 600; font-family: inherit;
+    text-decoration: none; cursor: pointer; border: none;
+    transition: all 150ms;
+  }
+  .btn-retour { background: #fff; color: #334155; border: 1px solid #cbd5e1 !important; }
+  .btn-retour:hover { background: #f1f5f9; }
+  .btn-imprimer { background: #7c3aed; color: #fff; margin-left: auto; }
+  .btn-imprimer:hover { background: #5b21b6; }
+
+  .sheet {
+    max-width: 1200px;
+    margin: 0 auto 24px;
+    background: #fff;
+    padding: 26px 34px 34px;
+    box-shadow: 0 4px 24px rgba(0,0,0,.25);
+    font-size: 11.5px;
+    position: relative;
+  }
+
+  .dotted { border-bottom: 1px dotted #64748b; display: inline-block; min-width: 160px; }
+  .filled { border-bottom: 1px dotted #64748b; display: inline-block; min-width: 160px; font-weight: 700; }
+
+  .modele-box {
+    border: 1px solid #0f172a;
+    padding: 8px 12px;
+    font-size: 11.5px;
+    line-height: 1.5;
+    position: absolute;
+    top: 26px;
+    right: 34px;
+  }
+
+  /* ── Page 1 : couverture ── */
+  .cover-head div { margin-bottom: 4px; }
+  .cover-head .dash { letter-spacing: 2px; }
+  .cover-titre-principal { text-align: center; font-size: 15px; font-weight: 700; margin: 90px 0 18px; }
+  .cover-num { text-align: center; font-size: 13px; margin-bottom: 60px; }
+  .cover-notes { font-size: 11px; color: #334155; }
+  .cover-notes p { margin-bottom: 4px; }
+
+  /* ── Page 2 : tableau ── */
+  .titre-principal { text-align: center; font-size: 15px; font-weight: 700; letter-spacing: .04em; margin: 6px 0 6px; }
+  .ref-row { text-align: right; font-size: 11.5px; margin-bottom: 14px; }
+  .ref-row div { margin-bottom: 3px; }
+
+  table.lignes { width: 100%; border-collapse: collapse; font-size: 9.5px; }
+  table.lignes th, table.lignes td { border: 1px solid #0f172a; padding: 4px 5px; vertical-align: middle; }
+  table.lignes thead th { background: #d1d5db; font-weight: 700; text-align: center; }
+  table.lignes td.r, table.lignes th.r { text-align: right; }
+  table.lignes td.c, table.lignes th.c { text-align: center; }
+  table.lignes tbody td { height: 20px; }
+  .footnotes { font-size: 10px; color: #334155; margin-top: 8px; }
+
+  /* ── Page 3 : totaux + signatures ── */
+  .vd-totaux p { font-size: 12.5px; margin-bottom: 10px; line-height: 1.6; }
+  .vd-fait { margin: 18px 0 30px; font-size: 12px; }
+  .vd-sign-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; }
+  .vd-sign-grid .titre { font-weight: 700; text-align: center; margin-bottom: 14px; font-size: 12px; }
+  .sign-block { margin-bottom: 20px; font-size: 11.5px; line-height: 1.9; }
+  .sign-block div { border-bottom: 1px dotted #94a3b8; padding-top: 2px; }
+  .sign-block .lbl { border-bottom: none; color: #64748b; font-size: 10.5px; margin-top: 6px; }
+
+  @media print {
+    body { background: #fff; padding: 0; }
+    .toolbar { display: none !important; }
+    .sheet { box-shadow: none; max-width: 100%; padding: 8mm 10mm; page-break-after: always; }
+    .sheet:last-child { page-break-after: auto; }
+    @page { size: A4 landscape; margin: 6mm; }
+  }
+</style>
+</head>
+<body>
+
+  <div class="toolbar">
+    <a href="{% url 'matieres:bon_sortie_def_g1_update' pk=bon.pk %}" class="btn-retour">← Retour au PV</a>
+    <button type="button" class="btn-imprimer" onclick="window.print()">Imprimer</button>
+  </div>
+
+  <!-- ── PAGE 1 : Couverture ── -->
+  <div class="sheet">
+    <div class="modele-box">
+      Modèle N° 6<br>
+      Instruction. Générale<br>
+      Art 57d, 57e, 57f, 57k, 68
+    </div>
+
+    <div class="cover-head">
+      <div>République du Sénégal</div>
+      <div>Ministère/Organisme Public</div>
+      <div class="filled">{{ societe.ministere|default:"" }}</div>
+      <div>Service ou établissement</div>
+      <div class="filled">{{ societe.nom|default:"" }}</div>
+    </div>
+
+    <div class="cover-titre-principal">PROCES-VERBAL DE<br>VENTE / DESTRUCTION (1)</div>
+    <div class="cover-num">
+      N° <span class="dotted" style="min-width:60px"></span> (2)
+      DU <span class="dotted" style="min-width:120px"></span>
+    </div>
+
+    <div class="cover-notes">
+      <p>(1) Rayer la mention inutile</p>
+      <p>(2) Numérotation ininterrompue pour la gestion</p>
+    </div>
+  </div>
+
+  <!-- ── PAGE 2 : Tableau ── -->
+  <div class="sheet">
+    <div class="modele-box">
+      Modèle N° 6<br>
+      Instruction. Générale<br>
+      Art 57d, 57e, 57f, 57k, 68
+    </div>
+
+    <div class="titre-principal">PROCES-VERBAL DE : VENTE / DESTRUCTION (1)</div>
+    <div class="ref-row">
+      <div>Section : <span class="filled" style="min-width:120px">{{ bon.section|default:"" }}</span></div>
+      <div>Chapitre : <span class="filled" style="min-width:120px">{{ bon.chapitre|default:"" }}</span></div>
+    </div>
+
+    <table class="lignes">
+      <thead>
+        <tr>
+          <th colspan="5">N° de compte<br>de la nomenclature</th>
+          <th rowspan="2">Nature des matières<br>et des unités</th>
+          <th rowspan="2">Nbre<br>d'unités</th>
+          <th rowspan="2">Prix réforme<br>de l'unité</th>
+          <th rowspan="2">Valeur totale des<br>matières réformées</th>
+          <th colspan="3">Exécution de la vente</th>
+          <th colspan="2">Exécution de<br>la destruction</th>
+          <th rowspan="2">Observations<br>(2)</th>
+        </tr>
+        <tr>
+          <th>Nbre d'unités<br>vendues</th>
+          <th>Prix de vente<br>de l'unité</th>
+          <th>Produit total<br>de la vente</th>
+          <th>Nbre d'unités<br>détruites</th>
+          <th>P.U.<br>d'acquisition</th>
+        </tr>
+        <tr>
+          <th>Groupe</th>
+          <th>Compte<br>principal</th>
+          <th>Compte<br>secondaire</th>
+          <th>Compte<br>divisionnaire</th>
+          <th>Sous<br>compte</th>
+          <th colspan="9"></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for d in details %}
+        <tr>
+          <td class="c">{{ d.groupe_disp|default:"—" }}</td>
+          <td class="c">{{ d.compte_principal_disp|default:"—" }}</td>
+          <td class="c">—</td>
+          <td class="c"></td>
+          <td class="c">{{ d.sous_compte_disp|default:"—" }}</td>
+          <td>{{ d.designation }}</td>
+          <td class="r">{{ d.qte }}</td>
+          <td class="r">{{ d.prix_unitaire|floatformat:"2u" }}</td>
+          <td class="r">{{ d.montant|floatformat:"2u" }}</td>
+          <td class="r">{% if d.decision == 'vendre' %}<span class="dotted" style="min-width:40px"></span>{% endif %}</td>
+          <td class="r">{% if d.decision == 'vendre' %}<span class="dotted" style="min-width:40px"></span>{% endif %}</td>
+          <td class="r">{% if d.decision == 'vendre' %}<span class="dotted" style="min-width:40px"></span>{% endif %}</td>
+          <td class="r">{% if d.decision == 'demolir' %}<span class="dotted" style="min-width:40px"></span>{% endif %}</td>
+          <td class="r">{% if d.decision == 'demolir' %}<span class="dotted" style="min-width:40px"></span>{% endif %}</td>
+          <td>{{ d.observation|default:"" }}</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="15" class="c" style="color:#64748b">Aucun article proposé à la vente ou à la destruction</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    <div class="footnotes">
+      <p>(1) Rayer la mention inutile</p>
+      <p>(2) Préciser notamment le service auquel appartiennent les matières réformées ou détruites.</p>
+    </div>
+  </div>
+
+  <!-- ── PAGE 3 : Totaux et signatures ── -->
+  <div class="sheet">
+    <div class="vd-totaux">
+      <p>Nombre d'unités proposées à la vente ou à la destruction <span class="filled" style="min-width:80px">{{ total_qte }}</span> unités.</p>
+      <p>Nombre d'unités vendues ou détruites <span class="dotted" style="min-width:80px"></span> unités.</p>
+      <p>ARRETE LE PRESENT PROCES-VERBAL A <span class="dotted" style="min-width:80px"></span> UNITES REPRESENTANT UNE VALEUR DE <span class="dotted" style="min-width:120px"></span> FRANCS.</p>
+    </div>
+
+    <div class="vd-fait">Fait à <span class="dotted" style="min-width:160px">{{ societe.ville|default:"" }}</span> le <span class="dotted" style="min-width:120px"></span></div>
+
+    <div class="vd-sign-grid">
+      <div>
+        <div class="titre">Président de la commission de vente ou de destruction</div>
+        <div class="sign-block">
+          <div>&nbsp;</div><div class="lbl">Prénoms</div>
+          <div>&nbsp;</div><div class="lbl">Nom</div>
+          <div>&nbsp;</div><div class="lbl">Fonction</div>
+        </div>
+        <div style="text-align:center;font-weight:700;text-decoration:underline;margin-top:20px">Timbre et Signature :</div>
+      </div>
+
+      <div>
+        <div class="titre">Autres membres de la commission</div>
+        {% for i in "123" %}
+        <div class="sign-block">
+          <div>&nbsp;</div><div class="lbl">Prénoms</div>
+          <div>&nbsp;</div><div class="lbl">Nom</div>
+          <div>&nbsp;</div><div class="lbl">Fonction</div>
+          <div style="text-align:center;font-weight:600;margin-top:2px">Signature</div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+</body>
+</html>

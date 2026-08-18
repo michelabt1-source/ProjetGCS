@@ -1,0 +1,35 @@
+{% load humanize %}
+<table class="w-full text-sm">
+  <thead>
+    <tr class="bg-slate-50 text-slate-500 text-[11px] uppercase tracking-wide font-bold border-b border-slate-200">
+      <th class="text-left px-4 py-2.5">Désignation</th>
+      <th class="text-right px-4 py-2.5">Quantité commandée</th>
+      <th class="text-right px-4 py-2.5">Quantité livrée</th>
+      {% if bon.statut == 'brouillon' or bon.statut == 'rejete' %}<th class="px-4 py-2.5"></th>{% endif %}
+    </tr>
+  </thead>
+  <tbody>
+    {% for d in details %}
+    <tr class="border-b border-slate-100 hover:bg-slate-50">
+      <td class="px-4 py-2.5 font-medium text-slate-800">
+        {{ d.designation }}
+        {% if d.nomenclature %}<span class="text-slate-400 font-normal text-xs ml-1">({{ d.nomenclature }})</span>{% endif %}
+      </td>
+      <td class="px-4 py-2.5 text-right font-semibold">{{ d.qte_commandee }}</td>
+      <td class="px-4 py-2.5 text-right font-semibold {% if d.qte_livree > 0 %}text-emerald-600{% else %}text-slate-400{% endif %}">{{ d.qte_livree }}</td>
+      {% if bon.statut == 'brouillon' or bon.statut == 'rejete' %}
+      <td class="px-4 py-2.5 text-center">
+        <button type="button"
+                class="w-6 h-6 inline-flex items-center justify-center rounded-md bg-red-50 border border-red-200 text-red-500 hover:bg-red-100"
+                hx-post="{% url 'matieres:htmx_bcs_delete_detail' detail_pk=d.pk %}"
+                hx-target="closest table"
+                hx-swap="outerHTML"
+                hx-confirm="Supprimer cet article ?">×</button>
+      </td>
+      {% endif %}
+    </tr>
+    {% empty %}
+    <tr><td colspan="4" class="px-4 py-8 text-center text-slate-400">Aucun article — saisissez une désignation ci-dessus.</td></tr>
+    {% endfor %}
+  </tbody>
+</table>

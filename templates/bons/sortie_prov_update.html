@@ -49,6 +49,7 @@
   .line-btn { display:inline-flex; align-items:center; gap:5px; padding:7px 14px; border-radius:7px; font-size:12.5px; font-weight:600; cursor:pointer; border:1.5px solid transparent; transition:all .15s; }
   .line-btn-save { background:#059669; color:#fff; }
   .line-btn-save:hover { background:#047857; }
+  .line-btn-save:disabled { background:#cbd5e1; cursor:not-allowed; }
   .line-btn-clear { background:#f1f5f9; color:#64748b; border-color:#e2e8f0; }
   .ttc-auto { background:#f0fdf4; border-color:#bbf7d0; color:#15803d; font-weight:700; }
 </style>
@@ -78,10 +79,10 @@
       </button>
     </form>
   {% endif %}
-  <button class="btn-action btn-orange" style="margin-left:auto" onclick="window.print()">
+  <a href="{% url 'matieres:bon_sortie_prov_etat' bon.pk %}" target="_blank" class="btn-action btn-orange" style="margin-left:auto">
     <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
     Bon de sortie
-  </button>
+  </a>
 </div>
 
 {% if messages %}
@@ -127,15 +128,25 @@
           </select>
         </div>
         <div>
-          <label class="f-label">Bénéficiaire</label>
-          <select name="beneficiaire_id" class="f-input f-select" {% if bon.valide %}disabled{% endif %}>
+          <label class="f-label">Service</label>
+          <select name="service_id" class="f-input f-select" {% if bon.valide %}disabled{% endif %}
+                  hx-get="{% url 'matieres:htmx_bureaux_options' %}"
+                  hx-trigger="change"
+                  hx-target="#bsp-u-bureau"
+                  hx-include="this">
             <option value="">—</option>
-            {% for b in beneficiaires %}<option value="{{ b.pk }}" {% if bon.beneficiaire_id == b.pk %}selected{% endif %}>{{ b.nom }}</option>{% endfor %}
+            {% for s in services %}<option value="{{ s.pk }}" {% if bon.service_id == s.pk %}selected{% endif %}>{{ s.code }} — {{ s.libelle }}</option>{% endfor %}
           </select>
         </div>
         <div>
-          <label class="f-label">Observation</label>
-          <textarea name="observation" class="f-input" rows="2" style="resize:vertical" {% if bon.valide %}readonly{% endif %}>{{ bon.observation }}</textarea>
+          <label class="f-label">Bureau</label>
+          <select name="bureau_id" id="bsp-u-bureau" class="f-input f-select" {% if bon.valide %}disabled{% endif %}>
+            {% include 'partials/bureaux_options.html' with bureaux=bureaux selected_id=bon.bureau_id %}
+          </select>
+        </div>
+        <div>
+          <label class="f-label">Chapitre</label>
+          <input type="text" name="chapitre" class="f-input" value="{{ bon.chapitre|default:'' }}" {% if bon.valide %}readonly{% endif %}>
         </div>
         {% if not bon.valide %}
         <button type="submit" class="btn-action btn-orange" style="width:100%;justify-content:center">
@@ -148,22 +159,31 @@
   </div>
 
   {% if not bon.valide %}
+  {% if not bon.bureau %}
+  <div class="section-card" style="background:#fff7ed;border-color:#fed7aa;display:flex;align-items:center;justify-content:center">
+    <div style="text-align:center;color:#c2410c">
+      <svg width="36" height="36" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5" style="margin:0 auto 10px;display:block"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+      <p style="font-weight:700;font-size:14px">Sélectionnez d'abord le service et le bureau</p>
+      <p style="font-size:12.5px;opacity:.8;margin-top:4px">Seules les matières déjà affectées à ce bureau précis pourront être sorties provisoirement.</p>
+    </div>
+  </div>
+  {% else %}
   <div class="section-card">
     <div class="section-title">
-      Saisie d'un article <span class="badge-g1">Groupe 1</span>
+      Saisie d'un article <span class="badge-g1">Groupe 1 — affecté à {{ bon.bureau.code }}</span>
     </div>
     <div style="display:grid;gap:9px">
       <div>
         <label class="f-label">Désignation *</label>
         <div class="produit-wrap" id="bsp-produit-wrap">
           <div style="display:flex;gap:6px">
-            <input type="text" id="bsp-f-designation" class="f-input" placeholder="Tapez pour rechercher…"
-                   hx-get="{% url 'matieres:htmx_bsp_produit_search' %}"
+            <input type="text" id="bsp-f-designation" class="f-input" placeholder="Tapez pour rechercher parmi les matières affectées à ce bureau…"
+                   hx-get="{% url 'matieres:htmx_bsp_produit_search' pk=bon.pk %}"
                    hx-trigger="input changed delay:250ms"
                    hx-target="#bsp-produit-dropdown"
                    name="q" autocomplete="off">
             <button type="button" onclick="bspOpenModal()"
-                    style="flex-shrink:0;padding:0 11px;background:#ffedd5;border:1.5px solid #fed7aa;border-radius:7px;cursor:pointer;color:#ea580c" title="Catalogue G1">
+                    style="flex-shrink:0;padding:0 11px;background:#ffedd5;border:1.5px solid #fed7aa;border-radius:7px;cursor:pointer;color:#ea580c" title="Catalogue G1 affecté à ce bureau">
               <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
                 <path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
@@ -194,12 +214,15 @@
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:9px">
         <div>
           <label class="f-label">Quantité</label>
-          <input type="number" id="bsp-f-qte" class="f-input" value="0" min="0" step="0.5" oninput="bspCalcMontant()">
+          <input type="number" id="bsp-f-qte" class="f-input" value="0" min="0" step="0.5" oninput="bspCalcMontant();bspCheckQte()">
         </div>
         <div>
-          <label class="f-label">Stock disponible</label>
+          <label class="f-label">Affecté dispo. à ce bureau</label>
           <input type="text" id="bsp-f-stock" class="f-input" readonly style="color:#059669;font-weight:700">
         </div>
+      </div>
+      <div id="bsp-stock-alert" style="display:none;align-items:center;gap:6px;background:#fef2f2;color:#991b1b;border:1px solid #fecaca;border-radius:7px;padding:6px 10px;font-size:12px;font-weight:600">
+        <span id="bsp-stock-alert-text"></span>
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:9px">
         <div>
@@ -223,7 +246,7 @@
     <input type="hidden" id="bsp-f-produit-id">
 
     <div class="line-btns-row">
-      <button type="button" class="line-btn line-btn-save"
+      <button type="button" class="line-btn line-btn-save" id="bsp-btn-saisir"
               hx-post="{% url 'matieres:htmx_bsp_add_detail' pk=bon.pk %}"
               hx-target="#bsp-detail-rows-container"
               hx-swap="innerHTML"
@@ -249,6 +272,7 @@
       <input type="hidden" name="observation"   id="bsp-h-observation">
     </div>
   </div>
+  {% endif %}
   {% else %}
   <div class="section-card" style="background:#f0fdf4;border-color:#bbf7d0;display:flex;align-items:center;justify-content:center">
     <div style="text-align:center;color:#166534">
@@ -287,7 +311,7 @@
     </div>
     <div class="modal-search">
       <input type="text" id="bsp-modal-search-input" placeholder="Rechercher…"
-             hx-get="{% url 'matieres:htmx_bsp_modal_produits' %}"
+             hx-get="{% url 'matieres:htmx_bsp_modal_produits' pk=bon.pk %}"
              hx-trigger="input changed delay:250ms, load"
              hx-target="#bsp-modal-product-list"
              name="q" autocomplete="off">
@@ -301,9 +325,11 @@
 <script>
 function bspCalcMontant(){const q=parseFloat(document.getElementById('bsp-f-qte').value)||0,t=parseFloat(document.getElementById('bsp-f-prix-ttc').value)||0;document.getElementById('bsp-f-montant-ttc').value=new Intl.NumberFormat('fr-FR',{minimumFractionDigits:2,maximumFractionDigits:2}).format(q*t)+' FCFA';}
 function bspCalcAutoTTC(){const h=parseFloat(document.getElementById('bsp-f-prix-ht').value)||0;document.getElementById('bsp-f-prix-ttc').value=(Math.round(h*118)/100).toFixed(2);bspCalcMontant();}
-function bspClearForm(){['bsp-f-designation','bsp-f-nomenclature','bsp-f-specification','bsp-f-observation'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});['bsp-f-qte','bsp-f-prix-ht','bsp-f-prix-ttc'].forEach(id=>document.getElementById(id).value='0');document.getElementById('bsp-f-montant-ttc').value='0,00 FCFA';document.getElementById('bsp-f-produit-id').value='';document.getElementById('bsp-f-unite-id').value='';document.getElementById('bsp-f-stock').value='';document.getElementById('bsp-f-unite-sel').value='';const dd=document.getElementById('bsp-produit-dropdown');if(dd){dd.classList.remove('open');dd.innerHTML='';}document.getElementById('bsp-f-designation').focus();}
+let bspQteAffecteeDispo=0;
+function bspCheckQte(){const qte=parseFloat(document.getElementById('bsp-f-qte').value)||0;const alert=document.getElementById('bsp-stock-alert');const txt=document.getElementById('bsp-stock-alert-text');const btn=document.getElementById('bsp-btn-saisir');if(bspQteAffecteeDispo>0&&qte>bspQteAffecteeDispo){txt.textContent='Quantité ('+qte+') dépasse la qté affectée disponible pour ce bureau ('+bspQteAffecteeDispo+')';alert.style.display='flex';if(btn)btn.disabled=true;}else{alert.style.display='none';if(btn)btn.disabled=false;}}
+function bspClearForm(){['bsp-f-designation','bsp-f-nomenclature','bsp-f-specification','bsp-f-observation'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});['bsp-f-qte','bsp-f-prix-ht','bsp-f-prix-ttc'].forEach(id=>document.getElementById(id).value='0');document.getElementById('bsp-f-montant-ttc').value='0,00 FCFA';document.getElementById('bsp-f-produit-id').value='';document.getElementById('bsp-f-unite-id').value='';document.getElementById('bsp-f-stock').value='';document.getElementById('bsp-f-unite-sel').value='';bspQteAffecteeDispo=0;const alertEl=document.getElementById('bsp-stock-alert');if(alertEl)alertEl.style.display='none';const btn=document.getElementById('bsp-btn-saisir');if(btn)btn.disabled=false;const dd=document.getElementById('bsp-produit-dropdown');if(dd){dd.classList.remove('open');dd.innerHTML='';}document.getElementById('bsp-f-designation').focus();}
 function bspPrepareSubmit(){document.getElementById('bsp-h-produit-id').value=document.getElementById('bsp-f-produit-id').value;document.getElementById('bsp-h-designation').value=document.getElementById('bsp-f-designation').value;document.getElementById('bsp-h-nomenclature').value=document.getElementById('bsp-f-nomenclature').value;document.getElementById('bsp-h-specification').value=document.getElementById('bsp-f-specification').value;document.getElementById('bsp-h-qte').value=document.getElementById('bsp-f-qte').value;document.getElementById('bsp-h-unite-id').value=document.getElementById('bsp-f-unite-sel').value||document.getElementById('bsp-f-unite-id').value;document.getElementById('bsp-h-prix-ht').value=document.getElementById('bsp-f-prix-ht').value;document.getElementById('bsp-h-prix-ttc').value=document.getElementById('bsp-f-prix-ttc').value;document.getElementById('bsp-h-observation').value=document.getElementById('bsp-f-observation').value;}
-function bspPickProduit(id,designation,nomenclature,specification,uniteId,uniteLibelle,stockDispo){document.getElementById('bsp-f-produit-id').value=id;document.getElementById('bsp-f-designation').value=designation;document.getElementById('bsp-f-nomenclature').value=nomenclature;document.getElementById('bsp-f-specification').value=specification;document.getElementById('bsp-f-unite-id').value=uniteId;document.getElementById('bsp-f-stock').value=stockDispo;const sel=document.getElementById('bsp-f-unite-sel');for(const opt of sel.options){if(opt.value==uniteId){sel.value=uniteId;break;}}const dd=document.getElementById('bsp-produit-dropdown');if(dd){dd.classList.remove('open');dd.innerHTML='';}bspCloseModal();document.getElementById('bsp-f-qte').focus();}
+function bspPickProduit(id,designation,nomenclature,specification,uniteId,uniteLibelle,qteAffecteeDispo,prixHT,prixTTC){bspQteAffecteeDispo=parseFloat(qteAffecteeDispo)||0;document.getElementById('bsp-f-produit-id').value=id;document.getElementById('bsp-f-designation').value=designation;document.getElementById('bsp-f-nomenclature').value=nomenclature;document.getElementById('bsp-f-specification').value=specification;document.getElementById('bsp-f-unite-id').value=uniteId;document.getElementById('bsp-f-stock').value=qteAffecteeDispo;const sel=document.getElementById('bsp-f-unite-sel');for(const opt of sel.options){if(opt.value==uniteId){sel.value=uniteId;break;}}const ht=parseFloat(prixHT)||0;const ttc=parseFloat(prixTTC)||0;document.getElementById('bsp-f-prix-ht').value=ht;document.getElementById('bsp-f-prix-ttc').value=ttc>0?ttc:(Math.round(ht*118)/100).toFixed(2);bspCalcMontant();const dd=document.getElementById('bsp-produit-dropdown');if(dd){dd.classList.remove('open');dd.innerHTML='';}bspCloseModal();document.getElementById('bsp-stock-alert').style.display='none';document.getElementById('bsp-btn-saisir').disabled=false;document.getElementById('bsp-f-qte').focus();}
 function bspOpenModal(){document.getElementById('bsp-produit-modal-overlay').style.display='flex';document.getElementById('bsp-modal-search-input').focus();}
 function bspCloseModal(){document.getElementById('bsp-produit-modal-overlay').style.display='none';}
 function bspCloseModalOnBg(e){if(e.target===document.getElementById('bsp-produit-modal-overlay'))bspCloseModal();}

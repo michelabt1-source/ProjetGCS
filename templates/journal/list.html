@@ -1,76 +1,306 @@
 {% extends 'base.html' %}
-
+{% load humanize %}
 {% block content %}
-<div class="flex items-center justify-between mb-6">
+
+<style>
+/* ── Layout ── */
+.j-wrap { overflow-x: auto; border-radius: 12px; border: 1px solid #e2e8f0; box-shadow: 0 1px 4px rgba(0,0,0,.06); }
+.j-table { border-collapse: collapse; font-size: 11.5px; white-space: nowrap; width: 100%; }
+
+/* ── En-têtes groupés ── */
+.j-table thead tr.group-row th {
+  padding: 6px 10px; font-size: 10px; font-weight: 800; text-transform: uppercase;
+  letter-spacing: .07em; text-align: center; border-bottom: 1px solid #e2e8f0;
+}
+.j-table thead tr.col-row th {
+  padding: 7px 10px; font-size: 10px; font-weight: 700; color: #475569;
+  text-transform: uppercase; letter-spacing: .05em; text-align: center;
+  background: #f8fafc; border-bottom: 2px solid #e2e8f0; border-right: 1px solid #f1f5f9;
+  position: sticky; top: 0; z-index: 2;
+}
+.grp-id   { background: #1e293b; color: #fff; }
+.grp-art  { background: #1d4ed8; color: #fff; }
+.grp-prix { background: #0891b2; color: #fff; }
+.grp-mvt  { background: #059669; color: #fff; }
+.grp-ba   { background: #3b82f6; color: #fff; }
+.grp-bra  { background: #0e7490; color: #fff; }
+.grp-bsp  { background: #ea580c; color: #fff; }
+.grp-bsd  { background: #7c3aed; color: #fff; }
+.grp-ctx  { background: #475569; color: #fff; }
+
+/* ── Lignes ── */
+.j-table tbody tr { border-bottom: 1px solid #f1f5f9; }
+.j-table tbody tr:hover td { background: #f8fafc; }
+.j-table td { padding: 7px 10px; vertical-align: middle; border-right: 1px solid #f8fafc; color: #334155; }
+.j-table td.num { text-align: right; font-variant-numeric: tabular-nums; }
+.j-table td.center { text-align: center; }
+
+/* ── Badge type ── */
+.type-badge {
+  display: inline-block; padding: 2px 8px; border-radius: 20px;
+  font-size: 10px; font-weight: 700; white-space: nowrap;
+}
+.t-be   { background: #dcfce7; color: #166534; }
+.t-ba   { background: #dbeafe; color: #1d4ed8; }
+.t-bra  { background: #cffafe; color: #0e7490; }
+.t-bsp  { background: #fff7ed; color: #c2410c; }
+.t-brsp { background: #fefce8; color: #854d0e; }
+.t-bsd  { background: #ede9fe; color: #5b21b6; }
+
+/* ── Valeurs zéro ── */
+.zero { color: #cbd5e1; }
+
+/* ── Filtres ── */
+.filter-bar { background:#fff; border:1px solid #e2e8f0; border-radius:12px; padding:14px 18px; margin-bottom:18px; display:flex; flex-wrap:wrap; gap:10px; align-items:center; box-shadow:0 1px 3px rgba(0,0,0,.04); }
+.f-input { padding:6px 11px; border:1.5px solid #e2e8f0; border-radius:7px; font-size:12.5px; font-family:inherit; color:#1e293b; background:#fff; outline:none; }
+.f-input:focus { border-color:#3b82f6; }
+.f-select { appearance:none; background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E"); background-repeat:no-repeat; background-position:right 8px center; background-size:13px; padding-right:26px; }
+</style>
+
+<!-- ── En-tête page ── -->
+<div style="display:flex;align-items:center;gap:14px;margin-bottom:20px">
+  <div style="background:linear-gradient(135deg,#1e293b,#334155);border-radius:12px;padding:10px 14px">
+    <svg width="20" height="20" fill="none" stroke="#fff" viewBox="0 0 24 24" stroke-width="1.8">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+    </svg>
+  </div>
   <div>
-    <h2 class="text-xl font-bold text-slate-800">Journal des opérations</h2>
-    <p class="text-sm text-slate-500 mt-0.5">{{ total }} opération{{ total|pluralize }} au total</p>
+    <h1 style="font-size:18px;font-weight:800;color:#0f172a;margin:0">Journal des opérations</h1>
+    <p style="font-size:12px;color:#64748b;margin:2px 0 0">Traçabilité complète de tous les mouvements de matières</p>
+  </div>
+  <div style="margin-left:auto;background:#f1f5f9;border-radius:10px;padding:8px 16px;text-align:center">
+    <div style="font-size:22px;font-weight:800;color:#0f172a">{{ total|intcomma }}</div>
+    <div style="font-size:11px;color:#64748b">opération{{ total|pluralize }}</div>
   </div>
 </div>
 
-<!-- Filtres -->
-<div class="card mb-6">
-  <form method="get" class="flex flex-wrap gap-3">
-    <div class="flex-1 min-w-48 relative">
-      <input type="text" name="q" value="{{ query }}" placeholder="Désignation, nomenclature, bénéficiaire..."
-        class="w-full pl-10 pr-4 py-2.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500">
-      <svg class="absolute left-3 top-3 w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0"/></svg>
-    </div>
-    <select name="type" class="border border-slate-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 text-slate-700 bg-white">
-      <option value="">Tous les types</option>
-      {% for t in types %}<option value="{{ t }}" {% if t == type_op %}selected{% endif %}>{{ t }}</option>{% endfor %}
-    </select>
-    <select name="depot" class="border border-slate-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 text-slate-700 bg-white">
-      <option value="">Tous les dépôts</option>
-      {% for d in depots %}<option value="{{ d }}" {% if d == depot %}selected{% endif %}>{{ d }}</option>{% endfor %}
-    </select>
-    <button type="submit" class="btn-primary">Filtrer</button>
-    {% if query or type_op or depot %}<a href="{% url 'matieres:journal_list' %}" class="btn-secondary">Effacer</a>{% endif %}
-  </form>
+<div style="display:flex;justify-content:flex-end;margin-bottom:14px">
+  <a href="{% url 'matieres:journal_etat' %}?q={{ query|urlencode }}&type={{ type_op|urlencode }}&depot={{ depot|urlencode }}&groupe={{ groupe|urlencode }}&annee={{ annee|urlencode }}"
+     style="display:inline-flex;align-items:center;gap:7px;padding:8px 14px;border-radius:8px;background:#4f46e5;color:#fff;text-decoration:none;font-size:12.5px;font-weight:700">
+    Imprimer l'état du livre journal
+  </a>
 </div>
 
-<div class="card p-0 overflow-hidden">
-  <div class="overflow-x-auto">
-    <table class="w-full text-sm">
-      <thead class="bg-slate-50 border-b border-slate-200">
-        <tr>
-          <th class="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Date</th>
-          <th class="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">N° Bon</th>
-          <th class="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Type opération</th>
-          <th class="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Nomenclature</th>
-          <th class="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Désignation</th>
-          <th class="text-right px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Qté</th>
-          <th class="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Bénéficiaire</th>
-          <th class="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Dépôt</th>
-        </tr>
-      </thead>
-      <tbody class="divide-y divide-slate-100">
-        {% for op in journal %}
-        <tr class="hover:bg-slate-50 transition-colors">
-          <td class="px-4 py-2.5 text-slate-500 whitespace-nowrap text-xs">{{ op.date_creation|date:"d/m/Y"|default:"—" }}</td>
-          <td class="px-4 py-2.5 font-mono text-xs text-slate-600">{{ op.num_bon }}</td>
-          <td class="px-4 py-2.5">
-            {% if "Entrée" in op.type_entree or "Balance" in op.type_entree %}
-              <span class="badge-success">{{ op.type_entree }}</span>
-            {% elif "Définitive" in op.type_entree %}
-              <span class="badge-red">{{ op.type_entree }}</span>
-            {% elif "Affectation" in op.type_entree %}
-              <span class="badge-info">{{ op.type_entree }}</span>
-            {% else %}
-              <span class="badge-warning">{{ op.type_entree }}</span>
-            {% endif %}
-          </td>
-          <td class="px-4 py-2.5 font-mono text-xs text-primary-700">{{ op.nomenclature }}</td>
-          <td class="px-4 py-2.5 text-slate-800 max-w-xs truncate">{{ op.designation }}</td>
-          <td class="px-4 py-2.5 text-right font-semibold text-slate-800">{{ op.qte }}</td>
-          <td class="px-4 py-2.5 text-slate-600 truncate">{{ op.beneficiaire|default:"—" }}</td>
-          <td class="px-4 py-2.5 text-slate-500">{{ op.depot|default:"—" }}</td>
-        </tr>
-        {% empty %}
-        <tr><td colspan="8" class="px-4 py-12 text-center text-slate-400">Aucune opération enregistrée</td></tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  </div>
+<!-- ── Barre de filtres ── -->
+<form method="get" class="filter-bar">
+  <input type="text" name="q" value="{{ query }}" placeholder="Désignation, nomenclature, bénéficiaire…"
+         class="f-input" style="min-width:220px;flex:1">
+
+  <select name="type" class="f-input f-select">
+    <option value="">— Tous les types —</option>
+    {% for t in types %}
+    <option value="{{ t }}" {% if t == type_op %}selected{% endif %}>{{ t }}</option>
+    {% endfor %}
+  </select>
+
+  <select name="groupe" class="f-input f-select">
+    <option value="">— Groupe —</option>
+    <option value="1" {% if groupe == "1" %}selected{% endif %}>Groupe 1</option>
+    <option value="2" {% if groupe == "2" %}selected{% endif %}>Groupe 2</option>
+  </select>
+
+  <select name="depot" class="f-input f-select">
+    <option value="">— Dépôt —</option>
+    {% for d in depots %}
+    <option value="{{ d }}" {% if d == depot %}selected{% endif %}>{{ d }}</option>
+    {% endfor %}
+  </select>
+
+  <select name="annee" class="f-input f-select">
+    <option value="">— Année —</option>
+    {% for a in annees %}
+    <option value="{{ a }}" {% if a|stringformat:"s" == annee %}selected{% endif %}>{{ a }}</option>
+    {% endfor %}
+  </select>
+
+  <button type="submit" style="background:#1e293b;color:#fff;padding:6px 16px;border:none;border-radius:7px;font-size:12.5px;font-weight:600;cursor:pointer">
+    Filtrer
+  </button>
+  {% if query or type_op or depot or groupe or annee %}
+  <a href="{% url 'matieres:journal_list' %}" style="padding:6px 14px;background:#f1f5f9;color:#475569;border-radius:7px;font-size:12.5px;font-weight:600;text-decoration:none">
+    ✕ Effacer
+  </a>
+  {% endif %}
+</form>
+
+<!-- ── Légende types ── -->
+<div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px">
+  <span class="type-badge t-be">BE — Bon Entrée</span>
+  <span class="type-badge t-ba">BA — Affectation</span>
+  <span class="type-badge t-bra">BRA — Retour Affectation</span>
+  <span class="type-badge t-bsp">BSP — Sortie Provisoire</span>
+  <span class="type-badge t-brsp">BRSP — Retour Sortie Prov.</span>
+  <span class="type-badge t-bsd">BSD — Sortie Définitive</span>
 </div>
+
+<!-- ── Tableau ── -->
+<div class="j-wrap">
+<table class="j-table">
+<thead>
+  <!-- Ligne 1 : groupes de colonnes -->
+  <tr class="group-row">
+    <th colspan="5" class="grp-id">Identification</th>
+    <th colspan="5" class="grp-art">Article</th>
+    <th colspan="3" class="grp-prix">Prix</th>
+    <th colspan="6" class="grp-mvt">Mouvements stock global</th>
+    <th colspan="3" class="grp-ba">Affectation (BA)</th>
+    <th colspan="2" class="grp-bra">Retour BA</th>
+    <th colspan="2" class="grp-bsp">Sortie/Retour Prov.</th>
+    <th colspan="2" class="grp-bsd">Sortie Déf.</th>
+    <th colspan="3" class="grp-ctx">Contexte</th>
+  </tr>
+  <!-- Ligne 2 : intitulés colonnes -->
+  <tr class="col-row">
+    <th>Date</th>
+    <th>N° Bon</th>
+    <th>Type opération</th>
+    <th>Gr.</th>
+    <th>Année</th>
+
+    <th>Nomenclature</th>
+    <th>Désignation</th>
+    <th>Spécification</th>
+    <th>Qté</th>
+    <th>Unité</th>
+
+    <th>Prix HT</th>
+    <th>Prix TTC</th>
+    <th>Montant TTC</th>
+
+    <th>Existant</th>
+    <th>Entrée pér.</th>
+    <th>Total entrée</th>
+    <th>Sortie pér.</th>
+    <th>Exist. fin pér.</th>
+    <th>Mnt existant</th>
+
+    <th>Date affect.</th>
+    <th>Qté affect.</th>
+    <th>Stock dépôt</th>
+
+    <th>Date ret. BA</th>
+    <th>Qté ret. BA</th>
+
+    <th>Qté SP</th>
+    <th>Date retour</th>
+
+    <th>Qté SD</th>
+    <th>N° Bon SD</th>
+
+    <th>Service / Bureau</th>
+    <th>Dépôt</th>
+    <th>Observation</th>
+  </tr>
+</thead>
+<tbody>
+{% for j in journal %}
+{% with tp=j.type_entree %}
+<tr>
+  <!-- Identification -->
+  <td class="center" style="color:#475569;font-size:11px">{{ j.date_creation|date:"d/m/Y"|default:"—" }}</td>
+  <td class="center" style="font-family:monospace;font-weight:700;color:#1e293b">
+    {% if tp == "Affectation" or tp == "Retour Affectation" %}BA{% elif tp == "Bon Entrée" or "Entrée" in tp %}BE{% elif tp == "Sortie Provisoire" or tp == "Retour Sortie Provisoire" %}BSP{% elif tp == "Sortie Définitive" in tp %}BSD{% else %}{{ j.num_bon }}{% endif %}-{{ j.num_bon|stringformat:"04d" }}
+  </td>
+  <td>
+    {% if "Entrée" in tp and "Retour" not in tp and "Sortie" not in tp %}
+      <span class="type-badge t-be">{{ tp }}</span>
+    {% elif tp == "Affectation" %}
+      <span class="type-badge t-ba">{{ tp }}</span>
+    {% elif tp == "Retour Affectation" %}
+      <span class="type-badge t-bra">{{ tp }}</span>
+    {% elif tp == "Sortie Provisoire" %}
+      <span class="type-badge t-bsp">{{ tp }}</span>
+    {% elif tp == "Retour Sortie Provisoire" %}
+      <span class="type-badge t-brsp">{{ tp }}</span>
+    {% elif "Définitive" in tp %}
+      <span class="type-badge t-bsd">{{ tp }}</span>
+    {% else %}
+      <span class="type-badge" style="background:#f1f5f9;color:#475569">{{ tp }}</span>
+    {% endif %}
+  </td>
+  <td class="center">
+    {% if j.groupe %}
+    <span style="font-size:10px;font-weight:800;padding:2px 6px;border-radius:4px;
+      {% if j.groupe == '1' %}background:#dbeafe;color:#1d4ed8{% else %}background:#fef9c3;color:#854d0e{% endif %}">
+      G{{ j.groupe }}
+    </span>
+    {% else %}—{% endif %}
+  </td>
+  <td class="center" style="color:#64748b">{{ j.annee_exercice|default:"—" }}</td>
+
+  <!-- Article -->
+  <td style="font-family:monospace;font-size:11px;color:#c2410c;font-weight:700">{{ j.nomenclature }}</td>
+  <td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;font-weight:600;color:#0f172a" title="{{ j.designation }}">{{ j.designation }}</td>
+  <td style="max-width:120px;overflow:hidden;text-overflow:ellipsis;color:#64748b;font-size:11px" title="{{ j.specification }}">{{ j.specification|default:"—" }}</td>
+  <td class="num" style="font-weight:700;color:#0f172a">{{ j.qte|floatformat:"-2" }}</td>
+  <td class="center" style="color:#475569">{{ j.unite|default:"—" }}</td>
+
+  <!-- Prix -->
+  <td class="num">{{ j.prix_ht|floatformat:2 }}</td>
+  <td class="num">{{ j.prix_ttc|floatformat:2 }}</td>
+  <td class="num" style="font-weight:700;color:#059669">{{ j.montant_ttc|floatformat:0|intcomma }}</td>
+
+  <!-- Mouvements -->
+  <td class="num {% if not j.existant %}zero{% endif %}">{{ j.existant|floatformat:"-2" }}</td>
+  <td class="num {% if not j.entree_periode %}zero{% endif %}" style="{% if j.entree_periode %}color:#059669;font-weight:700{% endif %}">
+    {{ j.entree_periode|floatformat:"-2" }}
+  </td>
+  <td class="num {% if not j.total_entree %}zero{% endif %}">{{ j.total_entree|floatformat:"-2" }}</td>
+  <td class="num {% if not j.sortie_periode %}zero{% endif %}" style="{% if j.sortie_periode %}color:#dc2626;font-weight:700{% endif %}">
+    {{ j.sortie_periode|floatformat:"-2" }}
+  </td>
+  <td class="num {% if not j.existant_fin_periode %}zero{% endif %}">{{ j.existant_fin_periode|floatformat:"-2" }}</td>
+  <td class="num {% if not j.montant_existant %}zero{% endif %}">{{ j.montant_existant|floatformat:0|intcomma }}</td>
+
+  <!-- BA Affectation -->
+  <td class="center" style="color:#475569;font-size:11px">{{ j.date_affectation|date:"d/m/Y"|default:"—" }}</td>
+  <td class="num {% if not j.qte_affectation %}zero{% endif %}" style="{% if j.qte_affectation %}color:#3b82f6;font-weight:700{% endif %}">
+    {{ j.qte_affectation|floatformat:"-2" }}
+  </td>
+  <td class="center" style="color:#64748b;font-size:11px">{{ j.qte_stock_partielle|default:"—" }}</td>
+
+  <!-- BRA Retour -->
+  <td class="center" style="color:#475569;font-size:11px">{{ j.date_retour_affectation|date:"d/m/Y"|default:"—" }}</td>
+  <td class="num {% if not j.qte_rba %}zero{% endif %}" style="{% if j.qte_rba %}color:#0891b2;font-weight:700{% endif %}">
+    {{ j.qte_rba|floatformat:"-2" }}
+  </td>
+
+  <!-- BSP/BRSP -->
+  <td class="num {% if not j.qte_sp %}zero{% endif %}" style="{% if j.qte_sp %}color:#ea580c;font-weight:700{% endif %}">
+    {{ j.qte_sp|floatformat:"-2" }}
+  </td>
+  <td class="center" style="color:#475569;font-size:11px">{{ j.date_retour|date:"d/m/Y"|default:"—" }}</td>
+
+  <!-- BSD -->
+  <td class="num {% if not j.qte_sd %}zero{% endif %}" style="{% if j.qte_sd %}color:#7c3aed;font-weight:700{% endif %}">
+    {{ j.qte_sd|floatformat:"-2" }}
+  </td>
+  <td class="num {% if not j.num_bon_sortie %}zero{% endif %}">{{ j.num_bon_sortie|default:"—" }}</td>
+
+  <!-- Contexte -->
+  <td style="max-width:130px;overflow:hidden;text-overflow:ellipsis;color:#334155" title="{{ j.bureau|default:j.service }}">{{ j.bureau|default:j.service|default:"—" }}</td>
+  <td class="center" style="color:#475569">{{ j.depot|default:"—" }}</td>
+  <td style="max-width:130px;overflow:hidden;text-overflow:ellipsis;color:#64748b;font-size:11px" title="{{ j.observation }}">{{ j.observation|default:"—" }}</td>
+</tr>
+{% endwith %}
+{% empty %}
+<tr>
+  <td colspan="31" style="padding:48px;text-align:center;color:#94a3b8">
+    <svg width="32" height="32" fill="none" stroke="#cbd5e1" viewBox="0 0 24 24" stroke-width="1.5" style="margin:0 auto 10px;display:block">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+    </svg>
+    Aucune opération enregistrée{% if query or type_op or depot or groupe or annee %} pour ces critères{% endif %}
+  </td>
+</tr>
+{% endfor %}
+</tbody>
+</table>
+</div>
+
+{% if total > 500 %}
+<div style="margin-top:12px;text-align:center;font-size:12px;color:#64748b;background:#fff7ed;border:1px solid #fed7aa;border-radius:8px;padding:10px">
+  ⚠ Affichage limité aux 500 premières lignes sur {{ total|intcomma }}. Utilisez les filtres pour affiner.
+</div>
+{% endif %}
+
 {% endblock %}

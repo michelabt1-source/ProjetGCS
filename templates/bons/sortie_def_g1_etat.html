@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>PV de réforme des matières N°{{ bon.num_bon|stringformat:"04d" }}</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Segoe UI', Arial, sans-serif;
+    background: #64748b;
+    padding: 24px 0 60px;
+    color: #0f172a;
+  }
+
+  .toolbar {
+    max-width: 1200px;
+    margin: 0 auto 16px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .toolbar a, .toolbar button {
+    display: inline-flex; align-items: center; gap: 7px;
+    padding: 8px 16px; border-radius: 8px;
+    font-size: 13px; font-weight: 600; font-family: inherit;
+    text-decoration: none; cursor: pointer; border: none;
+    transition: all 150ms;
+  }
+  .btn-retour { background: #fff; color: #334155; border: 1px solid #cbd5e1 !important; }
+  .btn-retour:hover { background: #f1f5f9; }
+  .btn-imprimer { background: #7c3aed; color: #fff; margin-left: auto; }
+  .btn-imprimer:hover { background: #5b21b6; }
+
+  .sheet {
+    max-width: 1200px;
+    margin: 0 auto 24px;
+    background: #fff;
+    padding: 26px 34px 34px;
+    box-shadow: 0 4px 24px rgba(0,0,0,.25);
+    font-size: 11.5px;
+    position: relative;
+  }
+
+  .dotted { border-bottom: 1px dotted #64748b; display: inline-block; min-width: 160px; }
+  .filled { border-bottom: 1px dotted #64748b; display: inline-block; min-width: 160px; font-weight: 700; }
+
+  .modele-box {
+    border: 1px solid #0f172a;
+    padding: 8px 12px;
+    font-size: 11.5px;
+    line-height: 1.5;
+    position: absolute;
+    top: 26px;
+    right: 34px;
+  }
+
+  /* ── Page 1 : tableau ── */
+  .titre-principal { text-align: center; font-size: 15px; font-weight: 700; letter-spacing: .04em; margin: 6px 0 6px; }
+  .ref-row { text-align: right; font-size: 11.5px; margin-bottom: 14px; }
+  .ref-row div { margin-bottom: 3px; }
+
+  table.lignes { width: 100%; border-collapse: collapse; font-size: 10px; }
+  table.lignes th, table.lignes td { border: 1px solid #0f172a; padding: 4px 5px; vertical-align: middle; }
+  table.lignes thead th { background: #d1d5db; font-weight: 700; text-align: center; }
+  table.lignes td.r, table.lignes th.r { text-align: right; }
+  table.lignes td.c, table.lignes th.c { text-align: center; }
+  table.lignes tbody td { height: 20px; }
+  table.lignes tfoot td { font-weight: 700; background: #f1f5f9; }
+
+  /* ── Page 2 : couverture / signatures ── */
+  .cover-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0; min-height: 500px; }
+  .cover-left { padding-right: 24px; border-right: 1px solid #0f172a; display: flex; flex-direction: column; gap: 22px; }
+  .cover-right { padding-left: 24px; }
+  .cover-block .titre { font-size: 11px; margin-bottom: 6px; }
+  .cover-block .zone { border-bottom: 1px dotted #94a3b8; min-height: 60px; padding-top: 4px; font-size: 11px; }
+  .cover-head div { margin-bottom: 4px; }
+  .cover-head .dash { letter-spacing: 2px; }
+  .cover-titre-principal { text-align: center; font-size: 15px; font-weight: 700; margin: 60px 0 18px; }
+  .cover-num { text-align: center; font-size: 13px; margin-bottom: 40px; }
+
+  @media print {
+    body { background: #fff; padding: 0; }
+    .toolbar { display: none !important; }
+    .sheet { box-shadow: none; max-width: 100%; padding: 8mm 10mm; page-break-after: always; }
+    .sheet:last-child { page-break-after: auto; }
+    @page { size: A4 landscape; margin: 6mm; }
+  }
+</style>
+</head>
+<body>
+
+  <div class="toolbar">
+    <a href="{% url 'matieres:bon_sortie_def_g1_update' pk=bon.pk %}" class="btn-retour">← Retour au PV</a>
+    <button type="button" class="btn-imprimer" onclick="window.print()">Imprimer</button>
+  </div>
+
+  <!-- ── PAGE 1 : Tableau de la proposition de la commission ── -->
+  <div class="sheet">
+    <div class="modele-box">
+      Modèle N° 5<br>
+      Instruction. Générale<br>
+      Art 57d, 57e, 57f, 57k, 68
+    </div>
+
+    <div class="titre-principal">PROCES-VERBAL DE REFORME DES MATIERES</div>
+    <div class="ref-row">
+      <div>Section : <span class="filled" style="min-width:120px">{{ bon.section|default:"" }}</span></div>
+      <div>Chapitre : <span class="filled" style="min-width:120px">{{ bon.chapitre|default:"" }}</span></div>
+    </div>
+
+    <table class="lignes">
+      <thead>
+        <tr>
+          <th colspan="5">N° de compte<br>de la nomenclature</th>
+          <th rowspan="2">Désignation des matières</th>
+          <th colspan="6">Proposition de la commission de réforme</th>
+          <th rowspan="2">Observations</th>
+        </tr>
+        <tr>
+          <th colspan="2">A conserver ou<br>à transformer</th>
+          <th colspan="2">A vendre</th>
+          <th colspan="2">A démolir</th>
+        </tr>
+        <tr>
+          <th>Groupe</th>
+          <th>Compte<br>principal</th>
+          <th>Compte<br>secondaire</th>
+          <th>Compte<br>divisionnaire</th>
+          <th>Sous<br>compte</th>
+          <th>Quantité</th>
+          <th>P.U.</th>
+          <th>Quantité</th>
+          <th>P.U.</th>
+          <th>Quantité</th>
+          <th>P.U.</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for d in details %}
+        <tr>
+          <td class="c">{{ d.groupe_disp|default:"—" }}</td>
+          <td class="c">{{ d.compte_principal_disp|default:"—" }}</td>
+          <td class="c">—</td>
+          <td class="c"></td>
+          <td class="c">{{ d.sous_compte_disp|default:"—" }}</td>
+          <td>{{ d.designation }}</td>
+          <td class="r">{% if d.decision == 'conserver' %}{{ d.qte }}{% endif %}</td>
+          <td class="r">{% if d.decision == 'conserver' %}{{ d.prix_unitaire|floatformat:"2u" }}{% endif %}</td>
+          <td class="r">{% if d.decision == 'vendre' %}{{ d.qte }}{% endif %}</td>
+          <td class="r">{% if d.decision == 'vendre' %}{{ d.prix_unitaire|floatformat:"2u" }}{% endif %}</td>
+          <td class="r">{% if d.decision == 'demolir' %}{{ d.qte }}{% endif %}</td>
+          <td class="r">{% if d.decision == 'demolir' %}{{ d.prix_unitaire|floatformat:"2u" }}{% endif %}</td>
+          <td>{{ d.observation|default:"" }}</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="13" class="c" style="color:#64748b">Aucun article</td></tr>
+        {% endfor %}
+      </tbody>
+      {% if details %}
+      <tfoot>
+        <tr>
+          <td colspan="6" class="c">TOTAUX</td>
+          <td class="r">{{ total_conserver }}</td>
+          <td></td>
+          <td class="r">{{ total_vendre }}</td>
+          <td></td>
+          <td class="r">{{ total_demolir }}</td>
+          <td></td>
+          <td></td>
+        </tr>
+      </tfoot>
+      {% endif %}
+    </table>
+  </div>
+
+  <!-- ── PAGE 2 : Couverture — commission, visas, approbation ── -->
+  <div class="sheet">
+    <div class="modele-box">
+      Modèle N° 5<br>
+      Instruction générale<br>
+      Art. 57d, 57e, 57f, 57k, 68
+    </div>
+
+    <div class="cover-grid">
+      <div class="cover-left">
+        <div class="cover-block">
+          <div class="titre">Autres observations de la commission :</div>
+          <div class="zone">{{ bon.observations_commission|default:"" }}</div>
+        </div>
+        <div class="cover-block">
+          <div class="titre">Nom, qualité et signature des membres de la commission de réforme :</div>
+          <div class="zone">{{ bon.membres_commission|default:"" }}</div>
+        </div>
+        <div class="cover-block">
+          <div class="titre">Visa du Contrôleur budgétaire ou du C.R.F.</div>
+          <div class="zone">{{ bon.visa_controleur|default:"" }}</div>
+        </div>
+        <div class="cover-block">
+          <div class="titre">Approbation de l'Autorité compétente :</div>
+          <div class="zone">{{ bon.autorite_approbation|default:"" }}</div>
+        </div>
+      </div>
+
+      <div class="cover-right">
+        <div class="cover-head">
+          <div>République du Sénégal</div>
+          <div>Ministère/Organisme Public</div>
+          <div class="filled">{{ societe.ministere|default:"" }}</div>
+          <div>Service ou établissement</div>
+          <div class="filled">{{ societe.nom|default:"" }}</div>
+        </div>
+
+        <div class="cover-titre-principal">PROCES-VERBAL DE REFORME DES MATIERES</div>
+        <div class="cover-num">
+          N° <span class="filled" style="min-width:60px">{{ bon.num_bon }}</span>
+          DU <span class="filled" style="min-width:120px">{{ bon.date_creation|date:"d/m/Y" }}</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</body>
+</html>

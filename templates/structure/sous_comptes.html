@@ -27,16 +27,18 @@
   <table style="width:100%;border-collapse:collapse;font-size:13px">
     <thead>
       <tr style="background:#f8fafc;border-bottom:2px solid #e2e8f0">
-        <th style="padding:12px 20px;text-align:left;font-weight:600;color:#475569;width:130px">N° Sous-compte</th>
-        <th style="padding:12px 20px;text-align:left;font-weight:600;color:#475569">Famille SC</th>
+        <th style="padding:12px 20px;text-align:left;font-weight:600;color:#475569;width:130px">Compte</th>
+        <th style="padding:12px 20px;text-align:left;font-weight:600;color:#475569">Intitulé</th>
         <th style="padding:12px 20px;text-align:left;font-weight:600;color:#475569">Compte principal</th>
+        <th style="padding:12px 20px;text-align:left;font-weight:600;color:#475569">NumCB</th>
+        <th style="padding:12px 20px;text-align:left;font-weight:600;color:#475569">Intitulé CB</th>
       </tr>
     </thead>
     <tbody>
       {% for sc in sous_comptes %}
       <tr class="table-row">
         <td style="padding:12px 20px">
-          <span style="background:#dbeafe;color:#1e40af;padding:3px 10px;border-radius:6px;font-weight:600;font-size:12px">{{ sc.num_sous_compte }}</span>
+          <span style="background:#dbeafe;color:#1e40af;padding:3px 10px;border-radius:6px;font-weight:600;font-size:12px">{{ sc.compte|default:sc.num_sous_compte }}</span>
         </td>
         <td style="padding:12px 20px;color:#0f172a;font-weight:500">{{ sc.famille_sc }}</td>
         <td style="padding:12px 20px;color:#64748b;font-size:12px">
@@ -44,9 +46,11 @@
           <span style="background:#f1f5f9;padding:2px 8px;border-radius:4px">{{ sc.compte_principal.num_compte }} — {{ sc.compte_principal.famille|truncatechars:25 }}</span>
           {% endif %}
         </td>
+        <td style="padding:12px 20px;color:#0f172a;font-weight:500">{{ sc.num_cb|default:"—" }}</td>
+        <td style="padding:12px 20px;color:#0f172a;font-weight:500">{{ sc.intitule_cb|default:"—" }}</td>
       </tr>
       {% empty %}
-      <tr><td colspan="3" style="padding:40px;text-align:center;color:#94a3b8">Aucun sous-compte trouvé.</td></tr>
+      <tr><td colspan="5" style="padding:40px;text-align:center;color:#94a3b8">Aucun sous-compte trouvé.</td></tr>
       {% endfor %}
     </tbody>
   </table>

@@ -1,0 +1,37 @@
+{% if bon %}
+<div id="bcs-lignes-wrap" data-service-id="{{ bon.service_id|default:'' }}" data-bureau-id="{{ bon.bureau_id|default:'' }}">
+  <div class="mb-2 text-xs text-slate-500">
+    Service accordé : <strong class="text-slate-700">{{ bon.service|default:"—" }}</strong>
+    {% if bon.bureau %} / <strong class="text-slate-700">{{ bon.bureau }}</strong>{% endif %}
+  </div>
+  <div class="border border-slate-200 rounded-lg overflow-hidden">
+    <table class="w-full text-xs">
+      <thead>
+        <tr class="bg-slate-50 text-slate-500 uppercase font-bold">
+          <th class="text-left px-3 py-2">Désignation</th>
+          <th class="text-right px-3 py-2">Qté restante</th>
+          <th class="px-3 py-2"></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for l in lignes %}
+        <tr class="border-t border-slate-100">
+          <td class="px-3 py-2">{{ l.designation }} <span class="text-slate-400">({{ l.nomenclature|default:"—" }})</span></td>
+          <td class="px-3 py-2 text-right font-semibold">{{ l.qte_restante }}</td>
+          <td class="px-3 py-2 text-right">
+            <button type="button" class="px-2.5 py-1 bg-indigo-600 text-white rounded text-[11px] font-semibold hover:bg-indigo-700"
+              onclick="bgPickFromBCS('{{ l.pk }}','{{ l.produit_id|default:'' }}','{{ l.designation|escapejs }}','{{ l.nomenclature|default:''|escapejs }}','{{ l.specification|default:''|escapejs }}','{{ l.unite_id|default:'' }}','{{ l.unite.libelle|default:''|escapejs }}',{{ l.qte_restante }})">
+              Ajouter
+            </button>
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="3" class="px-3 py-4 text-center text-slate-400">Toutes les quantités accordées ont déjà été livrées.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% else %}
+<div class="text-xs text-slate-400 px-1 py-2">Sélectionnez un bon de commande de service validé.</div>
+{% endif %}

@@ -1,0 +1,68 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="p-6 max-w-6xl mx-auto">
+
+  <div class="flex items-center justify-between mb-5">
+    <div>
+      <h1 class="text-2xl font-bold text-slate-800">Bons de commande de services</h1>
+      <p class="text-sm text-slate-500 mt-0.5">Demandes de consommation de matières formulées par les services</p>
+    </div>
+    <a href="{% url 'matieres:bon_commande_service_create' %}"
+       class="inline-flex items-center gap-2 px-4 py-2.5 bg-indigo-600 text-white rounded-xl text-sm font-semibold shadow-sm hover:bg-indigo-700 transition-colors">
+      <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
+      </svg>
+      Nouveau bon de commande de service
+    </a>
+  </div>
+
+  {% if nb_a_valider %}
+  <div class="mb-4 px-4 py-2.5 bg-amber-50 border border-amber-200 rounded-lg text-sm text-amber-700 flex items-center gap-2">
+    <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+    <strong>{{ nb_a_valider }}</strong> bon{{ nb_a_valider|pluralize }} en attente de validation.
+  </div>
+  {% endif %}
+
+  <div class="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+    <div class="overflow-x-auto">
+      <table class="w-full text-sm">
+        <thead>
+          <tr class="bg-slate-50 text-slate-500 text-[11px] uppercase tracking-wide font-bold border-b border-slate-200">
+            <th class="text-left px-4 py-3">N° Bon</th>
+            <th class="text-left px-4 py-3">Date</th>
+            <th class="text-left px-4 py-3">Service</th>
+            <th class="text-left px-4 py-3">Bureau</th>
+            <th class="text-left px-4 py-3">Statut</th>
+            <th class="px-4 py-3"></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for b in bons %}
+          <tr class="border-b border-slate-100 hover:bg-slate-50 transition-colors">
+            <td class="px-4 py-3 font-mono font-semibold text-indigo-600">BCS-{{ b.num_bon|stringformat:"04d" }}</td>
+            <td class="px-4 py-3 text-slate-600">{{ b.date_creation|date:"d/m/Y" }}</td>
+            <td class="px-4 py-3 text-slate-700">{{ b.service|default:"—" }}</td>
+            <td class="px-4 py-3 text-slate-600">{{ b.bureau|default:"—" }}</td>
+            <td class="px-4 py-3">
+              <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold
+                {% if b.statut == 'valide' %}bg-emerald-50 text-emerald-700 border border-emerald-200
+                {% elif b.statut == 'envoye' %}bg-amber-50 text-amber-700 border border-amber-200
+                {% elif b.statut == 'rejete' %}bg-red-50 text-red-700 border border-red-200
+                {% else %}bg-slate-100 text-slate-500 border border-slate-200{% endif %}">
+                <span class="w-1.5 h-1.5 rounded-full bg-current"></span>
+                {{ b.get_statut_display }}
+              </span>
+            </td>
+            <td class="px-4 py-3 text-right">
+              <a href="{% url 'matieres:bon_commande_service_update' b.pk %}" class="text-slate-500 hover:text-indigo-600 text-xs font-semibold">Ouvrir</a>
+            </td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="6" class="px-4 py-10 text-center text-slate-400">Aucun bon de commande de service.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

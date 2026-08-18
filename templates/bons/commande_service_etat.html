@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Bon de commande de service N°{{ bon.num_bon|stringformat:"04d" }}</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Segoe UI', Arial, sans-serif;
+    background: #64748b;
+    padding: 24px 0 60px;
+    color: #0f172a;
+  }
+
+  .toolbar {
+    max-width: 620px;
+    margin: 0 auto 16px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .toolbar a, .toolbar button {
+    display: inline-flex; align-items: center; gap: 7px;
+    padding: 8px 16px; border-radius: 8px;
+    font-size: 13px; font-weight: 600; font-family: inherit;
+    text-decoration: none; cursor: pointer; border: none;
+    transition: all 150ms;
+  }
+  .btn-retour { background: #fff; color: #334155; border: 1px solid #cbd5e1 !important; }
+  .btn-retour:hover { background: #f1f5f9; }
+  .btn-imprimer { background: #4f46e5; color: #fff; margin-left: auto; }
+  .btn-imprimer:hover { background: #4338ca; }
+
+  .sheet {
+    max-width: 620px;
+    margin: 0 auto;
+    background: #fff;
+    padding: 26px 30px 30px;
+    box-shadow: 0 4px 24px rgba(0,0,0,.25);
+    font-size: 12.5px;
+  }
+
+  .head-row { display: flex; align-items: flex-start; gap: 14px; margin-bottom: 6px; }
+  .head-row img { width: 46px; height: 46px; object-fit: contain; flex-shrink: 0; }
+  .head-titre { text-align: center; flex: 1; }
+  .head-titre .etab { font-size: 12.5px; font-weight: 700; text-transform: uppercase; line-height: 1.3; }
+  .head-titre .tel { font-size: 10px; color: #475569; margin-top: 2px; }
+
+  .meta-row { display: flex; justify-content: space-between; align-items: baseline; margin: 14px 0 4px; font-size: 12.5px; }
+  .dotted { border-bottom: 1px dotted #64748b; display: inline-block; min-width: 130px; padding: 0 2px; }
+  .filled { border-bottom: 1px dotted #64748b; display: inline-block; min-width: 130px; font-weight: 700; padding: 0 2px; }
+
+  .num-box { font-size: 13px; font-weight: 800; }
+
+  table.lignes { width: 100%; border-collapse: collapse; font-size: 11.5px; margin: 12px 0 14px; }
+  table.lignes th, table.lignes td { border: 1px solid #0f172a; padding: 5px 7px; vertical-align: middle; }
+  table.lignes thead th { background: #f1f5f9; font-weight: 700; text-align: center; }
+  table.lignes td.r, table.lignes th.r { text-align: right; }
+  table.lignes tbody td { height: 22px; }
+
+  .destinataire { margin: 10px 0 26px; font-size: 12.5px; }
+
+  .sig-row { display: flex; justify-content: space-between; gap: 20px; margin-top: 10px; }
+  .sig-col { flex: 1; text-align: center; font-size: 12px; }
+  .sig-col .label { font-weight: 700; margin-bottom: 34px; }
+  .sig-col .nom { border-top: 1px dotted #64748b; padding-top: 4px; min-height: 16px; }
+
+  @media print {
+    body { background: #fff; padding: 0; }
+    .toolbar { display: none !important; }
+    .sheet { box-shadow: none; max-width: 100%; padding: 8mm 10mm; }
+    @page { size: A5; margin: 6mm; }
+  }
+</style>
+</head>
+<body>
+
+  <div class="toolbar">
+    <a href="{% url 'matieres:bon_commande_service_update' pk=bon.pk %}" class="btn-retour">← Retour au bon</a>
+    <button type="button" class="btn-imprimer" onclick="window.print()">Imprimer</button>
+  </div>
+
+  <div class="sheet">
+
+    <div class="head-row">
+      {% if societe.logo %}<img src="{{ societe.logo.url }}" alt="Logo">{% endif %}
+      <div class="head-titre">
+        <div class="etab">{{ societe.nom|default:"—" }}</div>
+        {% if societe.telephone %}<div class="tel">Tél. {{ societe.telephone }}</div>{% endif %}
+      </div>
+    </div>
+
+    <div class="meta-row">
+      <div>SERVICE DE : <span class="filled">{{ bon.service|default:"" }}</span></div>
+    </div>
+    <div class="meta-row">
+      <div>Le <span class="dotted" style="min-width:120px">{{ bon.date_creation|date:"d/m/Y" }}</span></div>
+      <div class="num-box">N° {{ bon.num_bon|stringformat:"04d" }}</div>
+    </div>
+
+    <table class="lignes">
+      <thead>
+        <tr>
+          <th style="width:55%">DESIGNATION</th>
+          <th>QUANTITE<br>COMMANDEE</th>
+          <th>QUANTITE<br>LIVREE</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for d in details %}
+        <tr>
+          <td>{{ d.designation }}</td>
+          <td class="r">{{ d.qte_commandee }}</td>
+          <td class="r">{{ d.qte_livree }}</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="3" style="text-align:center;color:#64748b">Aucun article</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    <div class="destinataire">à M. <span class="dotted" style="min-width:300px">{{ bon.destinataire|default:"" }}</span></div>
+
+    <div class="sig-row">
+      <div class="sig-col">
+        <div class="label">Chef de Service</div>
+        <div class="nom">{{ bon.demande_par|default:"" }}</div>
+      </div>
+      <div class="sig-col">
+        <div class="label">Le S.A.F.</div>
+        <div class="nom">{{ bon.valide_par|default:"" }}</div>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

@@ -1,0 +1,84 @@
+{% extends 'base.html' %}
+{% load humanize %}
+{% block content %}
+<div class="p-6 max-w-4xl mx-auto">
+
+  <div class="flex items-center gap-2 mb-5 text-sm text-slate-400">
+    <a href="{% url 'matieres:expressions_list' %}" class="hover:text-indigo-600 transition-colors">Expressions de besoins</a>
+    <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <span class="text-slate-600 font-semibold">{{ expression.reference|default:"Expression #"|add:"" }}{% if not expression.reference %}{{ expression.id }}{% endif %}</span>
+    <a href="{% url 'matieres:expression_update' expression.pk %}" class="ml-auto text-xs font-semibold text-indigo-600 hover:text-indigo-700">Modifier →</a>
+  </div>
+
+  {% if messages %}
+  <div class="mb-4 space-y-2">
+    {% for msg in messages %}
+    <div class="px-4 py-2.5 rounded-lg text-sm font-medium {% if msg.tags == 'error' %}bg-red-50 text-red-700 border border-red-200{% else %}bg-emerald-50 text-emerald-700 border border-emerald-200{% endif %}">{{ msg }}</div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <div class="bg-white border border-slate-200 rounded-2xl shadow-sm p-6 mb-5">
+    <div class="flex items-start justify-between gap-4 mb-5">
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-5 text-sm flex-1">
+        <div>
+          <div class="text-[11px] font-bold text-slate-400 uppercase tracking-wide mb-1">Référence</div>
+          <div class="font-semibold text-indigo-600">{{ expression.reference|default:"—" }}</div>
+        </div>
+        <div>
+          <div class="text-[11px] font-bold text-slate-400 uppercase tracking-wide mb-1">Date</div>
+          <div class="text-slate-700">{{ expression.date_creation|date:"d/m/Y" }}</div>
+        </div>
+        <div>
+          <div class="text-[11px] font-bold text-slate-400 uppercase tracking-wide mb-1">Service demandeur</div>
+          <div class="text-slate-700">{{ expression.demandeur_service|default:"—" }}</div>
+        </div>
+        <div>
+          <div class="text-[11px] font-bold text-slate-400 uppercase tracking-wide mb-1">Bureau demandeur</div>
+          <div class="text-slate-700">{{ expression.demandeur_bureau|default:"—" }}</div>
+        </div>
+      </div>
+      <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold whitespace-nowrap
+        {% if expression.statut == 'transforme' %}bg-emerald-50 text-emerald-700 border border-emerald-200
+        {% elif expression.statut == 'recu' %}bg-amber-50 text-amber-700 border border-amber-200
+        {% else %}bg-slate-100 text-slate-500 border border-slate-200{% endif %}">
+        <span class="w-1.5 h-1.5 rounded-full bg-current"></span>
+        {{ expression.get_statut_display }}
+      </span>
+    </div>
+
+    {% if expression.recu_par_comptable %}
+    <div class="text-xs text-slate-500 mb-4">
+      Reçue par le comptable des matières le <strong class="text-slate-700">{{ expression.date_reception_comptable|date:"d/m/Y" }}</strong>.
+    </div>
+    {% endif %}
+
+    {% if expression.statut == 'transforme' and expression.bon_sortie_definitive %}
+    <div class="px-4 py-2.5 bg-emerald-50 border border-emerald-200 rounded-lg text-sm text-emerald-700 flex items-center gap-2">
+      <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+      Transformée en {{ expression.bon_sortie_definitive }}
+    </div>
+    {% elif expression.recu_par_comptable %}
+    <form method="post" action="{% url 'matieres:expression_transform' expression.pk %}"
+          onsubmit="return confirm('Transformer cette expression de besoin en Bon de Sortie Définitive (matières de consommation) ?')">
+      {% csrf_token %}
+      <button type="submit" class="inline-flex items-center gap-2 px-4 py-2.5 bg-indigo-600 text-white rounded-xl text-sm font-semibold shadow-sm hover:bg-indigo-700 transition-colors">
+        <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
+        Transformer en Bon de Sortie Définitive
+      </button>
+    </form>
+    {% else %}
+    <div class="text-xs text-slate-400">En attente de réception par le comptable des matières avant transformation.</div>
+    {% endif %}
+  </div>
+
+  <div class="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+    <div class="px-5 py-3 border-b border-slate-100 text-[11px] font-bold text-indigo-600 uppercase tracking-wide">
+      Articles demandés — {{ details|length }} ligne{{ details|length|pluralize }}
+    </div>
+    <div class="overflow-x-auto" id="expression-detail-rows">
+      {% include 'partials/expression_detail_rows.html' with details=details expression=expression %}
+    </div>
+  </div>
+</div>
+{% endblock %}

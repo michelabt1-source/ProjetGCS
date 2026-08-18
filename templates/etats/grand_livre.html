@@ -39,9 +39,10 @@
         <th style="padding:10px 14px;text-align:left;font-weight:600;color:#475569">Désignation</th>
         <th style="padding:10px 14px;text-align:right;font-weight:600;color:#475569;width:70px">Qté</th>
         <th style="padding:10px 14px;text-align:left;font-weight:600;color:#475569;width:80px">Unité</th>
-        <th style="padding:10px 14px;text-align:left;font-weight:600;color:#475569;width:100px">Bénéficiaire</th>
+        <th style="padding:10px 14px;text-align:left;font-weight:600;color:#475569;width:100px">Service/Bureau</th>
         <th style="padding:10px 14px;text-align:right;font-weight:600;color:#475569;width:90px">Montant TTC</th>
         <th style="padding:10px 14px;text-align:center;font-weight:600;color:#475569;width:60px">Dépôt</th>
+        <th style="padding:10px 14px;text-align:center;font-weight:600;color:#475569;width:110px">Compte</th>
       </tr>
     </thead>
     <tbody>
@@ -56,14 +57,20 @@
         <td style="padding:8px 14px;color:#0f172a;font-weight:500">{{ j.designation|truncatechars:40 }}</td>
         <td style="padding:8px 14px;text-align:right;font-weight:600;color:#0f172a">{{ j.qte }}</td>
         <td style="padding:8px 14px;color:#64748b;font-size:11px">{{ j.unite }}</td>
-        <td style="padding:8px 14px;color:#64748b;font-size:11px">{{ j.beneficiaire|truncatechars:14 }}</td>
+        <td style="padding:8px 14px;color:#64748b;font-size:11px">{{ j.bureau|default:j.service|default:"—"|truncatechars:14 }}</td>
         <td style="padding:8px 14px;text-align:right;color:#475569">{{ j.montant_ttc|floatformat:0 }}</td>
         <td style="padding:8px 14px;text-align:center">
           {% if j.depot %}<span style="background:#dbeafe;color:#1e40af;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600">{{ j.depot }}</span>{% endif %}
         </td>
+        <td style="padding:8px 14px;text-align:center">
+          <a href="{% url 'matieres:grand_livre_compte_etat' nomenclature=j.nomenclature %}" target="_blank"
+             style="display:inline-flex;align-items:center;gap:5px;font-size:11px;color:#4f46e5;background:#eef2ff;border:1px solid #c7d2fe;padding:4px 10px;border-radius:7px;text-decoration:none;font-weight:600">
+            État N°12 →
+          </a>
+        </td>
       </tr>
       {% empty %}
-      <tr><td colspan="10" style="padding:40px;text-align:center;color:#94a3b8">Aucune opération.</td></tr>
+      <tr><td colspan="11" style="padding:40px;text-align:center;color:#94a3b8">Aucune opération.</td></tr>
       {% endfor %}
     </tbody>
   </table>

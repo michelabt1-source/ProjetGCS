@@ -3,12 +3,12 @@
   {% if q %}
     <strong>{{ produits|length }}</strong> résultat{{ produits|length|pluralize }} pour « {{ q }} »
   {% else %}
-    <strong>{{ produits|length }}</strong> produit{{ produits|length|pluralize }} Groupe 1 sur {{ total_all }}
+    <strong>{{ produits|length }}</strong> matière{{ produits|length|pluralize }} affectée{{ produits|length|pluralize }} à {{ bureau }} sur {{ total_all }}
   {% endif %}
 </div>
 {% for p in produits %}
 <div class="modal-prod-row"
-     onclick="bspPickProduit('{{ p.pk }}','{{ p.designation|escapejs }}','{{ p.nomenclature|escapejs }}','{{ p.specification|escapejs }}','{{ p.unite_id|default:'' }}','{{ p.unite.libelle|default:''|escapejs }}',{{ p.stock_disponible }})">
+     onclick="bspPickProduit('{{ p.pk }}','{{ p.designation|escapejs }}','{{ p.nomenclature|escapejs }}','{{ p.specification|escapejs }}','{{ p.unite_id|default:'' }}','{{ p.unite.libelle|default:''|escapejs }}',{{ p.qte_affectee_dispo }},{{ p.auto_prix_ht|default:0|floatformat:"2u" }},{{ p.auto_prix_ttc|default:0|floatformat:"2u" }})">
   <div style="min-width:0;flex:1">
     <div style="font-size:13px;font-weight:600;color:#1e293b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ p.designation }}</div>
     <div style="font-size:11px;color:#64748b;margin-top:1px">
@@ -18,9 +18,8 @@
     </div>
   </div>
   <span style="font-size:11px;font-weight:700;padding:2px 9px;border-radius:20px;flex-shrink:0;margin-left:10px;
-               background:{% if p.stock_disponible > 0 %}#dcfce7{% else %}#fee2e2{% endif %};
-               color:{% if p.stock_disponible > 0 %}#15803d{% else %}#991b1b{% endif %}">
-    Dispo: {{ p.stock_disponible }}
+               background:#dcfce7;color:#15803d">
+    Affecté dispo : {{ p.qte_affectee_dispo }}
   </span>
 </div>
 {% endfor %}
@@ -29,6 +28,6 @@
   <svg width="32" height="32" fill="none" stroke="#cbd5e1" viewBox="0 0 24 24" stroke-width="1.5" style="margin:0 auto 10px;display:block">
     <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
   </svg>
-  Aucun produit Groupe 1{% if q %} pour « {{ q }} »{% endif %}
+  {% if bureau %}Aucune matière Groupe 1 affectée à {{ bureau }}{% if q %} pour « {{ q }} »{% endif %}{% else %}Sélectionnez d'abord un service et un bureau{% endif %}
 </div>
 {% endif %}

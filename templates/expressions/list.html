@@ -1,0 +1,27 @@
+{% extends 'base.html' %}
+{% block title %}Expressions de besoins{% endblock %}
+{% block content %}
+<div class="p-6">
+  <h1 class="text-2xl font-bold mb-4">Expressions de besoins</h1>
+  <a href="{% url 'matieres:expression_create' %}" class="btn">Nouvelle expression</a>
+  <table class="min-w-full mt-4">
+    <thead><tr><th>#</th><th>Date</th><th>Service</th><th>Reçu</th><th>Statut</th><th>Actions</th></tr></thead>
+    <tbody>
+      {% for e in expressions %}
+      <tr>
+        <td><a href="{% url 'matieres:expression_detail' e.pk %}">{{ e.id }}</a></td>
+        <td>{{ e.date_creation }}</td>
+        <td>{{ e.demandeur_service }}</td>
+        <td>{{ e.recu_par_comptable }}</td>
+        <td>{{ e.get_statut_display }}</td>
+        <td>
+          <form method="post" action="{% url 'matieres:expression_transform' e.pk %}" style="display:inline">{% csrf_token %}<button class="btn" type="submit">Transformer</button></form>
+        </td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="6">Aucune expression.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

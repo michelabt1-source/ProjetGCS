@@ -1,11 +1,15 @@
 {% load i18n %}
+{% load static %}
 <!DOCTYPE html>
 <html lang="fr" class="h-full">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Connexion | GestMat</title>
+  <title>Connexion | Gestima</title>
+  <link rel="icon" type="image/svg+xml" href="{% static 'brand/gestima-icon.svg' %}">
   <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@600;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
     @keyframes pulseGlow {
       0%, 100% { box-shadow: 0 0 20px rgba(99,102,241,0.5), 0 0 40px rgba(99,102,241,0.2); }
@@ -24,7 +28,8 @@
       100% { background-position: 400px 0; }
     }
 
-    body { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; }
+    body { font-family: 'IBM Plex Sans', system-ui, sans-serif; }
+    h1, h2, .brand-word { font-family: 'Space Grotesk', sans-serif; }
 
     .panel-right { animation: fadeRight 0.55s cubic-bezier(0.22,1,0.36,1) forwards; }
     .form-block   { animation: fadeUp 0.6s 0.1s cubic-bezier(0.22,1,0.36,1) both; }
@@ -93,30 +98,23 @@
     <!-- Fond décoratif -->
     <div class="absolute inset-0 dot-grid"></div>
     <div class="absolute -top-24 -left-24 w-96 h-96 rounded-full opacity-20" style="background: radial-gradient(circle, #6366f1, transparent 70%)"></div>
-    <div class="absolute -bottom-20 -right-20 w-80 h-80 rounded-full opacity-15" style="background: radial-gradient(circle, #a855f7, transparent 70%)"></div>
-    <div class="absolute top-1/3 right-8 w-40 h-40 rounded-full opacity-10" style="background: radial-gradient(circle, #818cf8, transparent 70%)"></div>
+    <div class="absolute -bottom-20 -right-20 w-80 h-80 rounded-full opacity-15" style="background: radial-gradient(circle, #8b5cf6, transparent 70%)"></div>
+    <div class="absolute top-1/3 right-8 w-40 h-40 rounded-full opacity-10" style="background: radial-gradient(circle, #22d3ee, transparent 70%)"></div>
 
     <!-- Contenu -->
     <div class="relative z-10 flex flex-col justify-between h-full px-14 py-14">
 
-      <!-- Logo + Nom -->
+      <!-- Logo -->
       <div class="flex items-center gap-4">
-        <div class="w-12 h-12 rounded-2xl flex items-center justify-center logo-icon" style="background: linear-gradient(135deg, #6366f1, #a855f7)">
-          <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
-          </svg>
-        </div>
-        <div>
-          <p class="text-white font-bold text-xl tracking-wide leading-none">GestMat</p>
-          <p class="text-xs font-semibold uppercase tracking-widest mt-0.5" style="color:#6366f1">Gestion des Matières</p>
-        </div>
+        <img src="{% static 'brand/gestima-logo-dark.svg' %}" alt="Gestima" style="height:52px;width:auto">
+        <p class="text-xs font-semibold uppercase tracking-widest" style="color:#8b5cf6;border-left:1px solid rgba(255,255,255,.15);padding-left:14px">Comptabilité des Matières</p>
       </div>
 
       <!-- Tagline centrale -->
       <div>
         <h2 class="font-extrabold leading-tight mb-5" style="font-size:2.6rem; color:white; line-height:1.2">
           Maîtrisez votre stock,<br>
-          <span style="background: linear-gradient(90deg, #818cf8 0%, #c084fc 100%); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text">
+          <span style="background: linear-gradient(90deg, #818cf8 0%, #8b5cf6 100%); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text">
             en toute sérénité.
           </span>
         </h2>
@@ -169,7 +167,7 @@
 
       <!-- Pied du panneau -->
       <p class="text-xs" style="color:#334155">
-        &copy; {% now "Y" %} GestMat &mdash; Accès réservé au personnel autorisé
+        &copy; {% now "Y" %} Gestima &mdash; Accès réservé au personnel autorisé
       </p>
 
     </div>
@@ -182,15 +180,11 @@
 
     <div class="w-full max-w-sm form-block">
 
-      <!-- Logo mobile uniquement -->
+      <!-- Logo mobile uniquement : icône seule (espace réduit) + texte -->
       <div class="lg:hidden mb-10 text-center">
-        <div class="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-3 logo-icon" style="background: linear-gradient(135deg, #6366f1, #a855f7)">
-          <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
-          </svg>
-        </div>
-        <h1 class="text-2xl font-bold text-slate-800">GestMat</h1>
-        <p class="text-sm text-slate-400 mt-1">Gestion des Matières</p>
+        <img src="{% static 'brand/gestima-icon.svg' %}" alt="Gestima" class="w-16 h-16 rounded-2xl mx-auto mb-3 logo-icon">
+        <h1 class="text-3xl font-bold text-slate-800 brand-word">Gestima<span style="color:#8b5cf6">.</span></h1>
+        <p class="text-sm text-slate-400 mt-1">Comptabilité des Matières</p>
       </div>
 
       <!-- Titre formulaire -->

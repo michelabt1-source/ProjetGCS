@@ -1,0 +1,52 @@
+{% extends 'bons/entree_update.html' %}
+{% block content %}
+{% load humanize %}
+<div class="p-6">
+  <h1 class="text-2xl font-bold mb-4">Modifier Expression #{{ expression.id }}</h1>
+  <form method="post">{% csrf_token %}
+    <div class="grid grid-cols-2 gap-4">
+      <div>
+        <label class="f-label">Référence</label>
+        <input type="text" name="reference" value="{{ expression.reference }}" class="f-input">
+      </div>
+      <div>
+        <label class="f-label">Date</label>
+        <input type="date" name="date_creation" value="{{ expression.date_creation|date:'Y-m-d' }}" class="f-input">
+      </div>
+      <div>
+        <label class="f-label">Service</label>
+        <select name="service" class="f-select"><option value="">—</option>{% for s in services %}<option value="{{ s.pk }}" {% if expression.demandeur_service and expression.demandeur_service.pk==s.pk %}selected{% endif %}>{{ s }}</option>{% endfor %}</select>
+      </div>
+      <div>
+        <label class="f-label">Bureau</label>
+        <select name="bureau" class="f-select"><option value="">—</option>{% for b in bureaux %}<option value="{{ b.pk }}" {% if expression.demandeur_bureau and expression.demandeur_bureau.pk==b.pk %}selected{% endif %}>{{ b }}</option>{% endfor %}</select>
+      </div>
+      <div>
+        <label class="f-label">Reçu par comptable</label>
+        <input type="checkbox" name="recu_par_comptable" {% if expression.recu_par_comptable %}checked{% endif %}>
+      </div>
+    </div>
+    <div class="mt-4"><button class="btn-action btn-validate" type="submit">Sauvegarder</button></div>
+  </form>
+
+  <div class="section-card mt-6">
+    <div class="section-header"><div class="dot"></div>Détails</div>
+    <div style="padding:12px">
+      <div id="expression-detail-rows">
+        {% include 'partials/expression_detail_rows.html' with details=expression.details.all expression=expression %}
+      </div>
+      <div class="mt-4">
+        <form hx-post="{% url 'matieres:htmx_expression_add_detail' expression.pk %}" hx-target="#expression-detail-rows" hx-swap="innerHTML">
+          {% csrf_token %}
+          <div class="grid grid-cols-3 gap-3">
+            <input name="designation" placeholder="Désignation" class="f-input">
+            <input name="nomenclature" placeholder="Nomenclature" class="f-input">
+            <input name="qte" placeholder="Quantité" class="f-input" type="number">
+          </div>
+          <div class="mt-3"><button class="line-btn line-btn-save" type="submit">Ajouter</button></div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

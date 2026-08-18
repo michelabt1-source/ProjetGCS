@@ -1,5 +1,5 @@
 """
-Système d'import Excel pour GestMat.
+Système d'import Excel pour Gestima.
 Supporte un fichier multi-feuilles avec une feuille par entité.
 """
 import openpyxl
@@ -17,7 +17,7 @@ from .models import (
     Fournisseur, Beneficiaire,
     Produit, SocieteGCS,
     MembreCommission, MembreCommissionReforme,
-    AnneeExercice, MatieresDepot,
+    AnneeExercice, MatieresDepot, Journal,
 )
 
 
@@ -175,9 +175,11 @@ def _import_sous_comptes(rows):
     created = updated = 0
     errors = []
     for i, row in enumerate(rows, 2):
-        num_cp_raw = _get(row, 'N°CompteP', 'num_compte', 'compte_principal', 'n° compte', 'compte', default=None)
-        num_sc_raw = _get(row, 'N°SousCompte', 'num_sous_compte', 'sous_compte', 'n° sous compte', default=None)
-        famille = _str(row, 'Famille', 'famille_sc', 'libelle', 'libellé')
+        num_cp_raw = _get(row, 'Principal', 'N°CompteP', 'num_compte', 'compte_principal', 'n° compte', 'compte', default=None)
+        num_sc_raw = _get(row, 'Compte', 'N°SousCompte', 'num_sous_compte', 'sous_compte', 'n° sous compte', default=None)
+        famille = _str(row, 'Intitulé', 'Famille', 'famille_sc', 'libelle', 'libellé')
+        num_cb = _get(row, 'NumCB', 'num_cb', default='')
+        intitule_cb = _str(row, 'Intitulé CB', 'Intitule CB', 'intitule_cb', 'famille_cb')
         if num_cp_raw is None or num_sc_raw is None:
             errors.append(f"Ligne {i} : Numéros manquants")
             continue
@@ -194,11 +196,24 @@ def _import_sous_comptes(rows):
             continue
         obj, is_new = SousCompte.objects.get_or_create(
             compte_principal=cp, num_sous_compte=num_sc,
-            defaults={'famille_sc': famille}
+            defaults={'compte': str(num_sc_raw).strip(), 'famille_sc': famille, 'num_cb': str(num_cb or '').strip(), 'intitule_cb': intitule_cb}
         )
-        if not is_new and famille:
-            obj.famille_sc = famille
-            obj.save()
+        if not is_new:
+            changed = False
+            if obj.compte != str(num_sc_raw).strip():
+                obj.compte = str(num_sc_raw).strip()
+                changed = True
+            if famille and obj.famille_sc != famille:
+                obj.famille_sc = famille
+                changed = True
+            if num_cb and str(obj.num_cb) != str(num_cb).strip():
+                obj.num_cb = str(num_cb).strip()
+                changed = True
+            if intitule_cb and obj.intitule_cb != intitule_cb:
+                obj.intitule_cb = intitule_cb
+                changed = True
+            if changed:
+                obj.save()
         created += is_new
         updated += not is_new
     return created, updated, errors
@@ -310,6 +325,26 @@ def _import_produits(rows):
                 if v is not None:
                     setattr(obj, k, v)
             obj.save()
+        else:
+            # Écriture d'ouverture : sans elle, la Fiche de Stock (Modèle N°9) afficherait un
+            # solde négatif dès la première sortie, faute d'une entrée pour justifier ce stock.
+            if stock > 0:
+                Journal.objects.create(
+                    date_creation=dt_date.today(),
+                    num_bon=0,
+                    type_entree='Stock Initial',
+                    groupe=obj.groupe,
+                    designation=designation,
+                    nomenclature=nomenclature,
+                    specification=spec,
+                    unite=unite_lib or '',
+                    qte=stock,
+                    entree_periode=stock,
+                    sortie_periode=0,
+                    existant=0,
+                    existant_fin_periode=stock,
+                    observation="Solde d'ouverture — import Excel",
+                )
         created += is_new
         updated += not is_new
     return created, updated, errors
@@ -549,11 +584,11 @@ def generate_template():
           ["Entier unique", "Intitulé du compte", ""])
 
     sheet("SousComptes",
-          ["N°CompteP", "N°SousCompte", "Famille"],
-          [[31, 31.1, "Médicaments"],
-           [31, 31.2, "Dispositifs médicaux"],
-           [32, 32.1, "Produits chimiques"]],
-          ["N° compte principal existant", "Nombre décimal", "Intitulé"])
+            ["Compte", "Intitulé", "Principal", "NumCB", "Intitulé CB"],
+            [["31.1", "Médicaments", 31, 6041, "Médicaments et produits pharmaceutiques"],
+             ["31.2", "Dispositifs médicaux", 31, 6042, "Dispositifs médicaux"],
+             ["32.1", "Produits chimiques", 32, 6043, "Produits chimiques"]],
+            ["Compte de sous-compte", "Libellé du sous-compte", "Compte principal", "Compte de gestion", "Libellé du compte de gestion"])
 
     sheet("Fournisseurs",
           ["Nom", "Adresse", "Telephone", "Fax", "Ville", "Region", "Pays"],
@@ -599,7 +634,7 @@ def generate_template():
     readme.column_dimensions['A'].width = 60
     readme.column_dimensions['B'].width = 40
     instructions = [
-        ("GUIDE D'UTILISATION — GestMat Import Excel", ""),
+        ("GUIDE D'UTILISATION — Gestima Import Excel", ""),
         ("", ""),
         ("1. Ne modifiez pas les noms des feuilles (onglets)", ""),
         ("2. Ne modifiez pas la ligne d'en-tête (ligne 1)", ""),

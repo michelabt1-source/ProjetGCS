@@ -224,9 +224,11 @@ def imp_sous_compte(rows, verbose):
     comptes = {cp.num_compte: cp for cp in ComptePrincipale.objects.all()}
     c = u = e = 0
     for row in rows:
-        num_sc_raw = s(row, 'NumSousCompte')
-        famille_sc = s(row, 'FamilleSc')
-        num_cp_raw = row.get('NumComptePrincipal')
+        num_sc_raw = s(row, 'Compte') or s(row, 'NumSousCompte')
+        famille_sc = s(row, 'Intitulé') or s(row, 'FamilleSc')
+        num_cp_raw = row.get('Principal') or row.get('NumComptePrincipal')
+        num_cb = s(row, 'NumCB')
+        intitule_cb = s(row, 'Intitulé CB') or s(row, 'Intitule CB')
         if not num_sc_raw:
             e += 1; continue
         try:
@@ -254,12 +256,18 @@ def imp_sous_compte(rows, verbose):
 
         obj, is_new = SousCompte.objects.get_or_create(
             num_sous_compte=num_sc,
-            defaults={'famille_sc': famille_sc, 'compte_principal': cp}
+            defaults={'compte': str(num_sc_raw).strip(), 'famille_sc': famille_sc, 'compte_principal': cp, 'num_cb': num_cb or '', 'intitule_cb': intitule_cb or ''}
         )
         if not is_new:
             changed = False
+            if obj.compte != str(num_sc_raw).strip():
+                obj.compte = str(num_sc_raw).strip(); changed = True
             if famille_sc and obj.famille_sc != famille_sc:
                 obj.famille_sc = famille_sc; changed = True
+            if num_cb and obj.num_cb != num_cb:
+                obj.num_cb = num_cb; changed = True
+            if intitule_cb and obj.intitule_cb != intitule_cb:
+                obj.intitule_cb = intitule_cb; changed = True
             if cp and obj.compte_principal_id != cp.pk:
                 obj.compte_principal = cp; changed = True
             if changed: obj.save()

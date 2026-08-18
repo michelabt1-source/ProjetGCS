@@ -1,0 +1,4 @@
+<option value="">— Bureau —</option>
+{% for b in bureaux %}
+<option value="{{ b.pk }}" {% if b.pk == selected_id %}selected{% endif %}>{{ b.code }} — {{ b.libelle }}</option>
+{% endfor %}

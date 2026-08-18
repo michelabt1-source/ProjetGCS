@@ -1,0 +1,20 @@
+{% for p in produits %}
+<div class="prod-item"
+     onclick="bmPickProduit('{{ p.pk }}','{{ p.designation|escapejs }}','{{ p.nomenclature|escapejs }}','{{ p.specification|escapejs }}','{{ p.unite_id|default:'' }}','{{ p.unite.libelle|default:''|escapejs }}',{{ p.qte_affectee_dispo }},{{ p.auto_prix_ht|default:0|floatformat:"2u" }},{{ p.auto_prix_ttc|default:0|floatformat:"2u" }})">
+  <div style="min-width:0;flex:1">
+    <div style="font-size:13px;font-weight:600;color:#1e293b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ p.designation }}</div>
+    <div style="font-size:11px;color:#64748b">
+      <span style="font-family:monospace;color:#5b21b6;font-weight:700">{{ p.nomenclature }}</span>
+      {% if p.unite %} · {{ p.unite }}{% endif %}
+    </div>
+  </div>
+  <span style="font-size:11px;font-weight:700;padding:2px 9px;border-radius:20px;flex-shrink:0;margin-left:8px;
+               background:#dcfce7;color:#15803d">
+    Affecté dispo : {{ p.qte_affectee_dispo }}
+  </span>
+</div>
+{% empty %}
+<div style="padding:12px 16px;color:#94a3b8;font-size:12px">
+  {% if bureau %}Aucune matière Groupe 1 affectée à {{ bureau }}{% if q %} pour « {{ q }} »{% endif %}{% else %}Sélectionnez d'abord le bureau origine{% endif %}
+</div>
+{% endfor %}

@@ -20,7 +20,8 @@
       <div class="flex justify-between"><dt class="text-slate-500">N° Bon</dt><dd class="font-mono font-bold text-blue-700">BA-{{ bon.num_bon|stringformat:"04d" }}</dd></div>
       <div class="flex justify-between"><dt class="text-slate-500">Date affectation</dt><dd>{{ bon.date_affectation|date:"d/m/Y"|default:"—" }}</dd></div>
       <div class="flex justify-between"><dt class="text-slate-500">Dépôt</dt><dd>{{ bon.depot|default:"—" }}</dd></div>
-      <div class="flex justify-between"><dt class="text-slate-500">Bénéficiaire</dt><dd class="font-medium">{{ bon.beneficiaire|default:"—" }}</dd></div>
+      <div class="flex justify-between"><dt class="text-slate-500">Service</dt><dd class="font-medium">{{ bon.service|default:"—" }}</dd></div>
+      <div class="flex justify-between"><dt class="text-slate-500">Bureau</dt><dd class="font-medium">{{ bon.bureau|default:"—" }}</dd></div>
       <div class="flex justify-between"><dt class="text-slate-500">Année</dt><dd>{{ bon.annee_creation|default:"—" }}</dd></div>
     </dl>
   </div>

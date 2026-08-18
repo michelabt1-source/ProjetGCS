@@ -81,10 +81,10 @@
       </button>
     </form>
   {% endif %}
-  <button class="btn-action btn-cyan" style="margin-left:auto" onclick="window.print()">
+  <a href="{% url 'matieres:bon_retour_affectation_etat' pk=bon.pk %}" target="_blank" class="btn-action btn-cyan" style="margin-left:auto">
     <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
-    Bon de retour
-  </button>
+    État officiel (Modèle N°7)
+  </a>
 </div>
 
 {% if messages %}
@@ -117,15 +117,21 @@
           </div>
         </div>
         <div>
-          <label class="f-label">Bénéficiaire</label>
-          <select name="beneficiaire_id" class="f-input f-select" {% if bon.valide %}disabled{% endif %}>
+          <label class="f-label">Service</label>
+          <select name="service_id" class="f-input f-select" {% if bon.valide %}disabled{% endif %}
+                  hx-get="{% url 'matieres:htmx_bureaux_options' %}"
+                  hx-trigger="change"
+                  hx-target="#bra-u-bureau"
+                  hx-include="this">
             <option value="">—</option>
-            {% for b in beneficiaires %}<option value="{{ b.pk }}" {% if bon.beneficiaire_id == b.pk %}selected{% endif %}>{{ b.nom }}</option>{% endfor %}
+            {% for s in services %}<option value="{{ s.pk }}" {% if bon.service_id == s.pk %}selected{% endif %}>{{ s.code }} — {{ s.libelle }}</option>{% endfor %}
           </select>
         </div>
         <div>
-          <label class="f-label">Observation</label>
-          <textarea name="observation" class="f-input" rows="2" style="resize:vertical" {% if bon.valide %}readonly{% endif %}>{{ bon.observation }}</textarea>
+          <label class="f-label">Bureau</label>
+          <select name="bureau_id" id="bra-u-bureau" class="f-input f-select" {% if bon.valide %}disabled{% endif %}>
+            {% include 'partials/bureaux_options.html' with bureaux=bureaux selected_id=bon.bureau_id %}
+          </select>
         </div>
         {% if not bon.valide %}
         <button type="submit" class="btn-action btn-cyan" style="width:100%;justify-content:center">
@@ -150,7 +156,7 @@
         <div class="produit-wrap" id="bra-produit-wrap">
           <div style="display:flex;gap:6px">
             <input type="text" id="bra-f-designation" class="f-input" placeholder="Tapez pour rechercher…"
-                   hx-get="{% url 'matieres:htmx_bra_produit_search' %}"
+                   hx-get="{% url 'matieres:htmx_bra_produit_search' pk=bon.pk %}"
                    hx-trigger="input changed delay:250ms"
                    hx-target="#bra-produit-dropdown"
                    name="q" autocomplete="off">
@@ -281,7 +287,7 @@
     </div>
     <div class="modal-search">
       <input type="text" id="bra-modal-search-input" placeholder="Rechercher…"
-             hx-get="{% url 'matieres:htmx_bra_modal_produits' %}"
+             hx-get="{% url 'matieres:htmx_bra_modal_produits' pk=bon.pk %}"
              hx-trigger="input changed delay:250ms, load"
              hx-target="#bra-modal-product-list"
              name="q" autocomplete="off">
@@ -328,13 +334,20 @@ function braPrepareSubmit() {
   document.getElementById('bra-h-prix-ttc').value     = document.getElementById('bra-f-prix-ttc').value;
   document.getElementById('bra-h-observation').value  = document.getElementById('bra-f-observation').value;
 }
-function braPickProduit(id, designation, nomenclature, specification, uniteId, uniteLibelle, stockInfo) {
+function braPickProduit(id, designation, nomenclature, specification, uniteId, uniteLibelle, stockInfo, prixHT, prixTTC) {
   document.getElementById('bra-f-produit-id').value    = id;
   document.getElementById('bra-f-designation').value  = designation;
   document.getElementById('bra-f-nomenclature').value = nomenclature;
   document.getElementById('bra-f-specification').value= specification;
   document.getElementById('bra-f-unite-id').value     = uniteId;
   document.getElementById('bra-f-stock').value        = stockInfo;
+
+  const ht  = parseFloat(prixHT)  || 0;
+  const ttc = parseFloat(prixTTC) || 0;
+  document.getElementById('bra-f-prix-ht').value  = ht;
+  document.getElementById('bra-f-prix-ttc').value = ttc > 0 ? ttc : (Math.round(ht * 118) / 100).toFixed(2);
+  braCalcMontant();
+
   const sel = document.getElementById('bra-f-unite-sel');
   for(const opt of sel.options){if(opt.value==uniteId){sel.value=uniteId;break;}}
   const dd=document.getElementById('bra-produit-dropdown');if(dd){dd.classList.remove('open');dd.innerHTML='';}

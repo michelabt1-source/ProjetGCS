@@ -1,0 +1,14 @@
+{% extends 'base.html' %}
+{% block title %}Nouvelle expression{% endblock %}
+{% block content %}
+<div class="p-6">
+  <h1 class="text-2xl font-bold mb-4">Nouvelle expression de besoin</h1>
+  <form method="post">{% csrf_token %}
+    <div><label>Référence</label><input name="reference"></div>
+    <div><label>Date</label><input type="date" name="date_creation" value="{{ today }}"></div>
+    <div><label>Service</label><select name="service"><option value="">—</option>{% for s in services %}<option value="{{ s.pk }}">{{ s }}</option>{% endfor %}</select></div>
+    <div><label>Bureau</label><select name="bureau"><option value="">—</option>{% for b in bureaux %}<option value="{{ b.pk }}">{{ b }}</option>{% endfor %}</select></div>
+    <div class="mt-4"><button class="btn" type="submit">Créer</button></div>
+  </form>
+</div>
+{% endblock %}

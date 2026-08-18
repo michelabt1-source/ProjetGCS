@@ -140,7 +140,7 @@
   .lines-table tbody tr:hover { background: #f8faff; }
   .lines-table tbody td { padding: 7px 10px; color: #334155; vertical-align: middle; }
   .lines-table tbody td.r { text-align: right; font-variant-numeric: tabular-nums; }
-  .lines-table tbody td.mono { font-family: 'JetBrains Mono', 'Fira Code', monospace; font-size: 11.5px; color: #6366f1; }
+  .lines-table tbody td.mono { font-family: 'IBM Plex Mono', monospace; font-size: 11.5px; color: #6366f1; }
   .lines-table tfoot td {
     padding: 8px 10px; border-top: 2px solid #e2e8f0;
     font-weight: 700; color: #1e293b;
@@ -259,12 +259,19 @@
 
   <div class="sep"></div>
 
-  <button type="button" class="btn-action btn-print" onclick="window.print()" title="Imprimer le bon d'entrée">
+  <a href="{% url 'matieres:bon_entree_etat' pk=bon.pk %}" target="_blank" class="btn-action btn-print" title="Imprimer l'état officiel du bon d'entrée">
     <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
       <path stroke-linecap="round" stroke-linejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/>
     </svg>
     Bon d'entrée
-  </button>
+  </a>
+
+  <a href="{% url 'matieres:bon_entree_pv_reception' pk=bon.pk %}" target="_blank" class="btn-action btn-print" title="Imprimer le PV de réception">
+    <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+    </svg>
+    PV de réception
+  </a>
 
   <div class="ml-auto text-xs text-slate-400 flex items-center gap-2 no-print">
     <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
@@ -359,6 +366,12 @@
                    style="text-align:right" {% if bon.valide %}readonly{% endif %}>
           </div>
 
+          <div>
+            <label class="f-label">N° PVC</label>
+            <input type="text" name="num_pvc"
+                   value="{{ bon.num_pvc }}" class="f-input"
+                   placeholder="Numéro PVC" {% if bon.valide %}readonly{% endif %}>
+          </div>
           <div>
             <label class="f-label">Dépôt</label>
             <select name="depot" class="f-select" {% if bon.valide %}disabled{% endif %}>
@@ -482,21 +495,24 @@
         </div>
       </div>
 
-      <!-- Ligne Prix HT + Prix TTC (auto) -->
+      <!-- Ligne Prix HT + Prix TTC — saisissables dans les deux sens (TVA 18%) -->
       <div class="grid grid-cols-2 gap-3 mb-3">
         <div>
-          <label class="f-label">Prix Unitaire HT</label>
+          <label class="f-label">
+            Prix Unitaire HT
+            <span style="font-weight:400;color:#94a3b8;font-size:9px;letter-spacing:0;text-transform:none"> ou saisir le TTC →</span>
+          </label>
           <input type="number" id="f-prix-ht" class="f-input" value="0" min="0" step="0.01"
-                 style="text-align:right" oninput="calcAutoTTC()">
+                 style="text-align:right" oninput="calcTTCFromHT()">
         </div>
         <div>
           <label class="f-label">
             Prix Unitaire TTC
-            <span style="font-weight:400;color:#10b981;font-size:9px;letter-spacing:0;text-transform:none"> TVA 18% — auto</span>
+            <span style="font-weight:400;color:#10b981;font-size:9px;letter-spacing:0;text-transform:none"> TVA 18%</span>
           </label>
           <input type="number" id="f-prix-ttc" class="f-input" value="0" min="0" step="0.01"
                  style="text-align:right;background:#f0fdf4;color:#059669;font-weight:600"
-                 oninput="calcMontant()" readonly>
+                 oninput="calcHTFromTTC()">
         </div>
       </div>
 
@@ -597,11 +613,19 @@ function calcMontant() {
     new Intl.NumberFormat('fr-FR', {minimumFractionDigits:2, maximumFractionDigits:2}).format(montant) + ' FCFA';
 }
 
-// ── Auto-calcul TTC = HT × 1,18 (TVA 18%) ──
-function calcAutoTTC() {
+// ── Saisie du HT → calcule le TTC = HT × 1,18 (TVA 18%) ──
+function calcTTCFromHT() {
   const ht  = parseFloat(document.getElementById('f-prix-ht').value) || 0;
   const ttc = Math.round(ht * 118) / 100;          // ×1.18 arrondi à 2 décimales
   document.getElementById('f-prix-ttc').value = ttc.toFixed(2);
+  calcMontant();
+}
+
+// ── Saisie du TTC → calcule le HT = TTC / 1,18 (certains bons arrivent déjà en TTC) ──
+function calcHTFromTTC() {
+  const ttc = parseFloat(document.getElementById('f-prix-ttc').value) || 0;
+  const ht  = Math.round((ttc / 1.18) * 100) / 100;
+  document.getElementById('f-prix-ht').value = ht.toFixed(2);
   calcMontant();
 }
 

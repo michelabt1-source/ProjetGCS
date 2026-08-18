@@ -1,6 +1,6 @@
 {% for p in produits %}
 <div class="prod-item"
-     onclick="braPickProduit('{{ p.pk }}','{{ p.designation|escapejs }}','{{ p.nomenclature|escapejs }}','{{ p.specification|escapejs }}','{{ p.unite_id|default:'' }}','{{ p.unite.libelle|default:''|escapejs }}',{{ p.qte_affectation }})">
+     onclick="braPickProduit('{{ p.pk }}','{{ p.designation|escapejs }}','{{ p.nomenclature|escapejs }}','{{ p.specification|escapejs }}','{{ p.unite_id|default:'' }}','{{ p.unite.libelle|default:''|escapejs }}',{{ p.qte_affectee_dispo }},{{ p.auto_prix_ht|default:0|floatformat:"2u" }},{{ p.auto_prix_ttc|default:0|floatformat:"2u" }})">
   <div style="flex:1;min-width:0">
     <div style="font-size:13px;font-weight:600;color:#1e293b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ p.designation }}</div>
     <div style="font-size:11px;color:#64748b;margin-top:1px">
@@ -8,12 +8,12 @@
       {% if p.unite %} · {{ p.unite }}{% endif %}
     </div>
   </div>
-  <span style="font-size:11px;font-weight:700;padding:2px 8px;border-radius:20px;flex-shrink:0;
-               background:{% if p.qte_affectation > 0 %}#cffafe{% else %}#fef3c7{% endif %};
-               color:{% if p.qte_affectation > 0 %}#0e7490{% else %}#92400e{% endif %}">
-    Aff: {{ p.qte_affectation }}
+  <span style="font-size:11px;font-weight:700;padding:2px 8px;border-radius:20px;flex-shrink:0;background:#cffafe;color:#0e7490">
+    Affecté dispo : {{ p.qte_affectee_dispo }}
   </span>
 </div>
 {% empty %}
-<div style="padding:16px;text-align:center;color:#94a3b8;font-size:12px">Aucun produit Groupe 1 trouvé</div>
+<div style="padding:16px;text-align:center;color:#94a3b8;font-size:12px">
+  {% if bureau %}Aucune matière Groupe 1 affectée à {{ bureau }}{% if q %} pour « {{ q }} »{% endif %}{% else %}Sélectionnez d'abord un service et un bureau{% endif %}
+</div>
 {% endfor %}

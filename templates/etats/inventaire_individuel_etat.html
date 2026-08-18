@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Fiche d'Inventaire Individuel Contradictoire</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', Arial, sans-serif; background: #64748b; padding: 24px 0 60px; color: #0f172a; }
+  .toolbar { max-width: 1200px; margin: 0 auto 16px; display: flex; align-items: center; gap: 10px; }
+  .toolbar a, .toolbar button { display: inline-flex; align-items: center; gap: 7px; padding: 8px 16px; border-radius: 8px; font-size: 13px; font-weight: 600; font-family: inherit; text-decoration: none; cursor: pointer; border: none; transition: all 150ms; }
+  .btn-retour { background: #fff; color: #334155; border: 1px solid #cbd5e1 !important; }
+  .btn-retour:hover { background: #f1f5f9; }
+  .btn-imprimer { background: #4f46e5; color: #fff; margin-left: auto; }
+  .btn-imprimer:hover { background: #4338ca; }
+  .sheet { max-width: 1200px; margin: 0 auto; background: #fff; padding: 26px 34px 34px; box-shadow: 0 4px 24px rgba(0,0,0,.25); font-size: 11px; }
+  .head-row { display: grid; grid-template-columns: 1.2fr 1fr; gap: 18px; margin-bottom: 4px; }
+  .head-col1 div { margin-bottom: 3px; font-size: 11px; }
+  .modele-box { border: 1px solid #0f172a; padding: 8px 12px; font-size: 11px; line-height: 1.4; justify-self: end; align-self: start; }
+  .titre-principal { text-align: center; font-size: 15px; font-weight: 700; letter-spacing: .04em; margin: -16px 0 8px; }
+  .sous-titre { text-align: center; font-size: 11px; margin-bottom: 16px; }
+  .ident-row { display: flex; justify-content: space-between; gap: 24px; margin-bottom: 12px; font-size: 11px; }
+  .ident-row .col { width: 100%; }
+  .ident-row .col strong { display: inline-block; width: 120px; }
+  .table-wrapper { overflow-x: auto; }
+  table.lignes { width: 100%; border-collapse: collapse; font-size: 10.2px; }
+  table.lignes th, table.lignes td { border: 1px solid #0f172a; padding: 4px 6px; vertical-align: middle; }
+  table.lignes thead th { background: #f8fafc; font-weight: 700; text-align: center; }
+  table.lignes th.rotate { writing-mode: vertical-rl; transform: rotate(180deg); padding: 10px 4px; white-space: nowrap; }
+  table.lignes td.r, table.lignes th.r { text-align: right; }
+  table.lignes td.c, table.lignes th.c { text-align: center; }
+  .footer-notes { margin-top: 18px; display: grid; grid-template-columns: 1.2fr 1fr 0.9fr; gap: 18px; font-size: 10px; }
+  .footer-box { padding: 12px 14px; border: 1px solid #0f172a; min-height: 160px; }
+  .footer-box .titre { font-weight: 700; margin-bottom: 6px; }
+  .footer-box p { margin-bottom: 6px; line-height: 1.4; }
+  .footer-box .filled { border-bottom: 1px dotted #0f172a; display: inline-block; min-width: 160px; }
+  @media print { body { background: #fff; padding: 0; } .toolbar { display: none !important; } .sheet { box-shadow: none; max-width: 100%; padding: 8mm 10mm; } @page { size: A4 landscape; margin: 6mm; } }
+</style>
+</head>
+<body>
+  <div class="toolbar">
+    <a href="{% url 'matieres:inventaire_individuel' %}" class="btn-retour">← Retour</a>
+    <button type="button" class="btn-imprimer" onclick="window.print()">Imprimer</button>
+  </div>
+  <div class="sheet">
+    <div class="head-row">
+      <div class="head-col1">
+        <div>REPUBLIQUE DU SENEGAL</div>
+        <div>MINISTERE/ORGANISME PUBLIC</div>
+        <div class="filled">{{ societe.ministere|default:"" }}</div>
+        <div>SERVICE OU ETABLISSEMENT</div>
+        <div class="filled">{{ societe.nom|default:"" }}</div>
+      </div>
+      <div class="modele-box">
+        Modèle N° 13<br>
+        Instruction Générale<br>
+        Art. 35b, 58c, 58d, 58e, 60g, 71a.
+      </div>
+    </div>
+    <div class="titre-principal">FICHE D'INVENTAIRE INDIVIDUEL CONTRADICTOIRE<br>DES MATIERES DU 1ER GROUPE</div>
+    <div class="sous-titre">CONFIEES A UN DETENTEUR <sup>(1)</sup></div>
+    <div class="ident-row">
+      <div class="col">Section : <span class="filled">&nbsp;</span></div>
+      <div class="col">Chapitre : <span class="filled">&nbsp;</span></div>
+    </div>
+    <div style="margin-bottom:16px; display:grid; grid-template-columns:repeat(2, minmax(220px, 1fr)); gap:12px; font-size:11px;">
+      <div style="padding:12px 14px; border:1px solid #cbd5e1; border-radius:10px; background:#f8fafc;">
+        <strong>Matières imprimées :</strong> {{ total }}<br>
+        <strong>Journaux trouvés :</strong> {{ controle_totals.journal_entries }}
+      </div>
+      <div style="padding:12px 14px; border:1px solid #cbd5e1; border-radius:10px; background:#f8fafc;">
+        <strong>Contrôles validés :</strong><br>
+        Stock global {{ controle_totals.stock_ok }}/{{ total }}<br>
+        Affectation {{ controle_totals.service_ok }}/{{ total }}<br>
+        Sortie provisoire {{ controle_totals.sortie_prov_ok }}/{{ total }}<br>
+        Sortie définitive {{ controle_totals.sortie_def_ok }}/{{ total }}
+      </div>
+    </div>
+    {% if controle_mismatches %}
+    <div style="margin-bottom:16px;padding:14px;border:1px solid #f87171;border-radius:12px;background:#fef2f2;color:#991b1b;font-size:11px;">
+      <strong>Contrôles non conformes :</strong>
+      <ul style="margin-top:10px;padding-left:18px;">
+        {% for mismatch in controle_mismatches %}
+        <li><strong>{{ mismatch.nomenclature }}</strong> — {{ mismatch.messages|join:", " }}</li>
+        {% endfor %}
+      </ul>
+    </div>
+    {% endif %}
+    <div class="table-wrapper">
+      <table class="lignes">
+        <thead>
+          <tr>
+            <th>Groupe</th>
+            <th>Compte principal</th>
+            <th>Compte secondaire</th>
+            <th>Compte divisionnaire</th>
+            <th>Sous compte</th>
+            <th>N° d'immatriculation</th>
+            <th>N° bon d'entrée</th>
+            <th>Année budgétaire</th>
+            <th>Désignation des Matières</th>
+            <th>Nature de l'unité</th>
+            <th colspan="3">REMISE DE MATIERES AU DETENTEUR</th>
+            <th colspan="3">REPRISE DES MATIERES PAR LE COMPTABLE</th>
+          </tr>
+          <tr>
+            <th colspan="5">N° compte nomenclature <sup>(2)</sup></th>
+            <th></th>
+            <th></th>
+            <th></th>
+            <th></th>
+            <th></th>
+            <th>Date</th>
+            <th>Qte d'unités</th>
+            <th>Emargement</th>
+            <th>Date</th>
+            <th>Qte d'unités</th>
+            <th>Emargement</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in lignes %}
+          <tr {% if not row.controle_ok %}style="background:#fff8f8"{% endif %}>
+            <td class="c">{{ row.produit.nomenclature|slice:":1" }}</td>
+            <td class="c">{% if row.produit.compte_principal %}{{ row.produit.compte_principal.num_compte }}{% endif %}</td>
+            <td class="c">{% if row.produit.compte_principal %}{{ row.produit.compte_principal.famille }}{% endif %}</td>
+            <td class="c">{% if row.produit.sous_compte %}{{ row.produit.sous_compte.num_sous_compte }}{% endif %}</td>
+            <td class="c">{% if row.produit.sous_compte %}{{ row.produit.sous_compte.famille_sc }}{% endif %}</td>
+            <td class="c">{{ row.immatriculation }}</td>
+            <td class="c">{{ row.bon_entree }}</td>
+            <td class="c">{{ row.annee_bud }}</td>
+            <td>{{ row.produit.designation }}</td>
+            <td class="c">{% if row.produit.unite %}{{ row.produit.unite.libelle }}{% endif %}</td>
+            <td class="c">&nbsp;</td>
+            <td class="c">&nbsp;</td>
+            <td class="c">&nbsp;</td>
+            <td class="c">&nbsp;</td>
+            <td class="c">&nbsp;</td>
+            <td class="c">&nbsp;</td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="16" class="c" style="color:#64748b;padding:18px">Aucun produit dans le groupe 1.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <div class="footer-notes">
+      <div class="footer-box">
+        <div class="titre">Le Comptable des matières</div>
+        <p>Prénoms, Nom : <span class="filled">&nbsp;</span></p>
+        <p>Fonction : <span class="filled">&nbsp;</span></p>
+        <p>Le Comptable des matières, soussigné, déclare conserver les matières décrites ci-dessus dans ses prises en charge.</p>
+        <p>Fait à <span class="filled">&nbsp;</span> le <span class="filled">&nbsp;</span></p>
+        <p style="margin-top:10px;font-weight:700;">Signature</p>
+      </div>
+      <div class="footer-box">
+        <div class="titre">Le Detenteur</div>
+        <p>Prénoms, Nom : <span class="filled">&nbsp;</span></p>
+        <p>Fonction : <span class="filled">&nbsp;</span></p>
+        <p>Lieu d'affectation des matières : <span class="filled">&nbsp;</span></p>
+        <p>Soussigné, déclare détenir les matières et m'engage à les tenir en bon état d'entretien.</p>
+        <p style="margin-top:10px;font-weight:700;">Signature</p>
+      </div>
+      <div class="footer-box">
+        <div class="titre">Notes</div>
+        <p>(1) Cet inventaire individuel est un inventaire permanent, les matières peuvent être remises ou reprises à des dates différentes.</p>
+        <p>Ce document est à établir en triple exemplaires : 1 pour le détenteur, 1 pour le comptable, 1 affiché dans chaque bureau ou local.</p>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

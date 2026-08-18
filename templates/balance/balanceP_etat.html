@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Balance Périodique des Comptes</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Segoe UI', Arial, sans-serif;
+    background: #64748b;
+    padding: 24px 0 60px;
+    color: #0f172a;
+  }
+
+  .toolbar {
+    max-width: 1300px;
+    margin: 0 auto 16px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .toolbar a, .toolbar button {
+    display: inline-flex; align-items: center; gap: 7px;
+    padding: 8px 16px; border-radius: 8px;
+    font-size: 13px; font-weight: 600; font-family: inherit;
+    text-decoration: none; cursor: pointer; border: none;
+    transition: all 150ms;
+  }
+  .btn-retour { background: #fff; color: #334155; border: 1px solid #cbd5e1 !important; }
+  .btn-retour:hover { background: #f1f5f9; }
+  .btn-imprimer { background: #4f46e5; color: #fff; margin-left: auto; }
+  .btn-imprimer:hover { background: #4338ca; }
+
+  .sheet {
+    max-width: 1400px;
+    margin: 0 auto;
+    background: #fff;
+    padding: 26px 34px 34px;
+    box-shadow: 0 4px 24px rgba(0,0,0,.25);
+    font-size: 11.5px;
+  }
+
+  .titre-principal {
+    text-align: center;
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: .04em;
+    margin: 0 0 4px;
+  }
+  .sous-titre {
+    text-align: center;
+    font-size: 11.5px;
+    margin-bottom: 16px;
+  }
+
+  table.lignes {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 10px;
+  }
+  table.lignes th, table.lignes td {
+    border: 1px solid #0f172a;
+    padding: 4px 5px;
+    vertical-align: middle;
+  }
+  table.lignes thead th {
+    font-weight: 700;
+    text-align: center;
+    background: #d1d5db;
+  }
+  table.lignes td.r, table.lignes th.r { text-align: right; }
+  table.lignes td.c, table.lignes th.c { text-align: center; }
+  table.lignes tbody td { height: 20px; }
+  table.lignes tfoot td { font-weight: 700; background: #f1f5f9; }
+
+  .signature-block { display: flex; justify-content: flex-end; margin-top: 34px; }
+  .signature-box { width: 300px; font-size: 11.5px; text-align: center; }
+  .signature-box .titre { font-weight: 700; margin-bottom: 4px; }
+  .signature-box .lieu-date { margin: 30px 0 6px; }
+
+  @media print {
+    body { background: #fff; padding: 0; }
+    .toolbar { display: none !important; }
+    .sheet { box-shadow: none; max-width: 100%; padding: 8mm 10mm; }
+    @page { size: A4 landscape; margin: 6mm; }
+  }
+</style>
+</head>
+<body>
+
+  <div class="toolbar">
+    <a href="{% url 'matieres:balance_list' %}?date_debut={{ date_debut|date:'Y-m-d' }}&date_fin={{ date_fin|date:'Y-m-d' }}" class="btn-retour">← Retour à la balance</a>
+    <button type="button" class="btn-imprimer" onclick="window.print()">Imprimer</button>
+  </div>
+
+  <div class="sheet">
+
+    <div class="titre-principal">BALANCE PÉRIODIQUE DES COMPTES</div>
+    <div class="sous-titre">
+      Période du {{ date_debut|date:"d/m/Y"|default:"—" }} au {{ date_fin|date:"d/m/Y"|default:"—" }}
+    </div>
+
+    <table class="lignes">
+      <thead>
+        <tr>
+          <th>Nomenclature</th>
+          <th>Désignation</th>
+          <th>Nature</th>
+          <th>Existant Début<br>Période</th>
+          <th>Entrée<br>Période</th>
+          <th>Total<br>Entrée</th>
+          <th>Sortie<br>Période</th>
+          <th>Existant Fin<br>Période</th>
+          <th>Prix<br>Unitaire</th>
+          <th>Montant<br>Existant</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for b in balances %}
+        <tr>
+          <td class="c">{{ b.nomenclature }}</td>
+          <td>{{ b.designation }}</td>
+          <td class="c">{{ b.nature|default:"UNITE" }}</td>
+          <td class="r">{{ b.existant_debut }}</td>
+          <td class="r">{{ b.entree_periode }}</td>
+          <td class="r">{{ b.total_entrees }}</td>
+          <td class="r">{{ b.sortie_def_periode }}</td>
+          <td class="r">{{ b.existant_fin }}</td>
+          <td class="r">{{ b.prix_unitaire|default:"0" }}</td>
+          <td class="r">{{ b.montant_existant|default:"0" }}</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="10" class="c" style="color:#64748b">Aucun mouvement enregistré sur cette période</td></tr>
+        {% endfor %}
+      </tbody>
+      {% if balances %}
+      <tfoot>
+        <tr>
+          <td colspan="3" class="c">TOTAUX</td>
+          <td class="r">{{ totaux.total_existant_debut }}</td>
+          <td class="r">{{ totaux.total_entrees }}</td>
+          <td class="r">{{ totaux.total_existant_debut|add:totaux.total_entrees }}</td>
+          <td class="r">{{ totaux.total_sorties_def }}</td>
+          <td class="r">{{ totaux.total_fin }}</td>
+          <td class="r"></td>
+          <td class="r">{{ totaux.total_montant }}</td>
+        </tr>
+      </tfoot>
+      {% endif %}
+    </table>
+
+    <div class="signature-block">
+      <div class="signature-box">
+        <div class="titre">L'Ordonnateur/Le comptable (2)</div>
+        <div>Prénom et nom</div>
+        <div class="filled">{% if societe.administrateur %}Mr {{ societe.administrateur }}{% elif societe.comptable %}Mr {{ societe.comptable }}{% endif %}</div>
+        <div class="lieu-date">Fait à {{ societe.nom|default:"" }}, le ______________</div>
+        <div>Signature</div>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

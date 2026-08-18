@@ -11,6 +11,7 @@ TYPE_MAPPING = {
     "bool": "models.BooleanField"
 }
 
+
 def nettoyer_nom(nom):
     nom = nom.replace(" ", "_")
     nom = nom.replace("-", "_")

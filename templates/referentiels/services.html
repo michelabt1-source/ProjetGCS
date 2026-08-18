@@ -1,0 +1,179 @@
+{% extends 'base.html' %}
+{% block content %}
+<style>
+:root {
+  --c-primary: #4f46e5; --c-success: #059669; --c-danger: #dc2626;
+  --c-surface: #fff; --c-bg: #f8fafc; --c-border: #e2e8f0;
+  --c-text: #0f172a; --c-muted: #64748b;
+}
+.ref-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:20px; }
+.ref-title  { font-size:20px; font-weight:800; color:var(--c-text); display:flex; align-items:center; gap:10px; }
+.ref-card   { background:var(--c-surface); border:1px solid var(--c-border); border-radius:14px; overflow:hidden; box-shadow:0 1px 3px rgba(0,0,0,.05); }
+.ref-table  { width:100%; border-collapse:collapse; font-size:13px; }
+.ref-table thead th {
+  background:#f8fafc; padding:10px 14px; text-align:left;
+  font-size:10.5px; font-weight:700; color:var(--c-muted);
+  text-transform:uppercase; letter-spacing:.06em;
+  border-bottom:2px solid var(--c-border);
+}
+.ref-table tbody tr { border-bottom:1px solid #f1f5f9; transition:background .1s; }
+.ref-table tbody tr:last-child { border-bottom:none; }
+.ref-table tbody tr:hover { background:#f8fafc; }
+.ref-table tbody td { padding:10px 14px; vertical-align:middle; }
+.badge-actif    { background:#dcfce7; color:#15803d; border:1px solid #bbf7d0; font-size:10px; font-weight:700; padding:2px 8px; border-radius:20px; }
+.badge-inactif  { background:#f1f5f9; color:#64748b; border:1px solid #e2e8f0; font-size:10px; font-weight:700; padding:2px 8px; border-radius:20px; }
+.badge-count    { background:#ede9fe; color:#5b21b6; font-size:10px; font-weight:700; padding:2px 8px; border-radius:20px; }
+.btn-add { display:inline-flex; align-items:center; gap:7px; padding:9px 18px; background:var(--c-primary); color:#fff; border:none; border-radius:10px; font-size:13px; font-weight:600; cursor:pointer; font-family:inherit; transition:background .15s; text-decoration:none; }
+.btn-add:hover { background:#4338ca; }
+.btn-sm  { display:inline-flex; align-items:center; gap:4px; padding:4px 10px; border-radius:7px; font-size:11.5px; font-weight:600; cursor:pointer; border:1.5px solid; font-family:inherit; transition:all .12s; text-decoration:none; }
+.btn-edit { background:#eff6ff; color:#2563eb; border-color:#bfdbfe; }
+.btn-edit:hover { background:#dbeafe; }
+.btn-del  { background:#fef2f2; color:#dc2626; border-color:#fecaca; }
+.btn-del:hover { background:#fee2e2; }
+
+/* Modal */
+.modal-bg { position:fixed; inset:0; background:rgba(15,23,42,.5); z-index:400; display:none; align-items:center; justify-content:center; backdrop-filter:blur(3px); }
+.modal-bg.open { display:flex; }
+.modal-box { background:#fff; border-radius:18px; width:min(94vw,520px); box-shadow:0 20px 60px rgba(0,0,0,.2); overflow:hidden; }
+.modal-head { background:linear-gradient(135deg,#4f46e5,#6366f1); padding:18px 22px; display:flex; align-items:center; gap:10px; }
+.modal-head h3 { color:#fff; font-size:15px; font-weight:700; margin:0; flex:1; }
+.modal-close { background:rgba(255,255,255,.2); border:none; border-radius:7px; padding:5px 10px; cursor:pointer; color:#fff; font-size:15px; }
+.modal-close:hover { background:rgba(255,255,255,.35); }
+.modal-body { padding:22px; }
+.f-label { display:block; font-size:10.5px; font-weight:700; color:var(--c-muted); text-transform:uppercase; letter-spacing:.05em; margin-bottom:4px; }
+.f-input { width:100%; padding:8px 11px; border:1.5px solid var(--c-border); border-radius:8px; font-size:13px; font-family:inherit; color:var(--c-text); outline:none; transition:border-color .15s; box-sizing:border-box; }
+.f-input:focus { border-color:var(--c-primary); box-shadow:0 0 0 3px rgba(79,70,229,.1); }
+.f-stack { display:flex; flex-direction:column; gap:12px; }
+.f-row   { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+.btn-submit { width:100%; padding:10px; background:var(--c-primary); color:#fff; border:none; border-radius:9px; font-size:13.5px; font-weight:700; cursor:pointer; font-family:inherit; margin-top:8px; transition:background .15s; }
+.btn-submit:hover { background:#4338ca; }
+</style>
+
+<div class="ref-header">
+  <div class="ref-title">
+    <svg width="22" height="22" fill="none" stroke="#4f46e5" viewBox="0 0 24 24" stroke-width="2">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+    </svg>
+    Services
+  </div>
+  <button class="btn-add" onclick="openModal('create')">
+    <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+    Nouveau service
+  </button>
+</div>
+
+<div class="ref-card">
+  <table class="ref-table">
+    <thead>
+      <tr>
+        <th>Code</th><th>Libellé</th><th>Responsable</th><th>Téléphone</th>
+        <th style="text-align:center">Bureaux</th><th style="text-align:center">Statut</th><th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for s in services %}
+      <tr>
+        <td><code style="background:#ede9fe;color:#5b21b6;padding:2px 8px;border-radius:5px;font-weight:700">{{ s.code }}</code></td>
+        <td style="font-weight:600;color:var(--c-text)">{{ s.libelle }}</td>
+        <td style="color:var(--c-muted)">{{ s.responsable|default:"—" }}</td>
+        <td style="color:var(--c-muted)">{{ s.telephone|default:"—" }}</td>
+        <td style="text-align:center"><span class="badge-count">{{ s.nb_bureaux }}</span></td>
+        <td style="text-align:center">
+          {% if s.actif %}<span class="badge-actif">Actif</span>{% else %}<span class="badge-inactif">Inactif</span>{% endif %}
+        </td>
+        <td>
+          <div style="display:flex;gap:6px">
+            <button class="btn-sm btn-edit"
+                    onclick="openEditModal({{ s.pk }},'{{ s.code|escapejs }}','{{ s.libelle|escapejs }}','{{ s.responsable|escapejs }}','{{ s.telephone|escapejs }}',{{ s.actif|yesno:'true,false' }})">
+              <svg width="11" height="11" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+              Modifier
+            </button>
+            <form method="post" action="{% url 'matieres:service_delete' s.pk %}" style="margin:0"
+                  onsubmit="return confirm('Supprimer le service {{ s.code }} ?')">
+              {% csrf_token %}
+              <button type="submit" class="btn-sm btn-del">
+                <svg width="11" height="11" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+              </button>
+            </form>
+          </div>
+        </td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="7" style="padding:32px;text-align:center;color:var(--c-muted);font-style:italic">Aucun service — commencez par en créer un.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<!-- Modal Créer / Modifier -->
+<div class="modal-bg" id="service-modal" onclick="closeModalOnBg(event)">
+  <div class="modal-box">
+    <div class="modal-head">
+      <svg width="16" height="16" fill="none" stroke="#fff" viewBox="0 0 24 24" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16"/>
+      </svg>
+      <h3 id="modal-title">Nouveau service</h3>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <form method="post" id="service-form">
+        {% csrf_token %}
+        <div class="f-stack">
+          <div class="f-row">
+            <div>
+              <label class="f-label">Code *</label>
+              <input id="f-code" type="text" name="code" class="f-input" placeholder="EX: CHIR" required maxlength="20">
+            </div>
+            <div>
+              <label class="f-label">Téléphone</label>
+              <input id="f-tel" type="text" name="telephone" class="f-input" placeholder="00 00 00 00">
+            </div>
+          </div>
+          <div>
+            <label class="f-label">Libellé *</label>
+            <input id="f-libelle" type="text" name="libelle" class="f-input" placeholder="Nom complet du service" required>
+          </div>
+          <div>
+            <label class="f-label">Responsable</label>
+            <input id="f-resp" type="text" name="responsable" class="f-input" placeholder="Nom du chef de service">
+          </div>
+          <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer">
+            <input id="f-actif" type="checkbox" name="actif" style="width:15px;height:15px" checked>
+            <span style="font-weight:600;color:var(--c-text)">Service actif</span>
+          </label>
+          <button type="submit" class="btn-submit">Enregistrer</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+let editPk = null;
+const baseCreate = "{% url 'matieres:service_create' %}";
+const baseUpdate = (pk) => `/services/${pk}/modifier/`;
+
+function openModal(mode) {
+  editPk = null;
+  document.getElementById('modal-title').textContent = 'Nouveau service';
+  document.getElementById('service-form').action = baseCreate;
+  ['f-code','f-libelle','f-resp','f-tel'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('f-actif').checked = true;
+  document.getElementById('service-modal').classList.add('open');
+}
+function openEditModal(pk, code, libelle, resp, tel, actif) {
+  editPk = pk;
+  document.getElementById('modal-title').textContent = 'Modifier le service';
+  document.getElementById('service-form').action = `/services/${pk}/modifier/`;
+  document.getElementById('f-code').value    = code;
+  document.getElementById('f-libelle').value = libelle;
+  document.getElementById('f-resp').value    = resp;
+  document.getElementById('f-tel').value     = tel;
+  document.getElementById('f-actif').checked = actif;
+  document.getElementById('service-modal').classList.add('open');
+}
+function closeModal() { document.getElementById('service-modal').classList.remove('open'); }
+function closeModalOnBg(e) { if (e.target.id === 'service-modal') closeModal(); }
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+</script>
+{% endblock %}

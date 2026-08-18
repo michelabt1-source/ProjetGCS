@@ -1,78 +1,233 @@
-{% extends "base.html" %}
-{% block content %}
-<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
-  <div>
-    <h1 style="font-size:22px;font-weight:700;color:#0f172a">Relevé Récapitulatif</h1>
-    <p style="color:#64748b;font-size:13px;margin-top:4px">{{ total }} ligne(s)</p>
-  </div>
-</div>
+<!DOCTYPE html>
+{% load humanize %}
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Relevé recapitulatif</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Segoe UI', Arial, sans-serif;
+    background: #64748b;
+    padding: 24px 0 60px;
+    color: #0f172a;
+  }
 
-<div class="card" style="margin-bottom:16px;padding:14px 20px">
-  <form method="get" style="display:flex;gap:12px;align-items:center">
-    <label style="font-size:13px;font-weight:500;color:#475569">Année :</label>
-    <select name="annee" style="padding:8px 14px;border:1px solid #e2e8f0;border-radius:8px;font-size:13px">
-      <option value="">Toutes</option>
-      {% for a in annees %}<option value="{{ a.pk }}" {% if annee_id == a.pk|stringformat:"s" %}selected{% endif %}>{{ a.annee }}</option>{% endfor %}
-    </select>
-    <button class="btn-primary" type="submit" style="padding:8px 20px">Filtrer</button>
-    {% if annee_id %}<a href="?" class="btn-secondary" style="padding:8px 16px">Toutes années</a>{% endif %}
-  </form>
-</div>
+  .toolbar {
+    max-width: 1200px;
+    margin: 0 auto 16px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .toolbar a, .toolbar button, .toolbar input {
+    display: inline-flex; align-items: center; gap: 7px;
+    padding: 8px 16px; border-radius: 8px;
+    font-size: 13px; font-weight: 600; font-family: inherit;
+    text-decoration: none; cursor: pointer; border: none;
+    transition: all 150ms;
+  }
+  .toolbar form { display: flex; align-items: center; gap: 10px; }
+  .toolbar input[type="date"] { border: 1px solid #cbd5e1; padding: 8px 10px; border-radius: 8px; background: #fff; color: #0f172a; cursor: text; }
+  .btn-retour { background: #fff; color: #334155; border: 1px solid #cbd5e1 !important; }
+  .btn-retour:hover { background: #f1f5f9; }
+  .btn-imprimer { background: #4f46e5; color: #fff; margin-left: auto; }
+  .btn-imprimer:hover { background: #4338ca; }
 
-{% if totaux.t_montant %}
-<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:20px">
-  {% with t=totaux %}
-  <div class="stat-card" style="padding:14px 16px">
-    <div><div style="font-size:12px;color:#64748b;margin-bottom:4px">Existant DP</div><div style="font-size:18px;font-weight:800;color:#0f172a">{{ t.t_existant|default:0 }}</div></div>
-  </div>
-  <div class="stat-card" style="padding:14px 16px">
-    <div><div style="font-size:12px;color:#64748b;margin-bottom:4px">Entrées</div><div style="font-size:18px;font-weight:800;color:#16a34a">{{ t.t_entree|default:0 }}</div></div>
-  </div>
-  <div class="stat-card" style="padding:14px 16px">
-    <div><div style="font-size:12px;color:#64748b;margin-bottom:4px">Total Entrées</div><div style="font-size:18px;font-weight:800;color:#0f172a">{{ t.t_total|default:0 }}</div></div>
-  </div>
-  <div class="stat-card" style="padding:14px 16px">
-    <div><div style="font-size:12px;color:#64748b;margin-bottom:4px">Sorties</div><div style="font-size:18px;font-weight:800;color:#dc2626">{{ t.t_sortie|default:0 }}</div></div>
-  </div>
-  <div class="stat-card" style="padding:14px 16px">
-    <div><div style="font-size:12px;color:#64748b;margin-bottom:4px">Existant Fin</div><div style="font-size:18px;font-weight:800;color:#4f46e5">{{ t.t_fin|default:0 }}</div></div>
-  </div>
-  {% endwith %}
-</div>
-{% endif %}
+  .sheet {
+    max-width: 1200px;
+    margin: 0 auto;
+    background: #fff;
+    padding: 26px 34px 34px;
+    box-shadow: 0 4px 24px rgba(0,0,0,.25);
+    font-size: 11.5px;
+  }
 
-<div class="card" style="padding:0;overflow:hidden">
-  <table style="width:100%;border-collapse:collapse;font-size:12px">
-    <thead>
-      <tr style="background:#f8fafc;border-bottom:2px solid #e2e8f0">
-        <th style="padding:10px 14px;text-align:left;font-weight:600;color:#475569;width:110px">Nomenclature</th>
-        <th style="padding:10px 14px;text-align:left;font-weight:600;color:#475569">Désignation</th>
-        <th style="padding:10px 14px;text-align:center;font-weight:600;color:#475569;width:60px">Unité</th>
-        <th style="padding:10px 14px;text-align:right;font-weight:600;color:#475569;width:80px">Ex. Déb.</th>
-        <th style="padding:10px 14px;text-align:right;font-weight:600;color:#475569;width:70px">Entrées</th>
-        <th style="padding:10px 14px;text-align:right;font-weight:600;color:#475569;width:80px">Total Ent.</th>
-        <th style="padding:10px 14px;text-align:right;font-weight:600;color:#475569;width:70px">Sorties</th>
-        <th style="padding:10px 14px;text-align:right;font-weight:600;color:#475569;width:80px">Ex. Fin</th>
-        <th style="padding:10px 14px;text-align:right;font-weight:600;color:#475569;width:100px">Montant</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for b in balances %}
-      <tr class="table-row">
-        <td style="padding:8px 14px"><span style="font-family:monospace;background:#f1f5f9;padding:2px 8px;border-radius:4px;font-size:11px">{{ b.nomenclature }}</span></td>
-        <td style="padding:8px 14px;color:#0f172a;font-weight:500">{{ b.designation|truncatechars:40 }}</td>
-        <td style="padding:8px 14px;text-align:center;color:#64748b;font-size:11px">{{ b.unite }}</td>
-        <td style="padding:8px 14px;text-align:right;color:#475569">{{ b.existant_dp }}</td>
-        <td style="padding:8px 14px;text-align:right;color:#16a34a;font-weight:600">{{ b.entree_periode }}</td>
-        <td style="padding:8px 14px;text-align:right;color:#0f172a">{{ b.total_entree }}</td>
-        <td style="padding:8px 14px;text-align:right;color:#dc2626;font-weight:600">{{ b.sortie_periode }}</td>
-        <td style="padding:8px 14px;text-align:right;font-weight:700;color:#4f46e5">{{ b.existant_fin_periode }}</td>
-        <td style="padding:8px 14px;text-align:right;color:#475569">{{ b.montant_existant|floatformat:0 }}</td>
-      </tr>
-      {% empty %}
-      <tr><td colspan="9" style="padding:40px;text-align:center;color:#94a3b8">Aucune donnée.</td></tr>
-      {% endfor %}
-    </tbody>
-  </table>
-</div>
-{% endblock %}
+  .dotted { border-bottom: 1px dotted #64748b; display: inline-block; min-width: 160px; }
+  .filled { border-bottom: 1px dotted #64748b; display: inline-block; min-width: 160px; font-weight: 700; }
+
+  .head-row { display: grid; grid-template-columns: 1.3fr 1fr; gap: 18px; margin-bottom: 4px; }
+  .head-col1 div { margin-bottom: 3px; }
+  .modele-box {
+    border: 1px solid #0f172a;
+    padding: 8px 12px;
+    font-size: 11.5px;
+    line-height: 1.5;
+    justify-self: end;
+    align-self: start;
+  }
+  .titre-principal { text-align: center; font-size: 15px; font-weight: 700; letter-spacing: .04em; margin: -34px 0 4px; }
+  .sous-titre { text-align: center; font-size: 11.5px; margin-bottom: 16px; }
+  .date-line { margin-bottom: 16px; text-align: center; font-size: 12px; }
+  .date-line strong { letter-spacing: .08em; }
+
+  .meta-row { display: flex; justify-content: flex-end; gap: 30px; margin-bottom: 16px; font-size: 12.5px; }
+  .meta-row div { text-align: right; }
+  .meta-row .label { display: block; font-weight: 700; }
+
+  .ident-row { display: flex; justify-content: space-between; margin-bottom: 16px; font-size: 12.5px; }
+
+  .notes { margin-top: 20px; font-size: 10.5px; line-height: 1.4; }
+  .notes p { margin-bottom: 6px; }
+
+  .signature-block { margin-top: 28px; display: flex; justify-content: flex-end; }
+  .signature-box {
+    min-width: 300px;
+    max-width: 360px;
+    padding: 16px 18px;
+    border: 1px solid #cbd5e1;
+    border-radius: 12px;
+    background: #f8fafc;
+  }
+  .signature-box .titre { font-weight: 700; margin-bottom: 10px; }
+  .signature-box .ligne { margin-bottom: 8px; }
+  .signature-box .ligne span { display: inline-block; width: 84px; font-weight: 700; }
+  .signature-box .signature-line { margin-top: 14px; }
+  .signature-box .signature-line .line {
+    margin-top: 8px;
+    min-height: 28px;
+    border-bottom: 1px solid #0f172a;
+  }
+
+  @media print {
+    body { background: #fff; padding: 0; }
+    .toolbar { display: none !important; }
+    .sheet { box-shadow: none; max-width: 100%; padding: 8mm 10mm; }
+    .signature-block { page-break-inside: avoid; }
+    @page { size: A4 landscape; margin: 6mm; }
+  }
+
+  table.lignes { width: 100%; border-collapse: collapse; font-size: 10.5px; }
+  table.lignes th, table.lignes td { border: 1px solid #0f172a; padding: 4px 5px; vertical-align: middle; }
+  table.lignes thead th { background: #d1d5db; font-weight: 700; text-align: center; }
+  table.lignes td.r, table.lignes th.r { text-align: right; }
+  table.lignes td.c, table.lignes th.c { text-align: center; }
+  table.lignes tbody td { height: 20px; }
+
+  @media print {
+    body { background: #fff; padding: 0; }
+    .toolbar { display: none !important; }
+    .sheet { box-shadow: none; max-width: 100%; padding: 8mm 10mm; }
+    @page { size: A4 landscape; margin: 6mm; }
+  }
+</style>
+</head>
+<body>
+
+  <div class="toolbar">
+    <a href="{% url 'matieres:inventaire_global' %}" class="btn-retour">← Retour</a>
+    <form method="get" style="flex:1; display:flex; justify-content:flex-end; gap:10px;">
+      <label for="date" style="font-size:12px; font-weight:700; color:#334155;">Date</label>
+      <input id="date" type="date" name="date" value="{{ date|date:'Y-m-d' }}" />
+      <button type="submit" class="btn-imprimer">Afficher</button>
+      {% if date %}
+      <button type="button" class="btn-imprimer" onclick="window.print()">Imprimer</button>
+      {% endif %}
+    </form>
+  </div>
+
+  <div class="sheet">
+
+    <div class="head-row">
+      <div class="head-col1">
+        <div>REPUBLIQUE DU SENEGAL</div>
+        <div>MINISTERE/ORGANISME PUBLIC</div>
+        <div class="filled">{{ societe.ministere|default:"" }}</div>
+        <div>SERVICE OU ETABLISSEMENT</div>
+        <div class="filled">{{ societe.nom|default:"" }}</div>
+      </div>
+      <div class="modele-box">
+        Modèle N° 19<br>
+        Instruction générale<br>
+        Art. 60e, 71h
+      </div>
+    </div>
+
+  <div class="titre-principal"> RELEVE RECAPITULATIF DES MATIERES — GROUPE 1 </div>
+  <div class="date-line">
+    <strong>A LA DATE DU</strong><sup>(1)</sup> {{ date|date:"d/m/Y"|default:"______________________________________" }}
+  </div>
+
+    <div class="meta-row">
+      <div><span class="label">Section :</span> <span class="dotted">&nbsp;</span></div>
+      <div><span class="label">Chapitre :</span> <span class="dotted">&nbsp;</span></div>
+    </div>
+
+    <table class="lignes">
+      <thead>
+        <tr>
+          <th colspan="5">N° Compte nomenclature <sup>(2)</sup></th>
+          <th rowspan="2">Désignation des matières</th>
+          <th colspan="3">Mouvements</th>
+          <th rowspan="2">Total <sup>(3)</sup></th>
+          <th rowspan="2">Observation</th>
+        </tr>
+        <tr>
+          <th>Groupe</th>
+          <th>Compte principal</th>
+          <th>Compte secondaire</th>
+          <th>Compte divisionnaire</th>
+          <th>Sous compte</th>
+          <th>En attente d'affectation</th>
+          <th>En service <sup>(4)</sup></th>
+          <th>En sortie provisoire</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% if balances %}
+        {% for b in balances %}
+        <tr>
+          <td class="c">{{ b.groupe }}</td>
+          <td class="c">{{ b.compte_principal }}</td>
+          <td class="c">{{ b.compte_secondaire }}</td>
+          <td class="c">{{ b.compte_divisionnaire }}</td>
+          <td class="c">{{ b.sous_compte }}</td>
+          <td>{{ b.designation|default:"—" }}</td>
+          <td class="r">{{ b.qte_attente|default:"—" }}</td>
+          <td class="r">{{ b.qte_service|default:"—" }}</td>
+          <td class="r">{{ b.qte_sortie|default:"—" }}</td>
+          <td class="r">{{ b.total|default:"—" }}</td>
+          <td>{{ b.observation|default:"—" }}</td>
+        </tr>
+        {% endfor %}
+        <tr class="totals-row">
+          <td colspan="6" class="r" style="font-weight:700">TOTAL</td>
+          <td class="r">{{ totaux.total_attente }}</td>
+          <td class="r">{{ totaux.total_service }}</td>
+          <td class="r">{{ totaux.total_sortie }}</td>
+          <td class="r">{{ totaux.total }}</td>
+          <td></td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="11" class="c" style="color:#64748b">
+            {% if date %}Aucun mouvement enregistré à cette date{% else %}Sélectionnez une date pour afficher le relevé{% endif %}
+          </td>
+        </tr>
+        {% endif %}
+      </tbody>
+    </table>
+
+    <div class="notes">
+      <p>(1) il est établi en fin de gestion et lors de tout arrêté des écritures</p>
+      <p>(2) Dans l’ordre des comptes de la nomenclature</p>
+      <p>(3) Reporter l’existant du grand-livre.</p>
+      <p>(4) Sommation des quantités de chaque article à partir des fiches d'inventaire individuel contradictoire des matières </p>
+
+    </div>
+
+    <div class="signature-block">
+      <div class="signature-box">
+        <div class="titre">Le Comptable des matières :</div>
+        <div class="ligne"><span>Prénom :</span> {{ societe.comptable|default:'______________________________________' }}</div>
+        <div class="ligne"><span>Nom :</span> {{ societe.comptable_nom|default:'______________________________________' }}</div>
+        <div class="signature-line">
+          <div class="titre">Timbre et signature</div>
+          <div class="line">&nbsp;</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</body>
+</html>

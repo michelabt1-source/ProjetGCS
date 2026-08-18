@@ -1,0 +1,68 @@
+{% load humanize %}
+<table class="lines-table">
+  <thead>
+    <tr>
+      <th>#</th>
+      <th>Nomenclature</th>
+      <th>Désignation</th>
+      <th style="text-align:right">Quantité</th>
+      <th style="text-align:right">P.U.</th>
+      <th>Décision</th>
+      <th style="text-align:right">Montant</th>
+      <th>Obs.</th>
+      {% if not bon.valide %}<th></th>{% endif %}
+    </tr>
+  </thead>
+  <tbody>
+    {% for d in details %}
+    <tr>
+      <td style="color:#94a3b8;font-size:11px">{{ forloop.counter }}</td>
+      <td style="font-family:monospace;font-size:11.5px;color:#5b21b6;font-weight:700">{{ d.nomenclature }}</td>
+      <td style="font-weight:500;color:#1e293b">
+        {{ d.designation }}
+        {% if d.specification %}<span style="color:#94a3b8;font-size:11px"> — {{ d.specification }}</span>{% endif %}
+      </td>
+      <td style="text-align:right">{{ d.qte }}</td>
+      <td style="text-align:right">{{ d.prix_unitaire|floatformat:0|intcomma }}</td>
+      <td>
+        {% if d.decision == 'vendre' %}
+          <span class="badge" style="background:#fef3c7;color:#92400e">À vendre</span>
+        {% elif d.decision == 'demolir' %}
+          <span class="badge" style="background:#fee2e2;color:#991b1b">À démolir</span>
+        {% else %}
+          <span class="badge" style="background:#dcfce7;color:#15803d">À conserver</span>
+        {% endif %}
+      </td>
+      <td style="text-align:right;font-weight:700;color:#059669">{{ d.montant|floatformat:0|intcomma }}</td>
+      <td style="color:#94a3b8;font-size:11px;max-width:100px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ d.observation|default:"" }}</td>
+      {% if not bon.valide %}
+      <td>
+        <button class="delete-btn"
+                hx-post="{% url 'matieres:htmx_bsdg1_delete_detail' detail_pk=d.pk %}"
+                hx-target="#bsdg1-detail-rows-container"
+                hx-swap="innerHTML"
+                hx-confirm="Supprimer cet article ?"
+                title="Supprimer">×</button>
+      </td>
+      {% endif %}
+    </tr>
+    {% empty %}
+    <tr>
+      <td colspan="{% if bon.valide %}8{% else %}9{% endif %}" style="padding:32px;text-align:center;color:#94a3b8;font-style:italic">
+        Aucun article — saisissez un produit Groupe 1 dans le panneau de droite
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+  {% if details %}
+  <tfoot>
+    <tr style="background:#f8fafc">
+      <td colspan="6" style="padding:8px 12px;text-align:right;font-size:12px;font-weight:600;color:#64748b">TOTAL VALEUR RÉFORMÉE (vendre + démolir) :</td>
+      <td style="padding:8px 12px;text-align:right;font-size:14px;font-weight:800;color:#059669">
+        {{ bon.total_reforme|floatformat:0|intcomma }} FCFA
+      </td>
+      <td colspan="{% if bon.valide %}1{% else %}2{% endif %}"></td>
+    </tr>
+  </tfoot>
+  {% endif %}
+</table>
