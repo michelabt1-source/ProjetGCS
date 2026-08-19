@@ -33,35 +33,46 @@
   <!-- Barre d'actions du workflow -->
   <div class="flex items-center gap-2 mb-5 bg-white border border-slate-200 rounded-xl px-4 py-3 shadow-sm flex-wrap">
     {% if bon.statut == 'brouillon' or bon.statut == 'rejete' %}
-    <form method="post" action="{% url 'matieres:bon_commande_service_envoyer' bon.pk %}"
-          onsubmit="return confirm('Envoyer BCS-{{ bon_num }} pour validation au chef de service Comptabilité des Matières ?')">
-      {% csrf_token %}
-      <button type="submit" class="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-semibold hover:bg-indigo-700 transition-colors">
-        <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
-        Envoyer pour validation
-      </button>
-    </form>
+      {% if can_envoyer %}
+      <form method="post" action="{% url 'matieres:bon_commande_service_envoyer' bon.pk %}"
+            onsubmit="return confirm('Envoyer BCS-{{ bon_num }} pour validation au chef de service Comptabilité des Matières ?')">
+        {% csrf_token %}
+        <button type="submit" class="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-semibold hover:bg-indigo-700 transition-colors">
+          <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
+          Envoyer pour validation
+        </button>
+      </form>
+      {% else %}
+      <div class="text-sm text-slate-400">Brouillon — seul le service demandeur peut l'envoyer pour validation.</div>
+      {% endif %}
     {% elif bon.statut == 'envoye' %}
-    <form method="post" action="{% url 'matieres:bon_commande_service_valider' bon.pk %}" class="flex items-center gap-2"
-          onsubmit="return confirm('Valider BCS-{{ bon_num }} ?')">
-      {% csrf_token %}
-      <input type="text" name="valide_par" placeholder="Nom du S.A.F. (optionnel)"
-             class="px-3 py-2 border border-slate-200 rounded-lg text-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none">
-      <button type="submit" class="inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm font-semibold hover:bg-emerald-700 transition-colors">
-        <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-        Valider
-      </button>
-    </form>
-    <form method="post" action="{% url 'matieres:bon_commande_service_rejeter' bon.pk %}" class="flex items-center gap-2"
-          onsubmit="return confirm('Rejeter BCS-{{ bon_num }} ?')">
-      {% csrf_token %}
-      <input type="text" name="motif_rejet" placeholder="Motif du rejet"
-             class="px-3 py-2 border border-slate-200 rounded-lg text-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none">
-      <button type="submit" class="inline-flex items-center gap-2 px-4 py-2 bg-white text-red-600 border border-red-200 rounded-lg text-sm font-semibold hover:bg-red-50 transition-colors">
-        <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
-        Rejeter
-      </button>
-    </form>
+      {% if can_valider %}
+      <form method="post" action="{% url 'matieres:bon_commande_service_valider' bon.pk %}" class="flex items-center gap-2"
+            onsubmit="return confirm('Valider BCS-{{ bon_num }} ?')">
+        {% csrf_token %}
+        <input type="text" name="valide_par" placeholder="Nom du S.A.F. (optionnel)"
+               class="px-3 py-2 border border-slate-200 rounded-lg text-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none">
+        <button type="submit" class="inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm font-semibold hover:bg-emerald-700 transition-colors">
+          <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          Valider
+        </button>
+      </form>
+      <form method="post" action="{% url 'matieres:bon_commande_service_rejeter' bon.pk %}" class="flex items-center gap-2"
+            onsubmit="return confirm('Rejeter BCS-{{ bon_num }} ?')">
+        {% csrf_token %}
+        <input type="text" name="motif_rejet" placeholder="Motif du rejet"
+               class="px-3 py-2 border border-slate-200 rounded-lg text-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none">
+        <button type="submit" class="inline-flex items-center gap-2 px-4 py-2 bg-white text-red-600 border border-red-200 rounded-lg text-sm font-semibold hover:bg-red-50 transition-colors">
+          <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+          Rejeter
+        </button>
+      </form>
+      {% else %}
+      <div class="text-sm text-amber-600 flex items-center gap-2">
+        <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        En attente de validation par le S.A.F.
+      </div>
+      {% endif %}
     {% elif bon.statut == 'valide' %}
     <div class="text-sm text-emerald-700 flex items-center gap-2">
       <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
@@ -99,7 +110,7 @@
         </div>
         <div>
           <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1">Service de :</label>
-          <select name="service_id" {% if not editable %}disabled{% endif %}
+          <select name="service_id" {% if not editable or is_demandeur_locked %}disabled{% endif %}
                   class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm bg-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none"
                   hx-get="{% url 'matieres:htmx_bureaux_options' %}" hx-trigger="change" hx-target="#bcs-bureau-select-u" hx-include="this">
             <option value="">— Sélectionner —</option>
@@ -147,7 +158,7 @@
 
         <div class="mb-3 relative" id="bcs-produit-wrap">
           <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1">Désignation *</label>
-          <input type="text" id="bcs-f-designation" placeholder="Tapez pour rechercher un consommable (Groupe 2)…" autocomplete="off"
+          <input type="text" id="bcs-f-designation" placeholder="Tapez pour rechercher un article (Groupe 1 ou 2)…" autocomplete="off"
                  class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none"
                  hx-get="{% url 'matieres:htmx_bcs_produit_search' %}" hx-trigger="input changed delay:250ms" hx-target="#bcs-produit-dropdown" name="q">
           <div id="bcs-produit-dropdown" class="absolute left-0 right-0 z-20 bg-white border border-indigo-200 rounded-lg shadow-lg mt-1 max-h-56 overflow-y-auto hidden"></div>

@@ -630,6 +630,14 @@
           Bordereau de mutation
         </a>
 
+        <a href="{% url 'matieres:bons_sortie_def_list' %}"
+           class="panel-btn {% if request.resolver_match.url_name == 'bons_sortie_def_list' or request.resolver_match.url_name == 'bon_sortie_def_detail' or request.resolver_match.url_name == 'bon_sortie_def_create' %}active{% endif %}">
+          <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.8">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+          </svg>
+          Sortie Définitive (Groupe 1)
+        </a>
+
         <a href="{% url 'matieres:bons_sortie_def_g1_list' %}"
            class="panel-btn {% if 'g1' in request.resolver_match.url_name %}active{% endif %}">
           <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.8">
@@ -658,12 +666,23 @@
         </a>
 
         <a href="{% url 'matieres:bons_commande_service_list' %}"
-           class="panel-btn {% if 'commande_service' in request.resolver_match.url_name %}active{% endif %}">
+           class="panel-btn {% if 'commande_service' in request.resolver_match.url_name and request.resolver_match.url_name != 'bons_commande_service_a_livrer' and request.resolver_match.url_name != 'bon_commande_service_livrer' %}active{% endif %}">
           <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.8">
             <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-5 8l2 2 4-4"/>
           </svg>
           Bon de commande de service
         </a>
+
+        {% if request.user.is_superuser or request.user.profil_utilisateur.role == 'comptable' %}
+        <a href="{% url 'matieres:bons_commande_service_a_livrer' %}"
+           class="panel-btn {% if request.resolver_match.url_name == 'bons_commande_service_a_livrer' or request.resolver_match.url_name == 'bon_commande_service_livrer' %}active{% endif %}"
+           style="background:rgba(16,185,129,.07);border-color:rgba(16,185,129,.25);color:#34d399">
+          <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.8">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6"/>
+          </svg>
+          BCS à livrer (Comptable)
+        </a>
+        {% endif %}
       </div>
 
     </div>

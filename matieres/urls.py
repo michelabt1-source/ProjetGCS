@@ -95,6 +95,8 @@ urlpatterns = [
     # Bons de commande de services
     path('bons-commande-service/', views.bons_commande_service_list, name='bons_commande_service_list'),
     path('bons-commande-service/nouveau/', views.bon_commande_service_create, name='bon_commande_service_create'),
+    path('bons-commande-service/a-livrer/', views.bons_commande_service_a_livrer, name='bons_commande_service_a_livrer'),
+    path('bons-commande-service/<int:pk>/livrer/', views.bon_commande_service_livrer, name='bon_commande_service_livrer'),
     path('bons-commande-service/<int:pk>/', views.bon_commande_service_update, name='bon_commande_service_update'),
     path('bons-commande-service/<int:pk>/etat/', views.bon_commande_service_etat, name='bon_commande_service_etat'),
     path('bons-commande-service/<int:pk>/envoyer/', views.bon_commande_service_envoyer, name='bon_commande_service_envoyer'),

@@ -1,4 +1,5 @@
 from django.db import models
+from django.contrib.auth.models import User
 
 
 class AnneeExercice(models.Model):
@@ -172,6 +173,37 @@ class Profil(models.Model):
 
     def __str__(self):
         return self.role
+
+
+class ProfilUtilisateur(models.Model):
+    """Rôle applicatif réel d'un compte utilisateur — distinct du catalogue `Profil`
+    (libellés libres). Détermine ce que chaque compte a le droit de faire sur les
+    circuits de validation (ex : Bon de commande de service)."""
+
+    ROLE_DEMANDEUR = 'demandeur'
+    ROLE_SAF = 'saf'
+    ROLE_COMPTABLE = 'comptable'
+    ROLE_CHOICES = [
+        (ROLE_DEMANDEUR, 'Service demandeur'),
+        (ROLE_SAF, 'SAF — Administratif et Financier'),
+        (ROLE_COMPTABLE, 'Comptable principal'),
+    ]
+
+    user = models.OneToOneField(
+        User, on_delete=models.CASCADE, related_name='profil_utilisateur', verbose_name="Utilisateur"
+    )
+    role = models.CharField(max_length=20, choices=ROLE_CHOICES, verbose_name="Rôle")
+    service = models.ForeignKey(
+        Service, on_delete=models.SET_NULL, null=True, blank=True,
+        verbose_name="Service rattaché (obligatoire pour un demandeur)"
+    )
+
+    class Meta:
+        verbose_name = "Profil utilisateur"
+        verbose_name_plural = "Profils utilisateurs"
+
+    def __str__(self):
+        return f"{self.user.username} — {self.get_role_display()}"
 
 
 class SocieteGCS(models.Model):

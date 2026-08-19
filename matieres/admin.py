@@ -1,7 +1,7 @@
 from django.contrib import admin
 from .models import (
     AnneeExercice, Depot, Beneficiaire, ComptePrincipale, SousCompte,
-    Fournisseur, Unite, TypeOperation, Profil, SocieteGCS,
+    Fournisseur, Unite, TypeOperation, Profil, ProfilUtilisateur, SocieteGCS,
     MembreCommission, MembreCommissionReforme, ProfilCommission,
     Produit, MatieresDepot, StockDepot,
     BonEntree, DetailBonEntree,
@@ -119,6 +119,13 @@ class TypeOperationAdmin(admin.ModelAdmin):
 @admin.register(Profil)
 class ProfilAdmin(admin.ModelAdmin):
     list_display = ['role']
+
+
+@admin.register(ProfilUtilisateur)
+class ProfilUtilisateurAdmin(admin.ModelAdmin):
+    list_display = ['user', 'role', 'service']
+    list_filter = ['role', 'service']
+    search_fields = ['user__username', 'user__first_name', 'user__last_name']
 
 
 @admin.register(SocieteGCS)

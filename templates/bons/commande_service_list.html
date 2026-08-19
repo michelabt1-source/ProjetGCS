@@ -7,6 +7,7 @@
       <h1 class="text-2xl font-bold text-slate-800">Bons de commande de services</h1>
       <p class="text-sm text-slate-500 mt-0.5">Demandes de consommation de matières formulées par les services</p>
     </div>
+    {% if can_create %}
     <a href="{% url 'matieres:bon_commande_service_create' %}"
        class="inline-flex items-center gap-2 px-4 py-2.5 bg-indigo-600 text-white rounded-xl text-sm font-semibold shadow-sm hover:bg-indigo-700 transition-colors">
       <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5">
@@ -14,12 +15,21 @@
       </svg>
       Nouveau bon de commande de service
     </a>
+    {% endif %}
   </div>
 
-  {% if nb_a_valider %}
+  {% if nb_a_valider and role == 'saf' or nb_a_valider and request.user.is_superuser %}
   <div class="mb-4 px-4 py-2.5 bg-amber-50 border border-amber-200 rounded-lg text-sm text-amber-700 flex items-center gap-2">
     <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
-    <strong>{{ nb_a_valider }}</strong> bon{{ nb_a_valider|pluralize }} en attente de validation.
+    <strong>{{ nb_a_valider }}</strong> bon{{ nb_a_valider|pluralize }} en attente de votre validation.
+  </div>
+  {% endif %}
+
+  {% if role == 'comptable' %}
+  <div class="mb-4 px-4 py-2.5 bg-indigo-50 border border-indigo-200 rounded-lg text-sm text-indigo-700 flex items-center gap-2">
+    <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
+    <span>Les bons validés à livrer se trouvent sur
+      <a href="{% url 'matieres:bons_commande_service_a_livrer' %}" class="font-semibold underline">l'écran d'attribution</a>.</span>
   </div>
   {% endif %}
 

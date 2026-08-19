@@ -6,6 +6,7 @@ from django.db.models import Sum, Count, Q
 from django.http import JsonResponse, HttpResponse
 from datetime import date, datetime, timedelta
 from decimal import Decimal
+from functools import wraps
 import json
 
 from .models import (
@@ -20,12 +21,34 @@ from .models import (
     Journal, BalancePeriodique,
     Fournisseur, Beneficiaire, AnneeExercice, SocieteGCS,
     ComptePrincipale, SousCompte, Unite, TypeOperation,
-    MembreCommission, MembreCommissionReforme, MatieresDepot, Profil,
+    MembreCommission, MembreCommissionReforme, MatieresDepot, Profil, ProfilUtilisateur,
     Service, Bureau,
     Marche, DetailMarche, ExpressionBesoin, DetailExpressionBesoin,
     BonCommandeService, DetailBonCommandeService,
 )
 from .importeurs import process_excel, generate_template, IMPORTERS
+
+
+def _profil(user):
+    """Profil applicatif (rôle + service) de l'utilisateur connecté, ou None."""
+    return getattr(user, 'profil_utilisateur', None)
+
+
+def role_required(*roles):
+    """Restreint une vue à un ou plusieurs rôles de ProfilUtilisateur.
+    Un superuser passe toujours (accès admin/support)."""
+    def decorator(view_func):
+        @wraps(view_func)
+        def wrapped(request, *args, **kwargs):
+            if request.user.is_superuser:
+                return view_func(request, *args, **kwargs)
+            profil = _profil(request.user)
+            if profil and profil.role in roles:
+                return view_func(request, *args, **kwargs)
+            messages.error(request, "Cette action est réservée à un autre profil utilisateur.")
+            return redirect('matieres:dashboard')
+        return wrapped
+    return decorator
 
 
 # ─────────────────────────── DASHBOARD ───────────────────────────
@@ -2863,23 +2886,33 @@ def htmx_bsdg2_modal_produits(request):
 
 @login_required
 def bons_commande_service_list(request):
+    profil = _profil(request.user)
+    role = profil.role if profil else None
     bons = BonCommandeService.objects.select_related('service', 'bureau').order_by('-date_creation', '-num_bon')
+    if role == ProfilUtilisateur.ROLE_DEMANDEUR and not request.user.is_superuser:
+        bons = bons.filter(service_id=profil.service_id)
     context = {
         'page_title': "Bons de commande de services",
         'bons': bons,
         'nb_a_valider': bons.filter(statut='envoye').count(),
+        'role': role,
+        'can_create': request.user.is_superuser or role == ProfilUtilisateur.ROLE_DEMANDEUR,
     }
     return render(request, 'bons/commande_service_list.html', context)
 
 
 @login_required
+@role_required(ProfilUtilisateur.ROLE_DEMANDEUR)
 def bon_commande_service_create(request):
+    profil = _profil(request.user)
+    demandeur_service = profil.service if profil else None
     services = Service.objects.filter(actif=True).order_by('code')
     if request.method == 'POST':
         num_bon = request.POST.get('num_bon', '').strip()
         date_creation = request.POST.get('date_creation') or date.today().isoformat()
         annee = request.POST.get('annee_exercice') or date.today().year
-        service_id = request.POST.get('service_id') or None
+        # Le service est imposé par le profil du demandeur — jamais par la valeur postée.
+        service_id = demandeur_service.pk if demandeur_service else (request.POST.get('service_id') or None)
         bureau_id = request.POST.get('bureau_id') or None
         destinataire = request.POST.get('destinataire', '').strip()
         demande_par = request.POST.get('demande_par', '').strip()
@@ -2923,6 +2956,7 @@ def bon_commande_service_create(request):
     context = {
         'page_title': "Nouveau bon de commande de service",
         'services': services,
+        'demandeur_service': demandeur_service,
         'today': date.today(),
         'next_num': (BonCommandeService.objects.order_by('-num_bon').values_list('num_bon', flat=True).first() or 0) + 1,
     }
@@ -2932,12 +2966,19 @@ def bon_commande_service_create(request):
 @login_required
 def bon_commande_service_update(request, pk):
     bon = get_object_or_404(BonCommandeService, pk=pk)
+    profil = _profil(request.user)
+    role = profil.role if profil else None
+    is_demandeur_locked = role == ProfilUtilisateur.ROLE_DEMANDEUR and not request.user.is_superuser
+    is_owner = request.user.is_superuser or (role == ProfilUtilisateur.ROLE_DEMANDEUR and profil.service_id == bon.service_id)
+    can_valider = request.user.is_superuser or role == ProfilUtilisateur.ROLE_SAF
+    can_envoyer = is_owner
     services = Service.objects.filter(actif=True).order_by('code')
-    editable = bon.statut in ('brouillon', 'rejete')
+    editable = bon.statut in ('brouillon', 'rejete') and is_owner
     if request.method == 'POST' and editable:
         bon.date_creation = request.POST.get('date_creation') or bon.date_creation
         bon.annee_exercice = request.POST.get('annee_exercice') or bon.annee_exercice
-        bon.service_id = request.POST.get('service_id') or bon.service_id
+        if not is_demandeur_locked:
+            bon.service_id = request.POST.get('service_id') or bon.service_id
         bon.bureau_id = request.POST.get('bureau_id') or bon.bureau_id
         bon.destinataire = request.POST.get('destinataire', bon.destinataire)
         bon.demande_par = request.POST.get('demande_par', bon.demande_par)
@@ -2952,6 +2993,9 @@ def bon_commande_service_update(request, pk):
     bureaux = Bureau.objects.filter(service_id=bon.service_id, actif=True).order_by('code') if bon.service_id else Bureau.objects.none()
     context = {
         'page_title': f"Bon de commande de service BCS-{bon.num_bon:04d}",
+        'can_valider': can_valider,
+        'can_envoyer': can_envoyer,
+        'is_demandeur_locked': is_demandeur_locked,
         'bon': bon,
         'editable': editable,
         'details': bon.details.select_related('produit', 'unite').all(),
@@ -2975,6 +3019,13 @@ def bon_commande_service_etat(request, pk):
 @login_required
 def bon_commande_service_envoyer(request, pk):
     bon = get_object_or_404(BonCommandeService, pk=pk)
+    profil = _profil(request.user)
+    is_owner = request.user.is_superuser or (
+        profil and profil.role == ProfilUtilisateur.ROLE_DEMANDEUR and profil.service_id == bon.service_id
+    )
+    if not is_owner:
+        messages.error(request, "Seul le service demandeur à l'origine du bon peut l'envoyer pour validation.")
+        return redirect('matieres:bon_commande_service_update', pk=pk)
     if request.method == 'POST' and bon.statut in ('brouillon', 'rejete'):
         if not bon.details.exists():
             messages.error(request, "Ajoutez au moins un article avant d'envoyer ce bon.")
@@ -2988,6 +3039,7 @@ def bon_commande_service_envoyer(request, pk):
 
 
 @login_required
+@role_required(ProfilUtilisateur.ROLE_SAF)
 def bon_commande_service_valider(request, pk):
     bon = get_object_or_404(BonCommandeService, pk=pk)
     if request.method == 'POST' and bon.statut == 'envoye':
@@ -3000,6 +3052,7 @@ def bon_commande_service_valider(request, pk):
 
 
 @login_required
+@role_required(ProfilUtilisateur.ROLE_SAF)
 def bon_commande_service_rejeter(request, pk):
     bon = get_object_or_404(BonCommandeService, pk=pk)
     if request.method == 'POST' and bon.statut == 'envoye':
@@ -3010,10 +3063,17 @@ def bon_commande_service_rejeter(request, pk):
     return redirect('matieres:bon_commande_service_update', pk=pk)
 
 
+def _is_bcs_owner(user, bon):
+    profil = _profil(user)
+    return user.is_superuser or (
+        profil and profil.role == ProfilUtilisateur.ROLE_DEMANDEUR and profil.service_id == bon.service_id
+    )
+
+
 @login_required
 def htmx_bcs_add_detail(request, pk):
     bon = get_object_or_404(BonCommandeService, pk=pk)
-    if request.method == 'POST' and bon.statut in ('brouillon', 'rejete'):
+    if request.method == 'POST' and _is_bcs_owner(request.user, bon) and bon.statut in ('brouillon', 'rejete'):
         designation = request.POST.get('designation', '').strip()
         if designation:
             produit_id = request.POST.get('produit_id') or None
@@ -3038,7 +3098,7 @@ def htmx_bcs_add_detail(request, pk):
 def htmx_bcs_delete_detail(request, detail_pk):
     detail = get_object_or_404(DetailBonCommandeService, pk=detail_pk)
     bon = detail.bon_commande
-    if bon.statut in ('brouillon', 'rejete'):
+    if _is_bcs_owner(request.user, bon) and bon.statut in ('brouillon', 'rejete'):
         detail.delete()
     details = bon.details.select_related('produit', 'unite').all()
     return render(request, 'partials/bcs_detail_rows.html', {'details': details, 'bon': bon})
@@ -3046,12 +3106,14 @@ def htmx_bcs_delete_detail(request, detail_pk):
 
 @login_required
 def htmx_bcs_produit_search(request):
+    # Ouvert aux deux groupes de matières (le BCS peut porter sur du matériel durable
+    # comme sur des consommables) — seul le nomenclature commence par 1 ou 2 est valide.
     q = request.GET.get('q', '').strip()
     produits = []
     if len(q) >= 1:
         produits = list(Produit.objects.filter(
             Q(designation__icontains=q) | Q(nomenclature__icontains=q),
-            nomenclature__startswith='2',
+            Q(nomenclature__startswith='1') | Q(nomenclature__startswith='2'),
         ).select_related('unite').order_by('nomenclature')[:30])
     return render(request, 'partials/bcs_produit_search.html', {'produits': produits})
 
@@ -3059,7 +3121,9 @@ def htmx_bcs_produit_search(request):
 @login_required
 def htmx_bcs_modal_produits(request):
     q = request.GET.get('q', '').strip()
-    base_qs = Produit.objects.filter(nomenclature__startswith='2').select_related('unite').order_by('nomenclature')
+    base_qs = Produit.objects.filter(
+        Q(nomenclature__startswith='1') | Q(nomenclature__startswith='2')
+    ).select_related('unite').order_by('nomenclature')
     total_all = base_qs.count()
     if q:
         base_qs = base_qs.filter(Q(designation__icontains=q) | Q(nomenclature__icontains=q))
@@ -3077,6 +3141,105 @@ def htmx_bcs_lignes(request):
     bon = BonCommandeService.objects.filter(pk=bcs_id, statut='valide').first() if bcs_id else None
     lignes = [d for d in bon.details.select_related('produit', 'unite').all() if d.qte_restante > 0] if bon else []
     return render(request, 'partials/bcs_lignes_disponibles.html', {'bon': bon, 'lignes': lignes})
+
+
+@login_required
+@role_required(ProfilUtilisateur.ROLE_COMPTABLE)
+def bons_commande_service_a_livrer(request):
+    """Vue d'accueil du comptable principal : les BCS validés par le SAF, pas
+    encore entièrement livrés."""
+    bons = [
+        b for b in BonCommandeService.objects.filter(statut='valide')
+        .select_related('service', 'bureau').order_by('-date_validation', '-num_bon')
+        if not b.entierement_livre
+    ]
+    context = {
+        'page_title': "Bons de commande de services à livrer",
+        'bons': bons,
+    }
+    return render(request, 'bons/commande_service_a_livrer.html', context)
+
+
+@login_required
+@role_required(ProfilUtilisateur.ROLE_COMPTABLE)
+def bon_commande_service_livrer(request, pk):
+    """Le comptable principal attribue une quantité à livrer par article d'un BCS
+    validé. Génère un Bon de Sortie Définitive par groupe de matières concerné
+    (1 ou 2) — non validé, pour vérification/complément avant déduction du stock."""
+    bon = get_object_or_404(BonCommandeService, pk=pk, statut='valide')
+    depots = Depot.objects.all().order_by('code')
+    lignes = [d for d in bon.details.select_related('produit', 'unite').all() if d.qte_restante > 0]
+
+    if request.method == 'POST':
+        depot_id = request.POST.get('depot_id') or None
+        if not depot_id:
+            messages.error(request, "Sélectionnez le dépôt de sortie avant d'enregistrer la livraison.")
+            return redirect('matieres:bon_commande_service_livrer', pk=pk)
+
+        par_groupe = {}
+        for d in lignes:
+            try:
+                qte = int(request.POST.get(f'qte_{d.pk}') or 0)
+            except (ValueError, TypeError):
+                qte = 0
+            qte = max(0, min(qte, d.qte_restante))
+            if qte > 0:
+                groupe = d.nomenclature[:1] if d.nomenclature[:1] in ('1', '2') else '2'
+                par_groupe.setdefault(groupe, []).append((d, qte))
+
+        if not par_groupe:
+            messages.error(request, "Indiquez une quantité à livrer pour au moins un article.")
+            return redirect('matieres:bon_commande_service_livrer', pk=pk)
+
+        bons_crees = []
+        with transaction.atomic():
+            for groupe, paires in par_groupe.items():
+                next_num = (
+                    BonSortieDefinitive.objects.filter(groupe=groupe)
+                    .order_by('-num_bon').values_list('num_bon', flat=True).first() or 0
+                ) + 1
+                bsd = BonSortieDefinitive.objects.create(
+                    num_bon=next_num,
+                    date_creation=date.today(),
+                    annee_exercice=date.today().year,
+                    groupe=groupe,
+                    type_sortie="Consommation interne (bon de commande de service)",
+                    service=bon.service,
+                    bureau=bon.bureau,
+                    depot_id=depot_id,
+                    bon_commande_service=bon,
+                )
+                for detail, qte in paires:
+                    DetailBonSortieDefinitive.objects.create(
+                        bon_sortie_d=bsd,
+                        produit=detail.produit,
+                        designation=detail.designation,
+                        nomenclature=detail.nomenclature,
+                        specification=detail.specification,
+                        qte=qte,
+                        unite=detail.unite,
+                        detail_commande_service=detail,
+                    )
+                bons_crees.append(bsd)
+
+        noms = ", ".join(f"BSD-{b.num_bon:04d} (Groupe {b.groupe})" for b in bons_crees)
+        messages.success(
+            request,
+            f"Livraison enregistrée pour BCS-{bon.num_bon:04d} : {noms}. "
+            f"Ouvrez le bon de sortie pour le compléter puis le valider — c'est cette validation qui déduit le stock."
+        )
+        g2 = next((b for b in bons_crees if b.groupe == '2'), None)
+        if g2 and len(bons_crees) == 1:
+            return redirect('matieres:bon_sortie_def_g2_update', pk=g2.pk)
+        return redirect('matieres:bons_commande_service_a_livrer')
+
+    context = {
+        'page_title': f"Livrer BCS-{bon.num_bon:04d}",
+        'bon': bon,
+        'lignes': lignes,
+        'depots': depots,
+    }
+    return render(request, 'bons/commande_service_livrer.html', context)
 
 
 # ─────────────────────────── JOURNAL ───────────────────────────

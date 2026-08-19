@@ -1,0 +1,93 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="p-6 max-w-5xl mx-auto">
+
+  <div class="flex items-center gap-2 mb-5 text-sm text-slate-400">
+    <a href="{% url 'matieres:bons_commande_service_a_livrer' %}" class="hover:text-indigo-600 transition-colors">BCS à livrer</a>
+    <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <span class="text-slate-600 font-semibold font-mono">BCS-{{ bon.num_bon|stringformat:"04d" }}</span>
+  </div>
+
+  <div class="mb-5">
+    <h1 class="text-xl font-bold text-slate-800">Attribuer la quantité à livrer</h1>
+    <p class="text-sm text-slate-500 mt-0.5">
+      {{ bon.service|default:"—" }}{% if bon.bureau %} / {{ bon.bureau }}{% endif %}
+      — validé par le S.A.F. <strong>{{ bon.valide_par|default:"—" }}</strong>
+      {% if bon.date_validation %}le {{ bon.date_validation|date:"d/m/Y" }}{% endif %}
+    </p>
+  </div>
+
+  {% if messages %}
+  <div class="mb-4 space-y-2">
+    {% for msg in messages %}
+    <div class="px-4 py-2.5 rounded-lg text-sm font-medium {% if msg.tags == 'error' %}bg-red-50 text-red-700 border border-red-200{% else %}bg-emerald-50 text-emerald-700 border border-emerald-200{% endif %}">{{ msg }}</div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <form method="post">
+    {% csrf_token %}
+
+    <div class="bg-white border border-slate-200 rounded-2xl shadow-sm p-5 mb-5">
+      <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1">Dépôt de sortie *</label>
+      <select name="depot_id" required
+              class="w-full max-w-xs px-3 py-2 border border-slate-200 rounded-lg text-sm bg-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none">
+        <option value="">— Sélectionner —</option>
+        {% for d in depots %}<option value="{{ d.pk }}">{{ d.code }}</option>{% endfor %}
+      </select>
+      <p class="text-xs text-slate-400 mt-2">Un bon de sortie définitive sera créé par groupe de matières (1 ou 2), à valider ensuite pour déduire le stock de ce dépôt.</p>
+    </div>
+
+    <div class="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+      <div class="px-5 py-3 border-b border-slate-100 text-[11px] font-bold text-indigo-600 uppercase tracking-wide">
+        Articles — {{ lignes|length }} ligne{{ lignes|length|pluralize }} restante{{ lignes|length|pluralize }}
+      </div>
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="bg-slate-50 text-slate-500 text-[11px] uppercase tracking-wide font-bold border-b border-slate-200">
+              <th class="text-left px-4 py-2.5">Désignation</th>
+              <th class="text-left px-4 py-2.5">Groupe</th>
+              <th class="text-right px-4 py-2.5">Commandée</th>
+              <th class="text-right px-4 py-2.5">Déjà livrée</th>
+              <th class="text-right px-4 py-2.5">Restante</th>
+              <th class="text-right px-4 py-2.5">À livrer maintenant</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for d in lignes %}
+            <tr class="border-b border-slate-100">
+              <td class="px-4 py-2.5 font-medium text-slate-800">
+                {{ d.designation }}
+                {% if d.unite %}<span class="text-slate-400 font-normal">({{ d.unite }})</span>{% endif %}
+              </td>
+              <td class="px-4 py-2.5 text-slate-500">Groupe {{ d.nomenclature|slice:":1"|default:"2" }}</td>
+              <td class="px-4 py-2.5 text-right font-mono">{{ d.qte_commandee }}</td>
+              <td class="px-4 py-2.5 text-right font-mono text-slate-500">{{ d.qte_livree }}</td>
+              <td class="px-4 py-2.5 text-right font-mono font-semibold text-indigo-600">{{ d.qte_restante }}</td>
+              <td class="px-4 py-2.5 text-right">
+                <input type="number" name="qte_{{ d.pk }}" value="{{ d.qte_restante }}" min="0" max="{{ d.qte_restante }}" step="1"
+                       class="w-24 px-2 py-1.5 border border-slate-200 rounded-lg text-sm text-right font-mono font-semibold focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none">
+              </td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="6" class="px-4 py-8 text-center text-slate-400">Toutes les lignes de ce bon ont déjà été livrées.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="flex items-center gap-3 mt-5">
+      <a href="{% url 'matieres:bons_commande_service_a_livrer' %}" class="px-4 py-2.5 text-sm font-semibold text-slate-500 hover:text-slate-700 transition-colors">Annuler</a>
+      {% if lignes %}
+      <button type="submit"
+              class="ml-auto inline-flex items-center gap-2 px-6 py-2.5 bg-indigo-600 text-white rounded-xl text-sm font-semibold shadow-sm hover:bg-indigo-700 hover:shadow-md active:scale-[0.98] transition-all">
+        <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+        Enregistrer la livraison
+      </button>
+      {% endif %}
+    </div>
+  </form>
+</div>
+{% endblock %}
