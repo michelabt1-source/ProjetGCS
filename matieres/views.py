@@ -4311,8 +4311,9 @@ def inventaire_depot(request):
 
 @login_required
 def releve_recapitulatif(request):
+    # État combiné (Groupe 1 & 2 — colonne « Groupe » par ligne, cf. modèle officiel).
     date = _parse_date(request.GET.get('date', ''))
-    balances = _calculer_releve_recapitulatif(date, groupe='1') if date else []
+    balances = _calculer_releve_recapitulatif(date, groupe=None) if date else []
     totaux = {
         'total_attente': sum(b['qte_attente'] for b in balances),
         'total_service': sum(b['qte_service'] for b in balances),
@@ -4374,8 +4375,9 @@ def inventaire_individuel(request):
 
 @login_required
 def inventaire_individuel_etat(request):
+    # État combiné (Groupe 1 & 2 — colonne « Groupe » par ligne, cf. modèle officiel).
     query = request.GET.get('q', '')
-    journal_qs = Journal.objects.filter(nomenclature__startswith='1')
+    journal_qs = Journal.objects.all()
     if query:
         journal_qs = journal_qs.filter(Q(designation__icontains=query) | Q(nomenclature__icontains=query))
 
