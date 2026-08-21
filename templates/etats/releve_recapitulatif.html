@@ -89,14 +89,6 @@
     border-bottom: 1px solid #0f172a;
   }
 
-  @media print {
-    body { background: #fff; padding: 0; }
-    .toolbar { display: none !important; }
-    .sheet { box-shadow: none; max-width: 100%; padding: 8mm 10mm; }
-    .signature-block { page-break-inside: avoid; }
-    @page { size: A4 landscape; margin: 6mm; }
-  }
-
   table.lignes { width: 100%; border-collapse: collapse; font-size: 10.5px; }
   table.lignes th, table.lignes td { border: 1px solid #0f172a; padding: 4px 5px; vertical-align: middle; }
   table.lignes thead th { background: #d1d5db; font-weight: 700; text-align: center; }
@@ -108,6 +100,7 @@
     body { background: #fff; padding: 0; }
     .toolbar { display: none !important; }
     .sheet { box-shadow: none; max-width: 100%; padding: 8mm 10mm; }
+    .signature-block { page-break-inside: avoid; }
     @page { size: A4 landscape; margin: 6mm; }
   }
 </style>
@@ -143,7 +136,7 @@
       </div>
     </div>
 
-  <div class="titre-principal"> RELEVE RECAPITULATIF DES MATIERES — GROUPE 1 </div>
+  <div class="titre-principal"> RELEVE RECAPITULATIF DES MATIERES </div>
   <div class="date-line">
     <strong>A LA DATE DU</strong><sup>(1)</sup> {{ date|date:"d/m/Y"|default:"______________________________________" }}
   </div>
