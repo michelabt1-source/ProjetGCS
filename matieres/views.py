@@ -4311,9 +4311,12 @@ def inventaire_depot(request):
 
 @login_required
 def releve_recapitulatif(request):
-    # État combiné (Groupe 1 & 2 — colonne « Groupe » par ligne, cf. modèle officiel).
+    # Modèle N° 19 (Instruction Générale) — formulaire distinct par groupe de matières.
+    groupe = request.GET.get('groupe') or '1'
+    if groupe not in ('1', '2'):
+        groupe = '1'
     date = _parse_date(request.GET.get('date', ''))
-    balances = _calculer_releve_recapitulatif(date, groupe=None) if date else []
+    balances = _calculer_releve_recapitulatif(date, groupe=groupe) if date else []
     totaux = {
         'total_attente': sum(b['qte_attente'] for b in balances),
         'total_service': sum(b['qte_service'] for b in balances),
@@ -4321,9 +4324,10 @@ def releve_recapitulatif(request):
         'total': sum(b['total'] for b in balances),
     }
     context = {
-        'page_title': 'Relevé Récapitulatif des Matières',
+        'page_title': f'Relevé Récapitulatif des Matières — Groupe {groupe}',
         'societe': SocieteGCS.objects.first(),
         'balances': balances,
+        'groupe': groupe,
         'date': date,
         'date_str': request.GET.get('date', ''),
         'totaux': totaux,
@@ -4375,9 +4379,12 @@ def inventaire_individuel(request):
 
 @login_required
 def inventaire_individuel_etat(request):
-    # État combiné (Groupe 1 & 2 — colonne « Groupe » par ligne, cf. modèle officiel).
+    # Modèle N° 13 (Instruction Générale) — formulaire distinct par groupe de matières.
+    groupe = request.GET.get('groupe') or '1'
+    if groupe not in ('1', '2'):
+        groupe = '1'
     query = request.GET.get('q', '')
-    journal_qs = Journal.objects.all()
+    journal_qs = Journal.objects.filter(nomenclature__startswith=groupe)
     if query:
         journal_qs = journal_qs.filter(Q(designation__icontains=query) | Q(nomenclature__icontains=query))
 
@@ -4486,8 +4493,9 @@ def inventaire_individuel_etat(request):
         })
 
     context = {
-        'page_title': 'Fiche d\'Inventaire Individuel Contradictoire',
+        'page_title': f'Fiche d\'Inventaire Individuel Contradictoire — Groupe {groupe}',
         'societe': SocieteGCS.objects.first(),
+        'groupe': groupe,
         'lignes': lignes,
         'query': query,
         'total': len(lignes),

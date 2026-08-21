@@ -109,7 +109,9 @@
 
   <div class="toolbar">
     <a href="{% url 'matieres:inventaire_global' %}" class="btn-retour">← Retour</a>
+    <div style="font-size:12px; font-weight:700; color:#334155;">Groupe {{ groupe }}</div>
     <form method="get" style="flex:1; display:flex; justify-content:flex-end; gap:10px;">
+      <input type="hidden" name="groupe" value="{{ groupe }}">
       <label for="date" style="font-size:12px; font-weight:700; color:#334155;">Date</label>
       <input id="date" type="date" name="date" value="{{ date|date:'Y-m-d' }}" />
       <button type="submit" class="btn-imprimer">Afficher</button>
@@ -136,7 +138,7 @@
       </div>
     </div>
 
-  <div class="titre-principal"> RELEVE RECAPITULATIF DES MATIERES </div>
+  <div class="titre-principal"> RELEVE RECAPITULATIF DES MATIERES — GROUPE {{ groupe }} </div>
   <div class="date-line">
     <strong>A LA DATE DU</strong><sup>(1)</sup> {{ date|date:"d/m/Y"|default:"______________________________________" }}
   </div>

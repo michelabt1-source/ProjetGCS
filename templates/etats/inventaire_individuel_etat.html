@@ -39,7 +39,8 @@
 <body>
   <div class="toolbar">
     <a href="{% url 'matieres:inventaire_individuel' %}" class="btn-retour">← Retour</a>
-    <button type="button" class="btn-imprimer" onclick="window.print()">Imprimer</button>
+    <div style="font-size:12px; font-weight:700; color:#334155;">Groupe {{ groupe }}</div>
+    <button type="button" class="btn-imprimer" style="margin-left:auto" onclick="window.print()">Imprimer</button>
   </div>
   <div class="sheet">
     <div class="head-row">
@@ -56,7 +57,7 @@
         Art. 35b, 58c, 58d, 58e, 60g, 71a.
       </div>
     </div>
-    <div class="titre-principal">FICHE D'INVENTAIRE INDIVIDUEL CONTRADICTOIRE<br>DES MATIERES</div>
+    <div class="titre-principal">FICHE D'INVENTAIRE INDIVIDUEL CONTRADICTOIRE<br>DES MATIERES DU GROUPE {{ groupe }}</div>
     <div class="sous-titre">CONFIEES A UN DETENTEUR <sup>(1)</sup></div>
     <div class="ident-row">
       <div class="col">Section : <span class="filled">&nbsp;</span></div>
