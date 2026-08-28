@@ -126,6 +126,7 @@ class ProfilAdmin(admin.ModelAdmin):
 @admin.register(ProfilUtilisateur)
 class ProfilUtilisateurAdmin(admin.ModelAdmin):
     list_display = ['user', 'role', 'service', 'depot']
+    list_editable = ['role', 'service', 'depot']
     list_filter = ['role', 'service', 'depot']
     search_fields = ['user__username', 'user__first_name', 'user__last_name']
 
