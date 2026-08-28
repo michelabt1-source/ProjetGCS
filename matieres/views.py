@@ -2634,7 +2634,7 @@ def bon_sortie_def_g2_update(request, pk):
     details = _bsdg2_details_with_depot(bon)
     bureaux = Bureau.objects.filter(service_id=bon.service_id, actif=True).order_by('code') if bon.service_id else Bureau.objects.none()
     bcs_ouverts = [
-        b for b in BonCommandeService.objects.filter(statut='valide').select_related('service', 'bureau')
+        b for b in BonCommandeService.objects.filter(statut='valide').select_related('service', 'destinataire')
         if not b.entierement_livre
     ]
     context = {
@@ -2888,7 +2888,7 @@ def htmx_bsdg2_modal_produits(request):
 def bons_commande_service_list(request):
     profil = _profil(request.user)
     role = profil.role if profil else None
-    bons = BonCommandeService.objects.select_related('service', 'bureau').order_by('-date_creation', '-num_bon')
+    bons = BonCommandeService.objects.select_related('service', 'destinataire').order_by('-date_creation', '-num_bon')
     if role == ProfilUtilisateur.ROLE_DEMANDEUR and not request.user.is_superuser:
         bons = bons.filter(service_id=profil.service_id)
     context = {
@@ -2907,15 +2907,17 @@ def bon_commande_service_create(request):
     profil = _profil(request.user)
     demandeur_service = profil.service if profil else None
     services = Service.objects.filter(actif=True).order_by('code')
+    depots = Depot.objects.filter(actif=True).order_by('code')
     if request.method == 'POST':
         num_bon = request.POST.get('num_bon', '').strip()
         date_creation = request.POST.get('date_creation') or date.today().isoformat()
         annee = request.POST.get('annee_exercice') or date.today().year
         # Le service est imposé par le profil du demandeur — jamais par la valeur postée.
         service_id = demandeur_service.pk if demandeur_service else (request.POST.get('service_id') or None)
-        bureau_id = request.POST.get('bureau_id') or None
-        destinataire = request.POST.get('destinataire', '').strip()
-        demande_par = request.POST.get('demande_par', '').strip()
+        destinataire_id = request.POST.get('destinataire_id') or None
+        # Le chef de service est le responsable déjà connu au niveau de la table Service —
+        # jamais saisi librement par le demandeur.
+        demande_par = demandeur_service.responsable if demandeur_service else request.POST.get('demande_par', '').strip()
         observation = request.POST.get('observation', '').strip()
         try:
             lignes = json.loads(request.POST.get('details_json') or '[]')
@@ -2928,8 +2930,7 @@ def bon_commande_service_create(request):
                     date_creation=date_creation,
                     annee_exercice=int(annee) if annee else None,
                     service_id=service_id,
-                    bureau_id=bureau_id,
-                    destinataire=destinataire,
+                    destinataire_id=destinataire_id,
                     demande_par=demande_par,
                     observation=observation,
                 )
@@ -2956,6 +2957,7 @@ def bon_commande_service_create(request):
     context = {
         'page_title': "Nouveau bon de commande de service",
         'services': services,
+        'depots': depots,
         'demandeur_service': demandeur_service,
         'today': date.today(),
         'next_num': (BonCommandeService.objects.order_by('-num_bon').values_list('num_bon', flat=True).first() or 0) + 1,
@@ -2979,9 +2981,10 @@ def bon_commande_service_update(request, pk):
         bon.annee_exercice = request.POST.get('annee_exercice') or bon.annee_exercice
         if not is_demandeur_locked:
             bon.service_id = request.POST.get('service_id') or bon.service_id
-        bon.bureau_id = request.POST.get('bureau_id') or bon.bureau_id
-        bon.destinataire = request.POST.get('destinataire', bon.destinataire)
-        bon.demande_par = request.POST.get('demande_par', bon.demande_par)
+        bon.destinataire_id = request.POST.get('destinataire_id') or bon.destinataire_id
+        # Le chef de service reste le responsable connu de la table Service — resynchronisé
+        # à chaque enregistrement de l'en-tête, jamais saisi librement.
+        bon.demande_par = bon.service.responsable if bon.service else bon.demande_par
         bon.observation = request.POST.get('observation', bon.observation)
         if bon.statut == 'rejete':
             bon.statut = 'brouillon'
@@ -2990,7 +2993,7 @@ def bon_commande_service_update(request, pk):
         messages.success(request, "En-tête mis à jour.")
         return redirect('matieres:bon_commande_service_update', pk=pk)
 
-    bureaux = Bureau.objects.filter(service_id=bon.service_id, actif=True).order_by('code') if bon.service_id else Bureau.objects.none()
+    depots = Depot.objects.filter(actif=True).order_by('code')
     context = {
         'page_title': f"Bon de commande de service BCS-{bon.num_bon:04d}",
         'can_valider': can_valider,
@@ -3000,7 +3003,7 @@ def bon_commande_service_update(request, pk):
         'editable': editable,
         'details': bon.details.select_related('produit', 'unite').all(),
         'services': services,
-        'bureaux': bureaux,
+        'depots': depots,
     }
     return render(request, 'bons/commande_service_update.html', context)
 
@@ -3135,7 +3138,7 @@ def htmx_bcs_modal_produits(request):
 
 @login_required
 def htmx_bcs_lignes(request):
-    """Service/bureau + lignes disponibles (qte_restante > 0) d'un BCS validé, pour
+    """Service + lignes disponibles (qte_restante > 0) d'un BCS validé, pour
     l'auto-chargement dans le formulaire de Bon de Sortie Définitive Groupe 2."""
     bcs_id = request.GET.get('bon_commande_service_id') or None
     bon = BonCommandeService.objects.filter(pk=bcs_id, statut='valide').first() if bcs_id else None
@@ -3150,7 +3153,7 @@ def bons_commande_service_a_livrer(request):
     encore entièrement livrés."""
     bons = [
         b for b in BonCommandeService.objects.filter(statut='valide')
-        .select_related('service', 'bureau').order_by('-date_validation', '-num_bon')
+        .select_related('service', 'destinataire').order_by('-date_validation', '-num_bon')
         if not b.entierement_livre
     ]
     context = {
@@ -3205,7 +3208,6 @@ def bon_commande_service_livrer(request, pk):
                     groupe=groupe,
                     type_sortie="Consommation interne (bon de commande de service)",
                     service=bon.service,
-                    bureau=bon.bureau,
                     depot_id=depot_id,
                     bon_commande_service=bon,
                 )

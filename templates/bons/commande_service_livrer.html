@@ -11,7 +11,7 @@
   <div class="mb-5">
     <h1 class="text-xl font-bold text-slate-800">Attribuer la quantité à livrer</h1>
     <p class="text-sm text-slate-500 mt-0.5">
-      {{ bon.service|default:"—" }}{% if bon.bureau %} / {{ bon.bureau }}{% endif %}
+      {{ bon.service|default:"—" }}{% if bon.destinataire %} → {{ bon.destinataire_display }}{% endif %}
       — validé par le S.A.F. <strong>{{ bon.valide_par|default:"—" }}</strong>
       {% if bon.date_validation %}le {{ bon.date_validation|date:"d/m/Y" }}{% endif %}
     </p>
@@ -33,7 +33,7 @@
       <select name="depot_id" required
               class="w-full max-w-xs px-3 py-2 border border-slate-200 rounded-lg text-sm bg-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none">
         <option value="">— Sélectionner —</option>
-        {% for d in depots %}<option value="{{ d.pk }}">{{ d.code }}</option>{% endfor %}
+        {% for d in depots %}<option value="{{ d.pk }}" {% if bon.destinataire_id == d.pk %}selected{% endif %}>{{ d.libelle|default:d.code }}</option>{% endfor %}
       </select>
       <p class="text-xs text-slate-400 mt-2">Un bon de sortie définitive sera créé par groupe de matières (1 ou 2), à valider ensuite pour déduire le stock de ce dépôt.</p>
     </div>

@@ -18,6 +18,11 @@ class AnneeExercice(models.Model):
 
 class Depot(models.Model):
     code = models.CharField(max_length=20, unique=True, verbose_name="Code dépôt")
+    libelle = models.CharField(max_length=200, blank=True, verbose_name="Libellé")
+    responsable = models.CharField(
+        max_length=200, blank=True, verbose_name="Comptable des matières (responsable)"
+    )
+    actif = models.BooleanField(default=True, verbose_name="Actif")
 
     class Meta:
         verbose_name = "Dépôt"
@@ -25,7 +30,7 @@ class Depot(models.Model):
         ordering = ['code']
 
     def __str__(self):
-        return self.code
+        return f"{self.code} — {self.libelle}" if self.libelle else self.code
 
 
 class Service(models.Model):
@@ -860,10 +865,10 @@ class BonCommandeService(models.Model):
     service = models.ForeignKey(
         Service, on_delete=models.SET_NULL, null=True, blank=True, verbose_name="Service"
     )
-    bureau = models.ForeignKey(
-        Bureau, on_delete=models.SET_NULL, null=True, blank=True, verbose_name="Bureau"
+    destinataire = models.ForeignKey(
+        Depot, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='bons_commande_service', verbose_name="Destinataire (comptable des matières)"
     )
-    destinataire = models.CharField(max_length=200, blank=True, verbose_name="À M. (destinataire)")
     demande_par = models.CharField(max_length=200, blank=True, verbose_name="Chef de Service (demandeur)")
     statut = models.CharField(max_length=10, choices=STATUT_CHOICES, default='brouillon', verbose_name="Statut")
     date_envoi = models.DateField(null=True, blank=True, verbose_name="Date d'envoi")
@@ -884,6 +889,14 @@ class BonCommandeService(models.Model):
     def entierement_livre(self):
         details = list(self.details.all())
         return bool(details) and all(d.qte_restante <= 0 for d in details)
+
+    @property
+    def destinataire_display(self):
+        d = self.destinataire
+        if not d:
+            return ''
+        libelle = d.libelle or d.code
+        return f"{d.responsable} — {libelle}" if d.responsable else libelle
 
 
 class DetailBonCommandeService(models.Model):

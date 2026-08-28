@@ -1,8 +1,8 @@
 {% if bon %}
-<div id="bcs-lignes-wrap" data-service-id="{{ bon.service_id|default:'' }}" data-bureau-id="{{ bon.bureau_id|default:'' }}">
+<div id="bcs-lignes-wrap" data-service-id="{{ bon.service_id|default:'' }}">
   <div class="mb-2 text-xs text-slate-500">
     Service accordé : <strong class="text-slate-700">{{ bon.service|default:"—" }}</strong>
-    {% if bon.bureau %} / <strong class="text-slate-700">{{ bon.bureau }}</strong>{% endif %}
+    {% if bon.destinataire %} — Destinataire : <strong class="text-slate-700">{{ bon.destinataire_display }}</strong>{% endif %}
   </div>
   <div class="border border-slate-200 rounded-lg overflow-hidden">
     <table class="w-full text-xs">

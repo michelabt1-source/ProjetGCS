@@ -78,7 +78,9 @@ class AnneeExerciceAdmin(admin.ModelAdmin):
 
 @admin.register(Depot)
 class DepotAdmin(admin.ModelAdmin):
-    list_display = ['code']
+    list_display = ['code', 'libelle', 'responsable', 'actif']
+    list_editable = ['libelle', 'responsable', 'actif']
+    search_fields = ['code', 'libelle', 'responsable']
 
 
 @admin.register(Beneficiaire)
@@ -252,7 +254,7 @@ class ExpressionBesoinAdmin(admin.ModelAdmin):
 
 @admin.register(BonCommandeService)
 class BonCommandeServiceAdmin(admin.ModelAdmin):
-    list_display = ['num_bon', 'date_creation', 'service', 'bureau', 'statut', 'date_validation']
-    list_filter = ['statut', 'service']
+    list_display = ['num_bon', 'date_creation', 'service', 'destinataire', 'statut', 'date_validation']
+    list_filter = ['statut', 'service', 'destinataire']
     search_fields = ['num_bon']
     inlines = [DetailBonCommandeServiceInline]

@@ -516,7 +516,7 @@ body { background: var(--clr-bg); }
                   hx-include="this">
             <option value="">— Sélectionner un BCS validé —</option>
             {% for b in bcs_ouverts %}
-            <option value="{{ b.pk }}">BCS-{{ b.num_bon|stringformat:"04d" }} — {{ b.service|default:"—" }}{% if b.bureau %} / {{ b.bureau }}{% endif %}</option>
+            <option value="{{ b.pk }}">BCS-{{ b.num_bon|stringformat:"04d" }} — {{ b.service|default:"—" }}</option>
             {% endfor %}
           </select>
           <div id="bg-bcs-lignes" style="margin-top:8px"></div>
@@ -846,7 +846,6 @@ document.addEventListener('click', function(e) {
   }
 });
 
-let bgPendingBureauId = null;
 document.body.addEventListener('htmx:afterSwap', function(e) {
   if (e.target?.id === 'bg-produit-dropdown')
     e.target.classList.toggle('open', !!e.target.innerHTML.trim());
@@ -857,16 +856,11 @@ document.body.addEventListener('htmx:afterSwap', function(e) {
     const serviceSel = document.getElementById('id-service');
     if (wrap && serviceSel) {
       const serviceId = wrap.dataset.serviceId || '';
-      bgPendingBureauId = wrap.dataset.bureauId || '';
       if (serviceId) {
         serviceSel.value = serviceId;
         serviceSel.dispatchEvent(new Event('change', { bubbles: true }));
       }
     }
-  }
-  if (e.target?.id === 'id-bureau-select' && bgPendingBureauId) {
-    e.target.value = bgPendingBureauId;
-    bgPendingBureauId = null;
   }
 });
 

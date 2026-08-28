@@ -41,7 +41,7 @@
             <th class="text-left px-4 py-3">N° Bon</th>
             <th class="text-left px-4 py-3">Date</th>
             <th class="text-left px-4 py-3">Service</th>
-            <th class="text-left px-4 py-3">Bureau</th>
+            <th class="text-left px-4 py-3">Destinataire</th>
             <th class="text-left px-4 py-3">Statut</th>
             <th class="px-4 py-3"></th>
           </tr>
@@ -52,7 +52,7 @@
             <td class="px-4 py-3 font-mono font-semibold text-indigo-600">BCS-{{ b.num_bon|stringformat:"04d" }}</td>
             <td class="px-4 py-3 text-slate-600">{{ b.date_creation|date:"d/m/Y" }}</td>
             <td class="px-4 py-3 text-slate-700">{{ b.service|default:"—" }}</td>
-            <td class="px-4 py-3 text-slate-600">{{ b.bureau|default:"—" }}</td>
+            <td class="px-4 py-3 text-slate-600">{{ b.destinataire_display|default:"—" }}</td>
             <td class="px-4 py-3">
               <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold
                 {% if b.statut == 'valide' %}bg-emerald-50 text-emerald-700 border border-emerald-200

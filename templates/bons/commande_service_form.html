@@ -46,43 +46,36 @@
             {{ demandeur_service.code }} — {{ demandeur_service.libelle }}
           </div>
           <p class="text-[11px] text-slate-400 mt-1">Verrouillé sur votre service.</p>
-          <select name="service_id" id="bcs-service-select" hidden
-                  hx-get="{% url 'matieres:htmx_bureaux_options' %}" hx-trigger="load" hx-target="#bcs-bureau-select" hx-include="this">
+          <select name="service_id" id="bcs-service-select" hidden>
             <option value="{{ demandeur_service.pk }}" selected>{{ demandeur_service.code }}</option>
           </select>
           {% else %}
           <select name="service_id" required id="bcs-service-select"
-                  class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm bg-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none transition-shadow"
-                  hx-get="{% url 'matieres:htmx_bureaux_options' %}" hx-trigger="change" hx-target="#bcs-bureau-select" hx-include="this"
-                  hx-indicator="#bcs-bureau-loading">
+                  class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm bg-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none transition-shadow">
             <option value="">— Sélectionner —</option>
             {% for s in services %}<option value="{{ s.pk }}">{{ s.code }} — {{ s.libelle }}</option>{% endfor %}
           </select>
           {% endif %}
         </div>
         <div>
-          <label class="flex items-center gap-1.5 text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1">
-            Bureau
-            <svg id="bcs-bureau-loading" width="11" height="11" class="htmx-indicator animate-spin text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="3"><path stroke-linecap="round" d="M12 3a9 9 0 11-9 9"/></svg>
-          </label>
-          <select name="bureau_id" id="bcs-bureau-select"
+          <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1">Destinataire (comptable des matières) *</label>
+          <select name="destinataire_id" required
                   class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm bg-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none transition-shadow">
-            <option value="">— Bureau —</option>
+            <option value="">— Sélectionner —</option>
+            {% for d in depots %}<option value="{{ d.pk }}">{{ d.libelle|default:d.code }}</option>{% endfor %}
           </select>
-          <p id="bcs-bureau-hint" class="hidden mt-1.5 text-xs text-amber-600 flex items-start gap-1">
-            <svg width="12" height="12" class="mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
-            <span>Aucun bureau enregistré pour ce service — vous pouvez continuer sans bureau.</span>
-          </p>
-        </div>
-        <div>
-          <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1">À M. (destinataire)</label>
-          <input type="text" name="destinataire" placeholder="Nom de la personne qui reçoit"
-                 class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none transition-shadow">
         </div>
         <div>
           <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1">Chef de Service (demandeur)</label>
+          {% if demandeur_service %}
+          <div class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm bg-slate-50 text-slate-700 font-medium">
+            {{ demandeur_service.responsable|default:"—" }}
+          </div>
+          <p class="text-[11px] text-slate-400 mt-1">Responsable de votre service.</p>
+          {% else %}
           <input type="text" name="demande_par"
                  class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none transition-shadow">
+          {% endif %}
         </div>
         <div>
           <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1">Observation</label>
@@ -172,11 +165,6 @@ document.getElementById('bcs-date').addEventListener('change', function() {
 document.body.addEventListener('htmx:afterSwap', function(e) {
   if (e.target && e.target.id === 'bcs-produit-dropdown') {
     e.target.classList.toggle('hidden', !e.target.innerHTML.trim());
-  }
-  if (e.target && e.target.id === 'bcs-bureau-select') {
-    const hint = document.getElementById('bcs-bureau-hint');
-    const hasBureaux = e.target.options.length > 1;
-    hint.classList.toggle('hidden', hasBureaux);
   }
 });
 document.addEventListener('click', function(e) {
