@@ -202,6 +202,11 @@ class ProfilUtilisateur(models.Model):
         Service, on_delete=models.SET_NULL, null=True, blank=True,
         verbose_name="Service rattaché (obligatoire pour un demandeur)"
     )
+    depot = models.ForeignKey(
+        Depot, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='profils_comptables',
+        verbose_name="Dépôt rattaché (obligatoire pour un comptable des matières)"
+    )
 
     class Meta:
         verbose_name = "Profil utilisateur"

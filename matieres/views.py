@@ -2889,8 +2889,23 @@ def bons_commande_service_list(request):
     profil = _profil(request.user)
     role = profil.role if profil else None
     bons = BonCommandeService.objects.select_related('service', 'destinataire').order_by('-date_creation', '-num_bon')
-    if role == ProfilUtilisateur.ROLE_DEMANDEUR and not request.user.is_superuser:
-        bons = bons.filter(service_id=profil.service_id)
+    if not request.user.is_superuser:
+        # Chaque profil ne voit que ce qui le concerne : le demandeur ses propres
+        # demandes, le comptable des matières les bons qui lui sont adressés.
+        if role == ProfilUtilisateur.ROLE_DEMANDEUR:
+            bons = bons.filter(service_id=profil.service_id)
+        elif role == ProfilUtilisateur.ROLE_COMPTABLE:
+            if profil.depot_id:
+                bons = bons.filter(destinataire_id=profil.depot_id)
+            else:
+                # Sans rattachement, on n'expose rien — mais on le dit, pour ne pas
+                # laisser croire à une liste réellement vide.
+                bons = bons.none()
+                messages.warning(
+                    request,
+                    "Aucun dépôt n'est rattaché à votre profil : demandez à l'administrateur "
+                    "de renseigner votre dépôt pour voir les bons qui vous sont adressés."
+                )
     context = {
         'page_title': "Bons de commande de services",
         'bons': bons,
@@ -3149,11 +3164,16 @@ def htmx_bcs_lignes(request):
 @login_required
 @role_required(ProfilUtilisateur.ROLE_COMPTABLE)
 def bons_commande_service_a_livrer(request):
-    """Vue d'accueil du comptable principal : les BCS validés par le SAF, pas
-    encore entièrement livrés."""
+    """Vue d'accueil du comptable des matières : les BCS validés par le SAF qui
+    lui sont adressés, pas encore entièrement livrés."""
+    profil = _profil(request.user)
+    qs = BonCommandeService.objects.filter(statut='valide')
+    if not request.user.is_superuser:
+        # Un comptable ne prend en charge que les bons dont il est le destinataire.
+        qs = qs.filter(destinataire_id=profil.depot_id) if (profil and profil.depot_id) else qs.none()
     bons = [
-        b for b in BonCommandeService.objects.filter(statut='valide')
-        .select_related('service', 'destinataire').order_by('-date_validation', '-num_bon')
+        b for b in qs.select_related('service', 'destinataire')
+        .order_by('-date_validation', '-num_bon')
         if not b.entierement_livre
     ]
     context = {
@@ -3170,6 +3190,12 @@ def bon_commande_service_livrer(request, pk):
     validé. Génère un Bon de Sortie Définitive par groupe de matières concerné
     (1 ou 2) — non validé, pour vérification/complément avant déduction du stock."""
     bon = get_object_or_404(BonCommandeService, pk=pk, statut='valide')
+    profil = _profil(request.user)
+    # Garde-fou : l'accès direct par URL ne doit pas permettre à un comptable de
+    # livrer un bon adressé à un autre comptable des matières.
+    if not request.user.is_superuser and (not profil or bon.destinataire_id != profil.depot_id):
+        messages.error(request, "Ce bon de commande est adressé à un autre comptable des matières.")
+        return redirect('matieres:bons_commande_service_a_livrer')
     depots = Depot.objects.all().order_by('code')
     lignes = [d for d in bon.details.select_related('produit', 'unite').all() if d.qte_restante > 0]
 
