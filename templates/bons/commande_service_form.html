@@ -8,6 +8,14 @@
     <span class="text-slate-600 font-semibold">Nouveau</span>
   </div>
 
+  {% if messages %}
+  <div class="mb-4 space-y-2">
+    {% for msg in messages %}
+    <div class="px-4 py-2.5 rounded-lg text-sm font-medium {% if msg.tags == 'error' %}bg-red-50 text-red-700 border border-red-200{% else %}bg-emerald-50 text-emerald-700 border border-emerald-200{% endif %}">{{ msg }}</div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
   <form method="post" action="{% url 'matieres:bon_commande_service_create' %}" id="bcs-create-form" class="grid grid-cols-1 lg:grid-cols-[340px_1fr] gap-5 items-start">
     {% csrf_token %}
     <input type="hidden" name="details_json" id="bcs-details-json" value="[]">
@@ -62,7 +70,7 @@
           <select name="destinataire_id" required
                   class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm bg-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none transition-shadow">
             <option value="">— Sélectionner —</option>
-            {% for d in depots %}<option value="{{ d.pk }}">{{ d.libelle|default:d.code }}</option>{% endfor %}
+            {% for d in depots %}<option value="{{ d.pk }}" {% if prefill_destinataire_id|stringformat:"s" == d.pk|stringformat:"s" %}selected{% endif %}>{{ d.libelle|default:d.code }}</option>{% endfor %}
           </select>
         </div>
         <div>
@@ -188,7 +196,8 @@ function bcsPickProduit(id, designation, nomenclature, specification, uniteId, u
   document.getElementById('bcs-f-qte').select();
 }
 
-let bcsLines = [];
+let bcsLines = JSON.parse('{{ prefill_lignes_json|default:"[]"|escapejs }}');
+bcsRenderLines();
 
 function bcsRenderLines() {
   const tbody = document.getElementById('bcs-lines-tbody');

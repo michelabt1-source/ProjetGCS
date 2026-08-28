@@ -23,6 +23,14 @@ class Depot(models.Model):
         max_length=200, blank=True, verbose_name="Comptable des matières (responsable)"
     )
     actif = models.BooleanField(default=True, verbose_name="Actif")
+    comptes_principaux = models.ManyToManyField(
+        'ComptePrincipale', blank=True, related_name='depots',
+        verbose_name="Comptes principaux gérés par ce dépôt"
+    )
+    sous_comptes_specifiques = models.ManyToManyField(
+        'SousCompte', blank=True, related_name='depots_specifiques',
+        verbose_name="Sous-comptes gérés en exception (prioritaires sur le compte principal)"
+    )
 
     class Meta:
         verbose_name = "Dépôt"
@@ -301,6 +309,31 @@ class Produit(models.Model):
 
     def __str__(self):
         return f"{self.nomenclature} - {self.designation}"
+
+
+def depot_pour_produit(produit):
+    """Dépôt (comptable des matières) qui gère ce produit, déduit de sa
+    nomenclature (ex. "24.03.012" → compte 24 → Maintenance).
+
+    Le rattachement Produit.compte_principal/sous_compte n'étant pas renseigné
+    sur les données importées, on retombe sur le préfixe de la nomenclature —
+    le sous-compte (ex. "29.08") prime sur le compte principal (ex. "29") pour
+    gérer les exceptions (les articles de cuisine du compte 29 relèvent de
+    l'Économat, pas du reste du compte confié au S.A.F.).
+    """
+    if not produit or not produit.nomenclature:
+        return None
+    parts = produit.nomenclature.split('.')
+    if len(parts) >= 2:
+        sous_compte_code = f"{parts[0]}.{parts[1]}"
+        depot = Depot.objects.filter(sous_comptes_specifiques__compte=sous_compte_code).first()
+        if depot:
+            return depot
+    try:
+        num_compte = int(parts[0])
+    except (ValueError, IndexError):
+        return None
+    return Depot.objects.filter(comptes_principaux__num_compte=num_compte).first()
 
     @property
     def stock_disponible(self):

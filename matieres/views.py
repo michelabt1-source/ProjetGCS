@@ -10,7 +10,7 @@ from functools import wraps
 import json
 
 from .models import (
-    Produit, Depot, StockDepot,
+    Produit, Depot, StockDepot, depot_pour_produit,
     BonEntree, DetailBonEntree,
     BonAffectation, DetailBonAffectation,
     BonRetourAffectation, DetailBonRetourAffectation,
@@ -2938,37 +2938,62 @@ def bon_commande_service_create(request):
             lignes = json.loads(request.POST.get('details_json') or '[]')
         except (ValueError, TypeError):
             lignes = []
+        lignes_json = json.dumps(lignes)
         if num_bon:
-            with transaction.atomic():
-                bon = BonCommandeService.objects.create(
-                    num_bon=int(num_bon),
-                    date_creation=date_creation,
-                    annee_exercice=int(annee) if annee else None,
-                    service_id=service_id,
-                    destinataire_id=destinataire_id,
-                    demande_par=demande_par,
-                    observation=observation,
-                )
-                for ligne in lignes:
-                    designation = (ligne.get('designation') or '').strip()
-                    if not designation:
-                        continue
-                    try:
-                        qte = int(ligne.get('qte_commandee') or 0)
-                    except (ValueError, TypeError):
-                        qte = 0
-                    DetailBonCommandeService.objects.create(
-                        bon_commande=bon,
-                        produit_id=ligne.get('produit_id') or None,
-                        designation=designation,
-                        nomenclature=(ligne.get('nomenclature') or '').strip(),
-                        specification=(ligne.get('specification') or '').strip(),
-                        qte_commandee=qte,
-                        unite_id=ligne.get('unite_id') or None,
+            # Contrôle : chaque article catalogué doit relever du dépôt (comptable des
+            # matières) choisi comme destinataire — sinon le bon est mal adressé.
+            erreurs = []
+            for ligne in lignes:
+                produit_id = ligne.get('produit_id') or None
+                if not produit_id:
+                    continue
+                produit = Produit.objects.filter(pk=produit_id).first()
+                depot_attendu = depot_pour_produit(produit) if produit else None
+                if depot_attendu and str(depot_attendu.pk) != str(destinataire_id):
+                    erreurs.append(
+                        f"« {produit.designation} » relève de "
+                        f"{depot_attendu.libelle or depot_attendu.code}, pas du destinataire choisi."
                     )
-            nb = bon.details.count()
-            messages.success(request, f"BCS-{bon.num_bon:04d} créé avec {nb} article{'s' if nb != 1 else ''}.")
-            return redirect('matieres:bon_commande_service_update', pk=bon.pk)
+            if erreurs:
+                messages.error(
+                    request,
+                    "Bon non créé — certains articles ne relèvent pas du destinataire sélectionné : "
+                    + " ".join(erreurs)
+                )
+            else:
+                with transaction.atomic():
+                    bon = BonCommandeService.objects.create(
+                        num_bon=int(num_bon),
+                        date_creation=date_creation,
+                        annee_exercice=int(annee) if annee else None,
+                        service_id=service_id,
+                        destinataire_id=destinataire_id,
+                        demande_par=demande_par,
+                        observation=observation,
+                    )
+                    for ligne in lignes:
+                        designation = (ligne.get('designation') or '').strip()
+                        if not designation:
+                            continue
+                        try:
+                            qte = int(ligne.get('qte_commandee') or 0)
+                        except (ValueError, TypeError):
+                            qte = 0
+                        DetailBonCommandeService.objects.create(
+                            bon_commande=bon,
+                            produit_id=ligne.get('produit_id') or None,
+                            designation=designation,
+                            nomenclature=(ligne.get('nomenclature') or '').strip(),
+                            specification=(ligne.get('specification') or '').strip(),
+                            qte_commandee=qte,
+                            unite_id=ligne.get('unite_id') or None,
+                        )
+                nb = bon.details.count()
+                messages.success(request, f"BCS-{bon.num_bon:04d} créé avec {nb} article{'s' if nb != 1 else ''}.")
+                return redirect('matieres:bon_commande_service_update', pk=bon.pk)
+    else:
+        lignes_json = '[]'
+        destinataire_id = None
     context = {
         'page_title': "Nouveau bon de commande de service",
         'services': services,
@@ -2976,6 +3001,8 @@ def bon_commande_service_create(request):
         'demandeur_service': demandeur_service,
         'today': date.today(),
         'next_num': (BonCommandeService.objects.order_by('-num_bon').values_list('num_bon', flat=True).first() or 0) + 1,
+        'prefill_lignes_json': lignes_json,
+        'prefill_destinataire_id': destinataire_id,
     }
     return render(request, 'bons/commande_service_form.html', context)
 
@@ -3091,6 +3118,7 @@ def _is_bcs_owner(user, bon):
 @login_required
 def htmx_bcs_add_detail(request, pk):
     bon = get_object_or_404(BonCommandeService, pk=pk)
+    erreur = None
     if request.method == 'POST' and _is_bcs_owner(request.user, bon) and bon.statut in ('brouillon', 'rejete'):
         designation = request.POST.get('designation', '').strip()
         if designation:
@@ -3099,17 +3127,26 @@ def htmx_bcs_add_detail(request, pk):
             specification = request.POST.get('specification', '').strip()
             qte_commandee = int(request.POST.get('qte_commandee') or 0)
             unite_id = request.POST.get('unite_id') or None
-            DetailBonCommandeService.objects.create(
-                bon_commande=bon,
-                produit_id=produit_id,
-                designation=designation,
-                nomenclature=nomenclature,
-                specification=specification,
-                qte_commandee=qte_commandee,
-                unite_id=unite_id,
-            )
+            # Contrôle : un article catalogué doit relever du dépôt destinataire du bon.
+            produit = Produit.objects.filter(pk=produit_id).first() if produit_id else None
+            depot_attendu = depot_pour_produit(produit) if produit else None
+            if depot_attendu and depot_attendu.pk != bon.destinataire_id:
+                erreur = (
+                    f"« {produit.designation} » relève de "
+                    f"{depot_attendu.libelle or depot_attendu.code}, pas du destinataire de ce bon."
+                )
+            else:
+                DetailBonCommandeService.objects.create(
+                    bon_commande=bon,
+                    produit_id=produit_id,
+                    designation=designation,
+                    nomenclature=nomenclature,
+                    specification=specification,
+                    qte_commandee=qte_commandee,
+                    unite_id=unite_id,
+                )
     details = bon.details.select_related('produit', 'unite').all()
-    return render(request, 'partials/bcs_detail_rows.html', {'details': details, 'bon': bon})
+    return render(request, 'partials/bcs_detail_rows.html', {'details': details, 'bon': bon, 'erreur': erreur})
 
 
 @login_required

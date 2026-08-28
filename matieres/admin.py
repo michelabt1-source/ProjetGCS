@@ -81,6 +81,7 @@ class DepotAdmin(admin.ModelAdmin):
     list_display = ['code', 'libelle', 'responsable', 'actif']
     list_editable = ['libelle', 'responsable', 'actif']
     search_fields = ['code', 'libelle', 'responsable']
+    filter_horizontal = ['comptes_principaux', 'sous_comptes_specifiques']
 
 
 @admin.register(Beneficiaire)
