@@ -21,6 +21,7 @@
       <div class="flex justify-between"><dt class="text-slate-500">Date</dt><dd class="text-slate-800">{{ bon.date_creation|date:"d/m/Y" }}</dd></div>
       <div class="flex justify-between"><dt class="text-slate-500">Dépôt</dt><dd class="text-slate-800">{{ bon.depot|default:"—" }}</dd></div>
       <div class="flex justify-between"><dt class="text-slate-500">Fournisseur</dt><dd class="text-slate-800">{{ bon.fournisseur|default:"—" }}</dd></div>
+      <div class="flex justify-between"><dt class="text-slate-500">Marché lié</dt><dd class="text-slate-800">{% if bon.marche %}<a href="{% url 'matieres:marche_update' bon.marche_id %}" class="text-primary-700 hover:underline">{{ bon.marche.num_marche }}</a>{% else %}—{% endif %}</dd></div>
       <div class="flex justify-between"><dt class="text-slate-500">Type</dt><dd class="text-slate-800">{{ bon.type_entree|default:"—" }}</dd></div>
       <div class="flex justify-between"><dt class="text-slate-500">Chapitre</dt><dd class="text-slate-800">{{ bon.chapitre|default:"—" }}</dd></div>
     </dl>

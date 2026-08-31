@@ -7,7 +7,15 @@
     <a href="{% url 'matieres:marches_list' %}" class="hover:text-indigo-600 transition-colors">Marchés</a>
     <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
     <span class="text-slate-600 font-semibold">{{ marche.num_marche }}</span>
-    <a href="{% url 'matieres:marche_update' marche.pk %}" class="ml-auto text-xs font-semibold text-indigo-600 hover:text-indigo-700">Modifier →</a>
+    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold
+      {% if marche.statut == 'solde' %}bg-emerald-50 text-emerald-700 border border-emerald-200
+      {% elif marche.statut == 'annule' %}bg-red-50 text-red-700 border border-red-200
+      {% else %}bg-amber-50 text-amber-700 border border-amber-200{% endif %}">
+      <span class="w-1.5 h-1.5 rounded-full bg-current"></span>
+      {{ marche.get_statut_display }}
+    </span>
+    <a href="{% url 'matieres:marche_etat' marche.pk %}" target="_blank" class="ml-auto text-xs font-semibold text-indigo-600 hover:text-indigo-700">Imprimer</a>
+    <a href="{% url 'matieres:marche_update' marche.pk %}" class="text-xs font-semibold text-indigo-600 hover:text-indigo-700">Modifier →</a>
   </div>
 
   <div class="bg-white border border-slate-200 rounded-2xl shadow-sm p-6 mb-5">
@@ -44,15 +52,61 @@
         <div class="text-[11px] font-bold text-slate-400 uppercase tracking-wide mb-1">Total TTC</div>
         <div class="font-semibold text-emerald-600">{{ marche.total_ttc|floatformat:0|intcomma }} FCFA</div>
       </div>
+      <div>
+        <div class="text-[11px] font-bold text-slate-400 uppercase tracking-wide mb-1">Livré</div>
+        <div class="font-semibold text-slate-700">{{ marche.total_livre|floatformat:0|intcomma }} FCFA</div>
+      </div>
+      <div>
+        <div class="text-[11px] font-bold text-slate-400 uppercase tracking-wide mb-1">Solde restant</div>
+        <div class="font-semibold {% if marche.solde_restant > 0 %}text-amber-600{% else %}text-slate-400{% endif %}">{{ marche.solde_restant|floatformat:0|intcomma }} FCFA</div>
+      </div>
     </div>
   </div>
 
-  <div class="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+  <div class="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden mb-5">
     <div class="px-5 py-3 border-b border-slate-100 text-[11px] font-bold text-indigo-600 uppercase tracking-wide">
       Articles du marché — {{ details|length }} ligne{{ details|length|pluralize }}
     </div>
     <div class="overflow-x-auto" id="marche-detail-rows">
       {% include 'partials/marche_detail_rows.html' with details=details marche=marche %}
+    </div>
+  </div>
+
+  <div class="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+    <div class="px-5 py-3 border-b border-slate-100 text-[11px] font-bold text-indigo-600 uppercase tracking-wide">
+      Bons d'entrée liés — {{ bons_entree|length }}
+    </div>
+    <div class="overflow-x-auto">
+      <table class="w-full text-sm">
+        <thead>
+          <tr class="bg-slate-50 text-slate-500 text-[11px] uppercase tracking-wide font-bold border-b border-slate-200">
+            <th class="text-left px-4 py-2.5">N° Bon</th>
+            <th class="text-left px-4 py-2.5">Date</th>
+            <th class="text-left px-4 py-2.5">Dépôt</th>
+            <th class="text-left px-4 py-2.5">Statut</th>
+            <th class="text-right px-4 py-2.5">Montant TTC</th>
+            <th class="px-4 py-2.5"></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for be in bons_entree %}
+          <tr class="border-b border-slate-100 hover:bg-slate-50">
+            <td class="px-4 py-2.5 font-mono font-semibold text-indigo-600">BE-{{ be.num_bon|stringformat:"04d" }}</td>
+            <td class="px-4 py-2.5 text-slate-600">{{ be.date_creation|date:"d/m/Y" }}</td>
+            <td class="px-4 py-2.5 text-slate-600">{{ be.depot|default:"—" }}</td>
+            <td class="px-4 py-2.5">
+              {% if be.valide %}<span class="text-emerald-600 font-semibold text-xs">Validé</span>{% else %}<span class="text-slate-400 text-xs">Brouillon</span>{% endif %}
+            </td>
+            <td class="px-4 py-2.5 text-right font-semibold">{{ be.total_ttc|floatformat:0|intcomma }} FCFA</td>
+            <td class="px-4 py-2.5 text-right">
+              <a href="{% url 'matieres:bon_entree_update' be.pk %}" class="text-slate-500 hover:text-indigo-600 text-xs font-semibold">Ouvrir</a>
+            </td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="6" class="px-4 py-8 text-center text-slate-400">Aucun bon d'entrée encore réceptionné sur ce marché.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
     </div>
   </div>
 </div>

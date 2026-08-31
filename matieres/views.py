@@ -279,6 +279,7 @@ def bon_entree_create(request):
             num_bon_commande = int(request.POST.get('num_bon_commande') or 0)
             num_pvc = request.POST.get('num_pvc', '')
             chapitre = request.POST.get('chapitre', '')
+            marche_id = request.POST.get('marche_id') or None
 
             bon = BonEntree.objects.create(
                 num_bon=num_bon,
@@ -293,6 +294,7 @@ def bon_entree_create(request):
                 num_bon_commande=num_bon_commande,
                 num_pvc=num_pvc,
                 chapitre=chapitre,
+                marche_id=marche_id,
             )
             messages.success(request, f"Bon d'entrée BE-{bon.num_bon:04d} créé avec succès.")
             return redirect('matieres:bon_entree_update', pk=bon.pk)
@@ -302,6 +304,7 @@ def bon_entree_create(request):
     last = BonEntree.objects.order_by('-num_bon').first()
     next_num = (last.num_bon + 1) if last else 1
     annee_courante = AnneeExercice.objects.filter(annee=date.today().year).first()
+    marches = Marche.objects.filter(statut='en_cours').order_by('-date_creation')
 
     context = {
         'page_title': "Nouveau bon d'entrée",
@@ -312,6 +315,13 @@ def bon_entree_create(request):
         'types_operation': TypeOperation.objects.all(),
         'annee_courante': annee_courante,
         'today': date.today(),
+        'marches': marches,
+        'marches_json': json.dumps({
+            m.pk: {
+                'fournisseur_id': m.fournisseur_id, 'num_bon_engagement': m.num_bon_engagement,
+                'chapitre': m.chapitre,
+            } for m in marches
+        }),
     }
     return render(request, 'bons/entree_form.html', context)
 
@@ -331,6 +341,7 @@ def bon_entree_update(request, pk):
             bon.num_bon_commande = int(request.POST.get('num_bon_commande') or 0)
             bon.num_pvc = request.POST.get('num_pvc', '')
             bon.chapitre = request.POST.get('chapitre', '')
+            bon.marche_id = request.POST.get('marche_id') or None
             bon.save()
             messages.success(request, "En-tête du bon mis à jour.")
         except Exception as e:
@@ -338,6 +349,7 @@ def bon_entree_update(request, pk):
         return redirect('matieres:bon_entree_update', pk=pk)
 
     details = bon.details.select_related('produit', 'unite').all()
+    marches = Marche.objects.filter(Q(statut='en_cours') | Q(pk=bon.marche_id)).order_by('-date_creation')
     context = {
         'page_title': f"Bon d'entrée BE-{bon.num_bon:04d}",
         'bon': bon,
@@ -348,6 +360,13 @@ def bon_entree_update(request, pk):
         'types_operation': TypeOperation.objects.all(),
         'unites': Unite.objects.all(),
         'today': date.today(),
+        'marches': marches,
+        'marches_json': json.dumps({
+            m.pk: {
+                'fournisseur_id': m.fournisseur_id, 'num_bon_engagement': m.num_bon_engagement,
+                'chapitre': m.chapitre,
+            } for m in marches
+        }),
     }
     return render(request, 'bons/entree_update.html', context)
 
@@ -357,7 +376,7 @@ def bon_entree_update(request, pk):
 
 @login_required
 def marches_list(request):
-    marches = Marche.objects.select_related('fournisseur', 'bon_entree').order_by('-date_creation')
+    marches = Marche.objects.select_related('fournisseur').prefetch_related('details', 'bons_entree__details').order_by('-date_creation')
     context = {'page_title': 'Marchés', 'marches': marches}
     return render(request, 'marches/list.html', context)
 
@@ -392,8 +411,59 @@ def marche_create(request):
 @login_required
 def marche_detail(request, pk):
     marche = get_object_or_404(Marche, pk=pk)
-    context = {'page_title': f"Marché {marche.num_marche}", 'marche': marche, 'details': marche.details.all()}
+    context = {
+        'page_title': f"Marché {marche.num_marche}",
+        'marche': marche,
+        'details': marche.details.all(),
+        'bons_entree': marche.bons_entree.select_related('depot').order_by('-date_creation'),
+    }
     return render(request, 'marches/detail.html', context)
+
+
+@login_required
+def marche_etat(request, pk):
+    marche = get_object_or_404(Marche, pk=pk)
+    details = marche.details.select_related('produit', 'unite').all()
+    context = {
+        'page_title': f"État — Marché {marche.num_marche}",
+        'marche': marche,
+        'societe': SocieteGCS.objects.first(),
+        'details': details,
+        'total_qte': sum(d.qte for d in details),
+        'total_ttc': marche.total_ttc(),
+        'bons_entree': marche.bons_entree.order_by('-date_creation'),
+    }
+    return render(request, 'marches/etat.html', context)
+
+
+@login_required
+def marche_solder(request, pk):
+    marche = get_object_or_404(Marche, pk=pk)
+    if request.method == 'POST' and marche.statut == 'en_cours':
+        marche.statut = 'solde'
+        marche.save(update_fields=['statut'])
+        messages.success(request, f"Marché {marche.num_marche} soldé.")
+    return redirect('matieres:marche_update', pk=pk)
+
+
+@login_required
+def marche_annuler(request, pk):
+    marche = get_object_or_404(Marche, pk=pk)
+    if request.method == 'POST' and marche.statut != 'annule':
+        marche.statut = 'annule'
+        marche.save(update_fields=['statut'])
+        messages.warning(request, f"Marché {marche.num_marche} annulé.")
+    return redirect('matieres:marche_update', pk=pk)
+
+
+@login_required
+def marche_reouvrir(request, pk):
+    marche = get_object_or_404(Marche, pk=pk)
+    if request.method == 'POST' and marche.statut != 'en_cours':
+        marche.statut = 'en_cours'
+        marche.save(update_fields=['statut'])
+        messages.success(request, f"Marché {marche.num_marche} rouvert.")
+    return redirect('matieres:marche_update', pk=pk)
 
 
 @login_required
@@ -448,7 +518,8 @@ def expression_transform(request, pk):
 @login_required
 def marche_update(request, pk):
     marche = get_object_or_404(Marche, pk=pk)
-    if request.method == 'POST':
+    editable = marche.statut == 'en_cours'
+    if request.method == 'POST' and editable:
         marche.date_creation = request.POST.get('date_creation') or marche.date_creation
         marche.date_debut = request.POST.get('date_debut') or None
         marche.date_fin = request.POST.get('date_fin') or None
@@ -463,9 +534,11 @@ def marche_update(request, pk):
     context = {
         'page_title': f'Marché {marche.num_marche}',
         'marche': marche,
+        'editable': editable,
         'fournisseurs': Fournisseur.objects.all(),
         'unites': Unite.objects.all(),
         'today': date.today(),
+        'bons_entree': marche.bons_entree.select_related('depot').order_by('-date_creation'),
     }
     return render(request, 'marches/update.html', context)
 
@@ -493,7 +566,7 @@ def expression_update(request, pk):
 @login_required
 def htmx_marche_add_detail(request, pk):
     marche = get_object_or_404(Marche, pk=pk)
-    if request.method == 'POST':
+    if request.method == 'POST' and marche.statut == 'en_cours':
         designation = request.POST.get('designation', '').strip()
         if designation:
             produit_id = request.POST.get('produit_id') or None
@@ -524,7 +597,8 @@ def htmx_marche_add_detail(request, pk):
 def htmx_marche_delete_detail(request, detail_pk):
     detail = get_object_or_404(DetailMarche, pk=detail_pk)
     marche = detail.marche
-    detail.delete()
+    if marche.statut == 'en_cours':
+        detail.delete()
     details = marche.details.select_related('produit', 'unite').all()
     return render(request, 'partials/marche_detail_rows.html', {'details': details, 'marche': marche})
 

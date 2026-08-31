@@ -80,6 +80,10 @@ urlpatterns = [
     path('marches/nouveau/', views.marche_create, name='marche_create'),
     path('marches/<int:pk>/', views.marche_detail, name='marche_detail'),
     path('marches/<int:pk>/modifier/', views.marche_update, name='marche_update'),
+    path('marches/<int:pk>/etat/', views.marche_etat, name='marche_etat'),
+    path('marches/<int:pk>/solder/', views.marche_solder, name='marche_solder'),
+    path('marches/<int:pk>/annuler/', views.marche_annuler, name='marche_annuler'),
+    path('marches/<int:pk>/reouvrir/', views.marche_reouvrir, name='marche_reouvrir'),
     path('htmx/marche/<int:pk>/add-detail/', views.htmx_marche_add_detail, name='htmx_marche_add_detail'),
     path('htmx/marche/detail/<int:detail_pk>/delete/', views.htmx_marche_delete_detail, name='htmx_marche_delete_detail'),
 

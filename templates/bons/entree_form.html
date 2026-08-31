@@ -113,6 +113,15 @@
       <!-- Grille 2 colonnes -->
       <div class="grid grid-cols-2 gap-x-8 gap-y-4">
 
+        <div class="col-span-2">
+          <label class="be-label">Marché lié</label>
+          <select name="marche_id" id="id-marche" class="be-select" onchange="appliquerMarche(this.value)">
+            <option value="">— Aucun / hors marché —</option>
+            {% for m in marches %}<option value="{{ m.pk }}">{{ m.num_marche }}{% if m.fournisseur %} — {{ m.fournisseur }}{% endif %}</option>{% endfor %}
+          </select>
+          <p class="text-xs text-slate-400 mt-1">Remplit automatiquement Fournisseur, N° Bon d'engagement et Chapitre.</p>
+        </div>
+
         <!-- Colonne gauche -->
         <div>
           <label class="be-label">N° Bon Entrée</label>
@@ -134,7 +143,7 @@
         </div>
         <div>
           <label class="be-label">Fournisseur</label>
-          <select name="fournisseur" class="be-select">
+          <select name="fournisseur" id="id-fournisseur" class="be-select">
             <option value="">— Sélectionner —</option>
             {% for f in fournisseurs %}<option value="{{ f.pk }}">{{ f.nom }}</option>{% endfor %}
           </select>
@@ -154,7 +163,7 @@
         </div>
         <div>
           <label class="be-label">N° Bon Engagement</label>
-          <input type="number" name="num_bon_engagement" value="0" class="be-input" min="0" style="text-align:right">
+          <input type="number" name="num_bon_engagement" id="id-num-bon-engagement" value="0" class="be-input" min="0" style="text-align:right">
         </div>
 
         <div>
@@ -179,7 +188,7 @@
         </div>
         <div>
           <label class="be-label">Chapitre</label>
-          <input type="text" name="chapitre" class="be-input" placeholder="Chapitre budgétaire">
+          <input type="text" name="chapitre" id="id-chapitre" class="be-input" placeholder="Chapitre budgétaire">
         </div>
 
       </div>
@@ -221,6 +230,15 @@ function syncAnnee(dateVal) {
   for (const opt of sel.options) {
     if (opt.text == annee) { sel.value = opt.value; break; }
   }
+}
+
+const MARCHES = {{ marches_json|safe }};
+function appliquerMarche(marcheId) {
+  const m = MARCHES[marcheId];
+  if (!m) return;
+  if (m.fournisseur_id) document.getElementById('id-fournisseur').value = m.fournisseur_id;
+  document.getElementById('id-num-bon-engagement').value = m.num_bon_engagement || 0;
+  if (m.chapitre) document.getElementById('id-chapitre').value = m.chapitre;
 }
 </script>
 

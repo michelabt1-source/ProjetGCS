@@ -397,6 +397,10 @@ class BonEntree(models.Model):
     num_bon_commande = models.IntegerField(default=0, verbose_name="N° Bon de commande")
     num_pvc = models.CharField(max_length=50, blank=True, verbose_name="N° PVC")
     chapitre = models.CharField(max_length=100, blank=True, verbose_name="Chapitre")
+    marche = models.ForeignKey(
+        'Marche', on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='bons_entree', verbose_name="Marché lié"
+    )
 
     class Meta:
         verbose_name = "Bon d'entrée"
@@ -432,6 +436,12 @@ class DetailBonEntree(models.Model):
 
 
 class Marche(models.Model):
+    STATUT_CHOICES = [
+        ('en_cours', 'En cours'),
+        ('solde', 'Soldé'),
+        ('annule', 'Annulé'),
+    ]
+
     num_marche = models.CharField(max_length=100, unique=True, verbose_name="Numéro du marché")
     date_creation = models.DateField(verbose_name="Date de création")
     date_debut = models.DateField(null=True, blank=True, verbose_name="Date début")
@@ -442,9 +452,7 @@ class Marche(models.Model):
     num_bon_engagement = models.IntegerField(default=0, verbose_name="N° Bon d'engagement")
     reference_marche = models.CharField(max_length=200, blank=True, verbose_name="Référence du marché")
     chapitre = models.CharField(max_length=100, blank=True, verbose_name="Chapitre")
-    bon_entree = models.ForeignKey(
-        BonEntree, on_delete=models.SET_NULL, null=True, blank=True, verbose_name="Bon d'entrée lié"
-    )
+    statut = models.CharField(max_length=10, choices=STATUT_CHOICES, default='en_cours', verbose_name="Statut")
 
     class Meta:
         verbose_name = "Marché"
@@ -456,6 +464,13 @@ class Marche(models.Model):
 
     def total_ttc(self):
         return sum(d.montant_ttc for d in self.details.all())
+
+    def total_livre(self):
+        """Somme des bons d'entrée déjà réceptionnés contre ce marché."""
+        return sum(be.total_ttc() for be in self.bons_entree.all())
+
+    def solde_restant(self):
+        return self.total_ttc() - self.total_livre()
 
 
 class DetailMarche(models.Model):

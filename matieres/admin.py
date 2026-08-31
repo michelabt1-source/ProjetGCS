@@ -175,8 +175,8 @@ class StockDepotAdmin(admin.ModelAdmin):
 
 @admin.register(BonEntree)
 class BonEntreeAdmin(admin.ModelAdmin):
-    list_display = ['num_bon', 'date_creation', 'depot', 'fournisseur', 'valide']
-    list_filter = ['valide', 'depot', 'annee_exercice']
+    list_display = ['num_bon', 'date_creation', 'depot', 'fournisseur', 'marche', 'valide']
+    list_filter = ['valide', 'depot', 'annee_exercice', 'marche']
     search_fields = ['num_bon']
     inlines = [DetailBonEntreeInline]
     date_hierarchy = 'date_creation'
@@ -242,7 +242,8 @@ class JournalAdmin(admin.ModelAdmin):
 
 @admin.register(Marche)
 class MarcheAdmin(admin.ModelAdmin):
-    list_display = ['num_marche', 'date_creation', 'date_debut', 'date_fin', 'fournisseur', 'num_bon_engagement']
+    list_display = ['num_marche', 'date_creation', 'date_debut', 'date_fin', 'fournisseur', 'num_bon_engagement', 'statut']
+    list_filter = ['statut', 'fournisseur']
     search_fields = ['num_marche', 'reference_marche']
     inlines = [DetailMarcheInline]
 
