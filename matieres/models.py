@@ -485,6 +485,10 @@ class DetailMarche(models.Model):
     prix_ttc = models.DecimalField(max_digits=15, decimal_places=2, default=0, verbose_name="Prix TTC")
     montant_ttc = models.DecimalField(max_digits=15, decimal_places=2, default=0, verbose_name="Montant TTC")
     observation = models.TextField(blank=True, verbose_name="Observation")
+    expression_source = models.ForeignKey(
+        'DetailExpressionBesoin', on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='lignes_marche', verbose_name="Ligne d'expression de besoin source"
+    )
 
     class Meta:
         verbose_name = "Détail du marché"
@@ -498,7 +502,7 @@ class ExpressionBesoin(models.Model):
     STATUT_CHOICES = [
         ('nouveau', 'Nouveau'),
         ('recu', 'Reçu par comptable'),
-        ('transforme', 'Transformé en BSD'),
+        ('consolide', 'Consolidée dans un marché'),
     ]
 
     reference = models.CharField(max_length=100, blank=True, verbose_name="Référence")
@@ -512,8 +516,9 @@ class ExpressionBesoin(models.Model):
     recu_par_comptable = models.BooleanField(default=False, verbose_name="Reçu par le comptable")
     statut = models.CharField(max_length=20, choices=STATUT_CHOICES, default='nouveau', verbose_name="Statut")
     date_reception_comptable = models.DateField(null=True, blank=True, verbose_name="Date de réception comptable")
-    bon_sortie_definitive = models.ForeignKey(
-        'BonSortieDefinitive', on_delete=models.SET_NULL, null=True, blank=True, verbose_name="Bon de sortie définitive lié"
+    marche = models.ForeignKey(
+        'Marche', on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='expressions_besoin', verbose_name="Marché lié"
     )
 
     class Meta:
@@ -527,29 +532,20 @@ class ExpressionBesoin(models.Model):
     def total_ttc(self):
         return sum(d.montant_ttc for d in self.details.all())
 
-    def transform_to_bsd(self):
-        """Transforme cette expression de besoin en Bon de Sortie Définitive Groupe 2
-        (matières de consommation) une fois le matériel disponible. Idempotent."""
-        if self.statut == 'transforme' and self.bon_sortie_definitive_id:
-            return self.bon_sortie_definitive
+    def consolider_dans_marche(self, marche):
+        """Consolide cette expression de besoin (reçue par le comptable) dans un marché
+        en cours : chaque ligne exprimée devient une ligne du marché, appel d'offres
+        et contrat fournisseur restant à la charge du marché lui-même. Idempotent."""
+        if self.statut == 'consolide' and self.marche_id:
+            return self.marche
+        if not self.recu_par_comptable:
+            raise ValueError("Cette expression n'a pas encore été reçue par le comptable des matières.")
+        if marche.statut != 'en_cours':
+            raise ValueError("Le marché sélectionné n'est pas en cours.")
 
-        from datetime import date as _date
-        last = BonSortieDefinitive.objects.filter(groupe='2').order_by('-num_bon').first()
-        next_num = (last.num_bon + 1) if last else 1
-
-        bsd = BonSortieDefinitive.objects.create(
-            num_bon=next_num,
-            date_creation=_date.today(),
-            annee_exercice=_date.today().year,
-            groupe='2',
-            type_sortie="Expression de besoin",
-            service=self.demandeur_service,
-            bureau=self.demandeur_bureau,
-            observation=f"Généré depuis l'expression de besoin {self.reference or ('#' + str(self.pk))}",
-        )
         for d in self.details.all():
-            DetailBonSortieDefinitive.objects.create(
-                bon_sortie_d=bsd,
+            DetailMarche.objects.create(
+                marche=marche,
                 produit=d.produit,
                 designation=d.designation,
                 nomenclature=d.nomenclature,
@@ -560,12 +556,13 @@ class ExpressionBesoin(models.Model):
                 prix_ttc=d.prix_ttc,
                 montant_ttc=d.montant_ttc,
                 observation=d.observation,
+                expression_source=d,
             )
 
-        self.bon_sortie_definitive = bsd
-        self.statut = 'transforme'
-        self.save(update_fields=['bon_sortie_definitive', 'statut'])
-        return bsd
+        self.marche = marche
+        self.statut = 'consolide'
+        self.save(update_fields=['marche', 'statut'])
+        return marche
 
 
 class DetailExpressionBesoin(models.Model):

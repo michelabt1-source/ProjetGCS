@@ -6,9 +6,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>{% block title %}{{ page_title|default:"Gestima" }}{% endblock %} — Gestima</title>
   <link rel="icon" type="image/svg+xml" href="{% static 'brand/gestima-icon.svg' %}">
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://unpkg.com/htmx.org@1.9.10"></script>
-  <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+  <script src="{% static 'vendor/tailwind.js' %}"></script>
+  <script src="{% static 'vendor/htmx.js' %}"></script>
+  <script src="{% static 'vendor/apexcharts.js' %}"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@600;700&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
   <script>tailwind.config={theme:{extend:{colors:{primary:{50:'#f5f3ff',100:'#ede9fe',200:'#ddd6fe',300:'#c4b5fd',400:'#a78bfa',500:'#8b5cf6',600:'#7c4fe0',700:'#6d28d9',800:'#5b21b6',900:'#4c1d95',950:'#2e1065'}}}}}</script>
@@ -97,7 +97,17 @@
     .logo-sub  { font-size: 10px; color: var(--text-3); font-weight: 500; margin-top: 2px; line-height: 1; letter-spacing: .04em; text-transform: uppercase; }
 
     /* Tab navigation */
-    .tab-nav { display: flex; align-items: center; gap: 2px; flex: 1; }
+    .tab-nav {
+      display: flex;
+      align-items: center;
+      gap: 2px;
+      flex: 1;
+      min-width: 0;
+      overflow-x: auto;
+      scrollbar-width: none;
+      -ms-overflow-style: none;
+    }
+    .tab-nav::-webkit-scrollbar { display: none; }
 
     .tab-btn {
       position: relative;

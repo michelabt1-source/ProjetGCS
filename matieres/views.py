@@ -416,6 +416,7 @@ def marche_detail(request, pk):
         'marche': marche,
         'details': marche.details.all(),
         'bons_entree': marche.bons_entree.select_related('depot').order_by('-date_creation'),
+        'expressions_besoin': marche.expressions_besoin.select_related('demandeur_service').order_by('-date_creation'),
     }
     return render(request, 'marches/detail.html', context)
 
@@ -488,7 +489,7 @@ def expression_create(request):
                 demandeur_bureau_id=bureau_id,
             )
             messages.success(request, f"Expression de besoin créée (#{expr.id}).")
-            return redirect('matieres:expressions_list')
+            return redirect('matieres:expression_update', pk=expr.pk)
         except Exception as e:
             messages.error(request, f"Erreur: {e}")
 
@@ -499,20 +500,43 @@ def expression_create(request):
 @login_required
 def expression_detail(request, pk):
     expr = get_object_or_404(ExpressionBesoin, pk=pk)
-    context = {'page_title': f'Expression #{expr.id}', 'expression': expr, 'details': expr.details.all()}
+    context = {
+        'page_title': f'Expression #{expr.id}',
+        'expression': expr,
+        'details': expr.details.all(),
+        'marches_en_cours': Marche.objects.filter(statut='en_cours').order_by('-date_creation'),
+    }
     return render(request, 'expressions/detail.html', context)
 
 
 @login_required
-def expression_transform(request, pk):
+def expression_recevoir(request, pk):
+    expr = get_object_or_404(ExpressionBesoin, pk=pk)
+    if request.method == 'POST' and not expr.recu_par_comptable:
+        expr.recu_par_comptable = True
+        expr.date_reception_comptable = date.today()
+        if expr.statut == 'nouveau':
+            expr.statut = 'recu'
+        expr.save(update_fields=['recu_par_comptable', 'date_reception_comptable', 'statut'])
+        messages.success(request, "Expression marquée reçue par le comptable des matières.")
+    return redirect('matieres:expression_detail', pk=pk)
+
+
+@login_required
+def expression_consolider(request, pk):
     expr = get_object_or_404(ExpressionBesoin, pk=pk)
     if request.method == 'POST':
-        try:
-            bsd = expr.transform_to_bsd()
-            messages.success(request, f"Expression transformée en Bon de sortie définitive N°{bsd.num_bon:04d}.")
-        except Exception as e:
-            messages.error(request, f"Erreur lors de la transformation : {e}")
-    return redirect('matieres:expressions_list')
+        marche_id = request.POST.get('marche_id') or None
+        marche = Marche.objects.filter(pk=marche_id).first() if marche_id else None
+        if not marche:
+            messages.error(request, "Sélectionnez un marché en cours avant de consolider.")
+        else:
+            try:
+                expr.consolider_dans_marche(marche)
+                messages.success(request, f"Expression consolidée dans le marché {marche.num_marche}.")
+            except ValueError as e:
+                messages.error(request, str(e))
+    return redirect('matieres:expression_detail', pk=pk)
 
 
 @login_required
@@ -539,6 +563,7 @@ def marche_update(request, pk):
         'unites': Unite.objects.all(),
         'today': date.today(),
         'bons_entree': marche.bons_entree.select_related('depot').order_by('-date_creation'),
+        'expressions_besoin': marche.expressions_besoin.select_related('demandeur_service').order_by('-date_creation'),
     }
     return render(request, 'marches/update.html', context)
 
@@ -547,19 +572,25 @@ def marche_update(request, pk):
 @login_required
 def expression_update(request, pk):
     expr = get_object_or_404(ExpressionBesoin, pk=pk)
-    if request.method == 'POST':
+    editable = expr.statut != 'consolide'
+    if request.method == 'POST' and editable:
         expr.reference = request.POST.get('reference', expr.reference)
         expr.date_creation = request.POST.get('date_creation') or expr.date_creation
         expr.demandeur_service_id = request.POST.get('service') or None
         expr.demandeur_bureau_id = request.POST.get('bureau') or None
-        expr.recu_par_comptable = bool(request.POST.get('recu_par_comptable'))
-        if expr.recu_par_comptable and not expr.date_reception_comptable:
-            expr.date_reception_comptable = date.today()
         expr.save()
         messages.success(request, "Expression mise à jour.")
-        return redirect('matieres:expression_detail', pk=pk)
+        return redirect('matieres:expression_update', pk=pk)
 
-    context = {'page_title': f'Expression #{expr.id}', 'expression': expr, 'services': Service.objects.all(), 'bureaux': Bureau.objects.all(), 'today': date.today()}
+    context = {
+        'page_title': f'Expression #{expr.id}',
+        'expression': expr,
+        'editable': editable,
+        'services': Service.objects.all(),
+        'bureaux': Bureau.objects.all(),
+        'unites': Unite.objects.all(),
+        'today': date.today(),
+    }
     return render(request, 'expressions/update.html', context)
 
 
@@ -606,7 +637,7 @@ def htmx_marche_delete_detail(request, detail_pk):
 @login_required
 def htmx_expression_add_detail(request, pk):
     expr = get_object_or_404(ExpressionBesoin, pk=pk)
-    if request.method == 'POST':
+    if request.method == 'POST' and expr.statut != 'consolide':
         designation = request.POST.get('designation', '').strip()
         if designation:
             produit_id = request.POST.get('produit_id') or None
@@ -637,7 +668,8 @@ def htmx_expression_add_detail(request, pk):
 def htmx_expression_delete_detail(request, detail_pk):
     detail = get_object_or_404(DetailExpressionBesoin, pk=detail_pk)
     expr = detail.expression
-    detail.delete()
+    if expr.statut != 'consolide':
+        detail.delete()
     details = expr.details.select_related('produit', 'unite').all()
     return render(request, 'partials/expression_detail_rows.html', {'details': details, 'expression': expr})
 
@@ -3180,6 +3212,7 @@ def bon_commande_service_rejeter(request, pk):
         bon.save(update_fields=['statut', 'motif_rejet'])
         messages.warning(request, f"BCS-{bon.num_bon:04d} rejeté.")
     return redirect('matieres:bon_commande_service_update', pk=pk)
+     
 
 
 def _is_bcs_owner(user, bon):

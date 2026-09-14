@@ -1,14 +1,54 @@
 {% extends 'base.html' %}
-{% block title %}Nouvelle expression{% endblock %}
 {% block content %}
-<div class="p-6">
-  <h1 class="text-2xl font-bold mb-4">Nouvelle expression de besoin</h1>
-  <form method="post">{% csrf_token %}
-    <div><label>Référence</label><input name="reference"></div>
-    <div><label>Date</label><input type="date" name="date_creation" value="{{ today }}"></div>
-    <div><label>Service</label><select name="service"><option value="">—</option>{% for s in services %}<option value="{{ s.pk }}">{{ s }}</option>{% endfor %}</select></div>
-    <div><label>Bureau</label><select name="bureau"><option value="">—</option>{% for b in bureaux %}<option value="{{ b.pk }}">{{ b }}</option>{% endfor %}</select></div>
-    <div class="mt-4"><button class="btn" type="submit">Créer</button></div>
-  </form>
+<div class="p-6 max-w-2xl mx-auto">
+
+  <div class="flex items-center gap-2 mb-5 text-sm text-slate-400">
+    <a href="{% url 'matieres:expressions_list' %}" class="hover:text-indigo-600 transition-colors">Expressions de besoins</a>
+    <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    <span class="text-slate-600 font-semibold">Nouvelle expression</span>
+  </div>
+
+  <div class="bg-white border border-slate-200 rounded-2xl shadow-sm p-6">
+    <form method="post" action="{% url 'matieres:expression_create' %}">
+      {% csrf_token %}
+      <div class="grid grid-cols-2 gap-4">
+        <div>
+          <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1">Référence</label>
+          <input type="text" name="reference" placeholder="Ex. EB-2026/014"
+                 class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none">
+        </div>
+        <div>
+          <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1">Date de création *</label>
+          <input type="date" name="date_creation" value="{{ today|date:'Y-m-d' }}" required
+                 class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none">
+        </div>
+        <div>
+          <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1">Service demandeur</label>
+          <select name="service" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm bg-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none">
+            <option value="">— Sélectionner —</option>
+            {% for s in services %}<option value="{{ s.pk }}">{{ s }}</option>{% endfor %}
+          </select>
+        </div>
+        <div>
+          <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1">Bureau demandeur</label>
+          <select name="bureau" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm bg-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none">
+            <option value="">— Sélectionner —</option>
+            {% for b in bureaux %}<option value="{{ b.pk }}">{{ b }}</option>{% endfor %}
+          </select>
+        </div>
+      </div>
+
+      <p class="text-xs text-slate-400 mt-3">Les articles demandés se saisissent une fois l'expression créée, depuis sa fiche.</p>
+
+      <div class="mt-5 flex items-center gap-2">
+        <a href="{% url 'matieres:expressions_list' %}" class="px-4 py-2 text-sm font-semibold text-slate-500 hover:text-slate-700">Annuler</a>
+        <button type="submit"
+                class="ml-auto inline-flex items-center gap-2 px-5 py-2.5 bg-indigo-600 text-white rounded-xl text-sm font-semibold shadow-sm hover:bg-indigo-700 transition-colors">
+          <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+          Créer et saisir les articles
+        </button>
+      </div>
+    </form>
+  </div>
 </div>
 {% endblock %}

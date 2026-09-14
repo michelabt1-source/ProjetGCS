@@ -39,7 +39,7 @@
         </div>
       </div>
       <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold whitespace-nowrap
-        {% if expression.statut == 'transforme' %}bg-emerald-50 text-emerald-700 border border-emerald-200
+        {% if expression.statut == 'consolide' %}bg-emerald-50 text-emerald-700 border border-emerald-200
         {% elif expression.statut == 'recu' %}bg-amber-50 text-amber-700 border border-amber-200
         {% else %}bg-slate-100 text-slate-500 border border-slate-200{% endif %}">
         <span class="w-1.5 h-1.5 rounded-full bg-current"></span>
@@ -53,22 +53,43 @@
     </div>
     {% endif %}
 
-    {% if expression.statut == 'transforme' and expression.bon_sortie_definitive %}
+    {% if expression.statut == 'consolide' and expression.marche %}
     <div class="px-4 py-2.5 bg-emerald-50 border border-emerald-200 rounded-lg text-sm text-emerald-700 flex items-center gap-2">
       <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-      Transformée en {{ expression.bon_sortie_definitive }}
+      Consolidée dans le marché
+      <a href="{% url 'matieres:marche_detail' expression.marche.pk %}" class="font-semibold underline hover:no-underline">{{ expression.marche.num_marche }}</a>
     </div>
     {% elif expression.recu_par_comptable %}
-    <form method="post" action="{% url 'matieres:expression_transform' expression.pk %}"
-          onsubmit="return confirm('Transformer cette expression de besoin en Bon de Sortie Définitive (matières de consommation) ?')">
+    <form method="post" action="{% url 'matieres:expression_consolider' expression.pk %}"
+          onsubmit="return confirm('Consolider cette expression de besoin dans le marché sélectionné ?')"
+          class="flex items-end gap-3 flex-wrap">
       {% csrf_token %}
+      <div class="flex-1 min-w-[220px]">
+        <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1">Marché en cours</label>
+        <select name="marche_id" required class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm bg-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none">
+          <option value="">— Sélectionner —</option>
+          {% for m in marches_en_cours %}<option value="{{ m.pk }}">{{ m.num_marche }}{% if m.reference_marche %} — {{ m.reference_marche }}{% endif %}</option>{% endfor %}
+        </select>
+      </div>
       <button type="submit" class="inline-flex items-center gap-2 px-4 py-2.5 bg-indigo-600 text-white rounded-xl text-sm font-semibold shadow-sm hover:bg-indigo-700 transition-colors">
         <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
-        Transformer en Bon de Sortie Définitive
+        Consolider dans ce marché
       </button>
+      <a href="{% url 'matieres:marche_create' %}" class="text-xs font-semibold text-indigo-600 hover:text-indigo-700">+ Nouveau marché</a>
+      {% if not marches_en_cours %}
+      <div class="w-full text-xs text-amber-600">Aucun marché en cours — créez-en un avant de consolider cette expression.</div>
+      {% endif %}
     </form>
     {% else %}
-    <div class="text-xs text-slate-400">En attente de réception par le comptable des matières avant transformation.</div>
+    <div class="flex items-center justify-between gap-3">
+      <div class="text-xs text-slate-400">En attente de réception par le comptable des matières avant consolidation dans un marché.</div>
+      <form method="post" action="{% url 'matieres:expression_recevoir' expression.pk %}">
+        {% csrf_token %}
+        <button type="submit" class="inline-flex items-center gap-2 px-4 py-2 bg-white text-indigo-600 border border-indigo-200 rounded-lg text-sm font-semibold hover:bg-indigo-50 transition-colors whitespace-nowrap">
+          Marquer reçue par le comptable
+        </button>
+      </form>
+    </div>
     {% endif %}
   </div>
 

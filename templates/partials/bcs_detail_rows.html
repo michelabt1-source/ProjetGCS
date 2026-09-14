@@ -18,7 +18,10 @@
         {{ d.designation }}
         {% if d.nomenclature %}<span class="text-slate-400 font-normal text-xs ml-1">({{ d.nomenclature }})</span>{% endif %}
       </td>
-      <td class="px-4 py-2.5 text-right font-semibold">{{ d.qte_commandee }}</td>
+      <td class="px-4 py-2.5 text-right">
+        <span class="text-base font-bold text-indigo-700">{{ d.qte_commandee }}</span>
+        {% if d.unite %}<span class="text-xs font-medium text-slate-400 ml-1">{{ d.unite.libelle }}</span>{% endif %}
+      </td>
       <td class="px-4 py-2.5 text-right font-semibold {% if d.qte_livree > 0 %}text-emerald-600{% else %}text-slate-400{% endif %}">{{ d.qte_livree }}</td>
       {% if bon.statut == 'brouillon' or bon.statut == 'rejete' %}
       <td class="px-4 py-2.5 text-center">
