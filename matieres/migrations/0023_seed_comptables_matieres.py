@@ -1,3 +1,4 @@
+from django.contrib.auth.hashers import make_password
 from django.db import migrations
 
 
@@ -40,7 +41,7 @@ def seed(apps, schema_editor):
     for username, first, last, depot_code in COMPTES:
         user, user_created = User.objects.get_or_create(username=username)
         if user_created:
-            user.set_unusable_password()
+            user.password = make_password(None)
             user.first_name = first
             user.last_name = last
             user.is_active = True

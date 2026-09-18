@@ -1,6 +1,37 @@
 {% extends 'base.html' %}
 {% load humanize %}
 {% block content %}
+<style>
+  .marches-lines-table { width:100%; min-width:920px; border-collapse:collapse; table-layout:fixed; font-size:12.5px; }
+  .marches-lines-table th { background:#f8fafc; color:#64748b; font-size:10.5px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; padding:9px 10px; text-align:left; border-bottom:1px solid #e2e8f0; white-space:nowrap; }
+  .marches-lines-table th:nth-child(1) { width:20%; }
+  .marches-lines-table th:nth-child(2) { width:12%; }
+  .marches-lines-table th:nth-child(3) { width:16%; }
+  .marches-lines-table th:nth-child(4) { width:7%; }
+  .marches-lines-table th:nth-child(5) { width:10%; }
+  .marches-lines-table th:nth-child(6), .marches-lines-table th:nth-child(7), .marches-lines-table th:nth-child(8) { width:10%; }
+  .marches-lines-table th:last-child { width:95px; }
+  .marches-lines-table td { padding:8px 10px; border-bottom:1px solid #f1f5f9; vertical-align:middle; color:#334155; overflow:hidden; }
+  .marches-lines-table tbody tr:hover td { background:#f8faff; }
+  .marches-cell-primary, .marches-cell-muted { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .marches-cell-primary { font-weight:600; color:#1e293b; }
+  .marches-cell-muted { color:#64748b; font-size:11.5px; }
+  .marches-cell-mono { color:#6366f1; font-family:'IBM Plex Mono',monospace; font-size:11.5px; white-space:nowrap; }
+  .marches-cell-number { text-align:right; white-space:nowrap; font-variant-numeric:tabular-nums; }
+  .marches-total { color:#059669; font-weight:700; }
+  .marches-lines-table tfoot td { padding:9px 10px; border-top:2px solid #e2e8f0; background:#f8fafc; font-weight:700; color:#1e293b; }
+  .marches-empty { padding:24px!important; text-align:center; color:#94a3b8!important; }
+  .marches-edit-grid { display:grid; grid-template-columns:minmax(0,2fr) minmax(0,1fr) minmax(0,1.2fr) minmax(70px,.65fr) minmax(90px,.8fr) minmax(100px,1fr) minmax(110px,1fr); gap:8px; align-items:end; width:100%; }
+  .marches-edit-grid > * { min-width:0; }
+  .marches-edit-grid input, .marches-edit-grid select { max-width:100%; min-width:0; }
+  .marches-form-actions { display:flex; justify-content:flex-end; align-items:center; gap:8px; margin-top:16px; }
+  .marches-cancel-button { padding:9px 14px; border:1px solid #cbd5e1; border-radius:8px; background:#fff; color:#64748b; font-size:12px; font-weight:600; cursor:pointer; }
+  .marches-cancel-button:hover { background:#f8fafc; color:#334155; }
+  .btn-edit-line { padding:4px 8px; border:1px solid #c7d2fe; border-radius:5px; background:#eef2ff; color:#4f46e5; cursor:pointer; font-size:11px; }
+  .btn-edit-line:hover { background:#e0e7ff; }
+  .btn-del-line { display:inline-flex; align-items:center; justify-content:center; width:22px; height:22px; margin-left:4px; border:1px solid #fecaca; border-radius:6px; background:#fef2f2; color:#ef4444; cursor:pointer; font-weight:700; }
+  @media (max-width: 900px) { .marches-lines-table { min-width:900px; } .marches-edit-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } .marches-edit-grid > :first-child { grid-column:1 / -1; } }
+</style>
 <div class="p-6 max-w-5xl mx-auto">
 
   <div class="flex items-center gap-2 mb-5 text-sm text-slate-400">
@@ -116,21 +147,39 @@
       {% if editable %}
       <div class="bg-white border border-slate-200 rounded-2xl shadow-sm p-5">
         <div class="text-[11px] font-bold text-indigo-600 uppercase tracking-wide mb-4">Ajouter un article du marché</div>
-        <form hx-post="{% url 'matieres:htmx_marche_add_detail' marche.pk %}" hx-target="#marche-detail-rows" hx-swap="innerHTML"
-              hx-on::after-request="this.reset()">
+        <form id="marche-article-form" hx-post="{% url 'matieres:htmx_marche_add_detail' marche.pk %}" hx-target="#marche-detail-rows" hx-swap="innerHTML"
+            hx-on::after-request="if (event.detail.elt === this) resetMarcheArticleForm(this)">
           {% csrf_token %}
           <div class="grid grid-cols-2 gap-3">
             <div class="col-span-2">
-              <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1">Désignation *</label>
-              <input name="designation" required class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none">
+              <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1">
+                Désignation *
+                <span class="font-normal normal-case tracking-normal text-slate-400"> — recherchez dans les produits par désignation ou nomenclature</span>
+              </label>
+              <div class="relative">
+                <input id="marche-designation" name="designation" required autocomplete="off"
+                       placeholder="Tapez une désignation ou une nomenclature..."
+                       hx-get="{% url 'matieres:htmx_marche_produit_search' %}"
+                       hx-trigger="keyup changed delay:250ms"
+                       hx-target="#marche-produit-results"
+                       class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none">
+                <button type="button" title="Afficher les produits" aria-label="Afficher les produits"
+                        hx-get="{% url 'matieres:htmx_marche_produit_search' %}?all=1"
+                        hx-target="#marche-produit-results"
+                        class="absolute right-2 top-1/2 -translate-y-1/2 inline-flex items-center justify-center w-7 h-7 rounded-md bg-indigo-600 text-white hover:bg-indigo-700">
+                  <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7z"/></svg>
+                </button>
+                <input type="hidden" name="produit_id" id="marche-produit-id">
+                <div id="marche-produit-results" class="absolute z-20 left-0 right-0 mt-1 bg-white border border-slate-200 rounded-lg shadow-lg overflow-hidden max-h-72 overflow-y-auto"></div>
+              </div>
             </div>
             <div>
               <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1">Nomenclature</label>
-              <input name="nomenclature" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm font-mono focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none">
+              <input name="nomenclature" id="marche-nomenclature" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm font-mono focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none">
             </div>
             <div>
               <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1">Spécification</label>
-              <input name="specification" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none">
+              <input name="specification" id="marche-specification" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none">
             </div>
             <div>
               <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1">Quantité</label>
@@ -138,24 +187,27 @@
             </div>
             <div>
               <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1">Unité</label>
-              <select name="unite_id" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm bg-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none">
+              <select name="unite_id" id="marche-unite" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm bg-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none">
                 <option value="">—</option>
                 {% for u in unites %}<option value="{{ u.pk }}">{{ u.libelle }}</option>{% endfor %}
               </select>
             </div>
             <div>
-              <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1">Prix HT</label>
-              <input type="number" name="prix_ht" min="0" step="0.01" value="0" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm text-right focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none">
+              <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1">Prix unitaire HT</label>
+              <input type="number" name="prix_ht" id="marche-prix-ht" min="0" step="0.01" value="0" oninput="calcMarcheTtcFromHt()" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm text-right focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none">
             </div>
             <div>
-              <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1">Prix TTC</label>
-              <input type="number" name="prix_ttc" min="0" step="0.01" value="0" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm text-right focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none">
+              <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1">Prix unitaire TTC <span class="font-normal text-emerald-600">TVA 18 %</span></label>
+              <input type="number" name="prix_ttc" id="marche-prix-ttc" min="0" step="0.01" value="0" oninput="calcMarcheHtFromTtc()" class="w-full px-3 py-2 border border-emerald-200 rounded-lg text-sm text-right text-emerald-700 font-semibold focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 outline-none">
             </div>
           </div>
-          <button type="submit" class="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm font-semibold hover:bg-emerald-700 transition-colors">
-            <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
-            Ajouter la ligne
-          </button>
+          <div class="marches-form-actions">
+            <button type="button" class="marches-cancel-button" onclick="resetMarcheArticleForm(document.getElementById('marche-article-form'))">Annuler</button>
+            <button type="submit" class="inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm font-semibold hover:bg-emerald-700 transition-colors">
+              <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+              Ajouter la ligne
+            </button>
+          </div>
         </form>
       </div>
       {% endif %}
@@ -227,4 +279,53 @@
     </div>
   </div>
 </div>
+<script>
+function selectMarcheProduit(id, designation, nomenclature, specification, uniteId) {
+  document.getElementById('marche-produit-id').value = id;
+  document.getElementById('marche-designation').value = designation;
+  document.getElementById('marche-nomenclature').value = nomenclature;
+  document.getElementById('marche-specification').value = specification;
+  document.getElementById('marche-unite').value = uniteId || '';
+  document.getElementById('marche-produit-results').innerHTML = '';
+}
+
+function selectMarcheEditProduit(id, designation, nomenclature, specification, uniteId) {
+  const result = document.querySelector('[id^="marche-edit-results-"]:not(:empty)');
+  if (!result) return;
+  const suffix = result.id.replace('marche-edit-results-', '');
+  document.getElementById('marche-edit-produit-id-' + suffix).value = id;
+  document.getElementById('marche-edit-designation-' + suffix).value = designation;
+  document.getElementById('marche-edit-nomenclature-' + suffix).value = nomenclature;
+  document.getElementById('marche-edit-specification-' + suffix).value = specification;
+  document.getElementById('marche-edit-unite-' + suffix).value = uniteId || '';
+  result.innerHTML = '';
+}
+
+function resetMarcheArticleForm(form) {
+  form.reset();
+  document.getElementById('marche-produit-id').value = '';
+  document.getElementById('marche-produit-results').innerHTML = '';
+  document.getElementById('marche-designation').focus();
+}
+
+function calcMarcheTtcFromHt() {
+  const ht = parseFloat(document.getElementById('marche-prix-ht').value) || 0;
+  document.getElementById('marche-prix-ttc').value = (Math.round(ht * 118) / 100).toFixed(2);
+}
+
+function calcMarcheHtFromTtc() {
+  const ttc = parseFloat(document.getElementById('marche-prix-ttc').value) || 0;
+  document.getElementById('marche-prix-ht').value = (Math.round((ttc / 1.18) * 100) / 100).toFixed(2);
+}
+
+function calcMarcheEditTtcFromHt(id) {
+  const ht = parseFloat(document.getElementById('marche-edit-prix-ht-' + id).value) || 0;
+  document.getElementById('marche-edit-prix-ttc-' + id).value = (Math.round(ht * 118) / 100).toFixed(2);
+}
+
+function calcMarcheEditHtFromTtc(id) {
+  const ttc = parseFloat(document.getElementById('marche-edit-prix-ttc-' + id).value) || 0;
+  document.getElementById('marche-edit-prix-ht-' + id).value = (Math.round((ttc / 1.18) * 100) / 100).toFixed(2);
+}
+</script>
 {% endblock %}

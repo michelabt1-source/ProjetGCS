@@ -1,0 +1,17 @@
+{% load humanize %}
+<tr>
+  <td><div class="marches-cell-primary" title="{{ detail.designation }}">{{ detail.designation }}</div></td>
+  <td class="marches-cell-mono">{{ detail.nomenclature }}</td>
+  <td><div class="marches-cell-muted" title="{{ detail.specification }}">{{ detail.specification|default:"—" }}</div></td>
+  <td class="marches-cell-number">{{ detail.qte }}</td>
+  <td class="marches-cell-muted">{{ detail.unite|default:"—" }}</td>
+  <td class="marches-cell-number">{{ detail.prix_ht|floatformat:0|intcomma }}</td>
+  <td class="marches-cell-number">{{ detail.prix_ttc|floatformat:0|intcomma }}</td>
+  <td class="marches-cell-number marches-total">{{ detail.montant_ttc|floatformat:0|intcomma }}</td>
+  <td style="text-align:center;white-space:nowrap">
+    {% if editable %}
+    <button type="button" class="btn-edit-line" hx-get="{% url 'matieres:htmx_marche_edit_detail' detail_pk=detail.pk %}" hx-target="closest tr" hx-swap="outerHTML">Modifier</button>
+    <button class="btn-del-line" hx-post="{% url 'matieres:htmx_marche_delete_detail' detail_pk=detail.pk %}" hx-target="#marche-detail-rows" hx-swap="innerHTML" hx-confirm="Supprimer cet article ?">×</button>
+    {% endif %}
+  </td>
+</tr>

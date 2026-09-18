@@ -85,6 +85,10 @@ urlpatterns = [
     path('marches/<int:pk>/annuler/', views.marche_annuler, name='marche_annuler'),
     path('marches/<int:pk>/reouvrir/', views.marche_reouvrir, name='marche_reouvrir'),
     path('htmx/marche/<int:pk>/add-detail/', views.htmx_marche_add_detail, name='htmx_marche_add_detail'),
+    path('htmx/marche/produit-search/', views.htmx_marche_produit_search, name='htmx_marche_produit_search'),
+    path('htmx/marche/detail/<int:detail_pk>/edit/', views.htmx_marche_edit_detail, name='htmx_marche_edit_detail'),
+    path('htmx/marche/detail/<int:detail_pk>/row/', views.htmx_marche_detail_row, name='htmx_marche_detail_row'),
+    path('htmx/marche/detail/<int:detail_pk>/update/', views.htmx_marche_update_detail, name='htmx_marche_update_detail'),
     path('htmx/marche/detail/<int:detail_pk>/delete/', views.htmx_marche_delete_detail, name='htmx_marche_delete_detail'),
 
     # Expressions de besoins

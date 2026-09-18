@@ -385,8 +385,17 @@ def marches_list(request):
 def marche_create(request):
     if request.method == 'POST':
         try:
-            num_marche = request.POST.get('num_marche')
-            date_creation = request.POST.get('date_creation')
+            num_marche = request.POST.get('num_marche', '').strip()
+            date_creation = request.POST.get('date_creation') or None
+            date_debut = request.POST.get('date_debut') or None
+            date_fin = request.POST.get('date_fin') or None
+            if not num_marche:
+                raise ValueError("Le numéro du marché est obligatoire.")
+            if not date_creation:
+                raise ValueError("La date de création est obligatoire.")
+            date_creation = date.fromisoformat(date_creation)
+            if date_debut and date_fin and date.fromisoformat(date_fin) < date.fromisoformat(date_debut):
+                raise ValueError("La date de fin doit être postérieure ou égale à la date de début.")
             fournisseur_id = request.POST.get('fournisseur') or None
             num_bon_engagement = int(request.POST.get('num_bon_engagement') or 0)
             reference_marche = request.POST.get('reference_marche', '')
@@ -394,17 +403,24 @@ def marche_create(request):
             marche = Marche.objects.create(
                 num_marche=num_marche,
                 date_creation=date_creation,
+                date_debut=date_debut,
+                date_fin=date_fin,
                 fournisseur_id=fournisseur_id,
                 num_bon_engagement=num_bon_engagement,
                 reference_marche=reference_marche,
                 chapitre=chapitre,
             )
             messages.success(request, f"Marché {marche.num_marche} créé.")
-            return redirect('matieres:marches_list')
+            return redirect('matieres:marche_update', pk=marche.pk)
         except Exception as e:
             messages.error(request, f"Erreur: {e}")
 
-    context = {'page_title': 'Nouveau marché', 'fournisseurs': Fournisseur.objects.all(), 'today': date.today()}
+    context = {
+        'page_title': 'Nouveau marché',
+        'fournisseurs': Fournisseur.objects.all(),
+        'today': date.today(),
+        'form_data': request.POST if request.method == 'POST' else {},
+    }
     return render(request, 'marches/form.html', context)
 
 
@@ -441,6 +457,12 @@ def marche_etat(request, pk):
 def marche_solder(request, pk):
     marche = get_object_or_404(Marche, pk=pk)
     if request.method == 'POST' and marche.statut == 'en_cours':
+        if not marche.details.exists():
+            messages.error(request, "Impossible de solder un marché sans article.")
+            return redirect('matieres:marche_update', pk=pk)
+        if marche.solde_restant() > 0:
+            messages.error(request, "Impossible de solder un marché dont le montant n'est pas entièrement livré.")
+            return redirect('matieres:marche_update', pk=pk)
         marche.statut = 'solde'
         marche.save(update_fields=['statut'])
         messages.success(request, f"Marché {marche.num_marche} soldé.")
@@ -532,6 +554,8 @@ def expression_consolider(request, pk):
             messages.error(request, "Sélectionnez un marché en cours avant de consolider.")
         else:
             try:
+                if not expr.details.exists():
+                    raise ValueError("Impossible de consolider une expression sans article.")
                 expr.consolider_dans_marche(marche)
                 messages.success(request, f"Expression consolidée dans le marché {marche.num_marche}.")
             except ValueError as e:
@@ -544,16 +568,21 @@ def marche_update(request, pk):
     marche = get_object_or_404(Marche, pk=pk)
     editable = marche.statut == 'en_cours'
     if request.method == 'POST' and editable:
-        marche.date_creation = request.POST.get('date_creation') or marche.date_creation
-        marche.date_debut = request.POST.get('date_debut') or None
-        marche.date_fin = request.POST.get('date_fin') or None
-        marche.fournisseur_id = request.POST.get('fournisseur') or None
-        marche.num_bon_engagement = int(request.POST.get('num_bon_engagement') or marche.num_bon_engagement)
-        marche.reference_marche = request.POST.get('reference_marche', marche.reference_marche)
-        marche.chapitre = request.POST.get('chapitre', marche.chapitre)
-        marche.save()
-        messages.success(request, "En-tête du marché mis à jour.")
-        return redirect('matieres:marche_update', pk=pk)
+        date_debut = request.POST.get('date_debut') or None
+        date_fin = request.POST.get('date_fin') or None
+        if date_debut and date_fin and date.fromisoformat(date_fin) < date.fromisoformat(date_debut):
+            messages.error(request, "La date de fin doit être postérieure ou égale à la date de début.")
+        else:
+            marche.date_creation = request.POST.get('date_creation') or marche.date_creation
+            marche.date_debut = date_debut
+            marche.date_fin = date_fin
+            marche.fournisseur_id = request.POST.get('fournisseur') or None
+            marche.num_bon_engagement = int(request.POST.get('num_bon_engagement') or marche.num_bon_engagement)
+            marche.reference_marche = request.POST.get('reference_marche', marche.reference_marche)
+            marche.chapitre = request.POST.get('chapitre', marche.chapitre)
+            marche.save()
+            messages.success(request, "En-tête du marché mis à jour.")
+            return redirect('matieres:marche_update', pk=pk)
 
     context = {
         'page_title': f'Marché {marche.num_marche}',
@@ -607,6 +636,12 @@ def htmx_marche_add_detail(request, pk):
             unite_id = request.POST.get('unite_id') or None
             prix_ht = Decimal(str(request.POST.get('prix_ht') or '0').replace(',', '.'))
             prix_ttc = Decimal(str(request.POST.get('prix_ttc') or '0').replace(',', '.'))
+            if qte <= 0 or prix_ht < 0 or prix_ttc < 0:
+                return _marche_detail_rows(request, marche)
+            if prix_ht and not prix_ttc:
+                prix_ttc = (prix_ht * Decimal('1.18')).quantize(Decimal('0.01'))
+            elif prix_ttc:
+                prix_ht = (prix_ttc / Decimal('1.18')).quantize(Decimal('0.01'))
             montant_ttc = qte * prix_ttc
             DetailMarche.objects.create(
                 marche=marche,
@@ -621,7 +656,80 @@ def htmx_marche_add_detail(request, pk):
                 montant_ttc=montant_ttc,
             )
     details = marche.details.select_related('produit', 'unite').all()
-    return render(request, 'partials/marche_detail_rows.html', {'details': details, 'marche': marche})
+    return render(request, 'partials/marche_detail_rows.html', {
+        'details': details,
+        'marche': marche,
+        'editable': marche.statut == 'en_cours',
+    })
+
+
+@login_required
+def htmx_marche_produit_search(request):
+    q = (request.GET.get('q') or request.GET.get('designation') or '').strip()
+    target = request.GET.get('target', 'add')
+    afficher_tous = request.GET.get('all') == '1'
+    produits = Produit.objects.select_related('unite').order_by('nomenclature') if afficher_tous else Produit.objects.none()
+    if q:
+        produits = Produit.objects.filter(
+            Q(designation__icontains=q) | Q(nomenclature__icontains=q)
+        ).select_related('unite').order_by('nomenclature')[:30]
+    elif afficher_tous:
+        produits = produits[:30]
+    return render(request, 'partials/marche_produit_search.html', {'produits': produits, 'target': target})
+
+
+@login_required
+def htmx_marche_edit_detail(request, detail_pk):
+    detail = get_object_or_404(DetailMarche, pk=detail_pk)
+    if detail.marche.statut != 'en_cours':
+        return render(request, 'partials/marche_detail_rows.html', {
+            'details': detail.marche.details.select_related('produit', 'unite').all(),
+            'marche': detail.marche,
+            'editable': False,
+        })
+    return render(request, 'partials/marche_detail_edit_row.html', {
+        'detail': detail,
+        'unites': Unite.objects.all(),
+    })
+
+
+@login_required
+def htmx_marche_detail_row(request, detail_pk):
+    detail = get_object_or_404(DetailMarche, pk=detail_pk)
+    return render(request, 'partials/marche_detail_row.html', {
+        'detail': detail,
+        'editable': detail.marche.statut == 'en_cours',
+    })
+
+
+@login_required
+def htmx_marche_update_detail(request, detail_pk):
+    detail = get_object_or_404(DetailMarche, pk=detail_pk)
+    marche = detail.marche
+    if request.method == 'POST' and marche.statut == 'en_cours':
+        designation = request.POST.get('designation', '').strip()
+        if designation:
+            detail.produit_id = request.POST.get('produit_id') or None
+            detail.designation = designation
+            detail.nomenclature = request.POST.get('nomenclature', '').strip()
+            detail.specification = request.POST.get('specification', '').strip()
+            detail.qte = int(request.POST.get('qte') or 0)
+            detail.unite_id = request.POST.get('unite_id') or None
+            detail.prix_ht = Decimal(str(request.POST.get('prix_ht') or '0').replace(',', '.'))
+            detail.prix_ttc = Decimal(str(request.POST.get('prix_ttc') or '0').replace(',', '.'))
+            if detail.qte <= 0 or detail.prix_ht < 0 or detail.prix_ttc < 0:
+                return _marche_detail_rows(request, marche)
+            if detail.prix_ht and not detail.prix_ttc:
+                detail.prix_ttc = (detail.prix_ht * Decimal('1.18')).quantize(Decimal('0.01'))
+            elif detail.prix_ttc:
+                detail.prix_ht = (detail.prix_ttc / Decimal('1.18')).quantize(Decimal('0.01'))
+            detail.montant_ttc = detail.qte * detail.prix_ttc
+            detail.save()
+    return render(request, 'partials/marche_detail_rows.html', {
+        'details': marche.details.select_related('produit', 'unite').all(),
+        'marche': marche,
+        'editable': marche.statut == 'en_cours',
+    })
 
 
 @login_required
@@ -631,7 +739,11 @@ def htmx_marche_delete_detail(request, detail_pk):
     if marche.statut == 'en_cours':
         detail.delete()
     details = marche.details.select_related('produit', 'unite').all()
-    return render(request, 'partials/marche_detail_rows.html', {'details': details, 'marche': marche})
+    return render(request, 'partials/marche_detail_rows.html', {
+        'details': details,
+        'marche': marche,
+        'editable': marche.statut == 'en_cours',
+    })
 
 
 @login_required
@@ -647,6 +759,8 @@ def htmx_expression_add_detail(request, pk):
             unite_id = request.POST.get('unite_id') or None
             prix_ht = Decimal(str(request.POST.get('prix_ht') or '0').replace(',', '.'))
             prix_ttc = Decimal(str(request.POST.get('prix_ttc') or '0').replace(',', '.'))
+            if qte <= 0 or prix_ht < 0 or prix_ttc < 0:
+                return _expression_detail_rows(request, expr)
             montant_ttc = qte * prix_ttc
             DetailExpressionBesoin.objects.create(
                 expression=expr,
@@ -662,6 +776,21 @@ def htmx_expression_add_detail(request, pk):
             )
     details = expr.details.select_related('produit', 'unite').all()
     return render(request, 'partials/expression_detail_rows.html', {'details': details, 'expression': expr})
+
+
+def _marche_detail_rows(request, marche):
+    return render(request, 'partials/marche_detail_rows.html', {
+        'details': marche.details.select_related('produit', 'unite').all(),
+        'marche': marche,
+        'editable': marche.statut == 'en_cours',
+    })
+
+
+def _expression_detail_rows(request, expr):
+    return render(request, 'partials/expression_detail_rows.html', {
+        'details': expr.details.select_related('produit', 'unite').all(),
+        'expression': expr,
+    })
 
 
 @login_required

@@ -19,9 +19,20 @@
         </div>
         <div>
           <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1">Date de création *</label>
-          <input type="date" name="date_creation" value="{{ today|date:'Y-m-d' }}" required
+          <input type="date" name="date_creation" value="{{ form_data.date_creation|default:today|date:'Y-m-d' }}" required
                  class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none">
         </div>
+        <div>
+          <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1">Début de la période</label>
+          <input type="date" name="date_debut" value="{{ form_data.date_debut|default:'' }}"
+                 class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none">
+        </div>
+        <div>
+          <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1">Fin de la période</label>
+          <input type="date" name="date_fin" value="{{ form_data.date_fin|default:'' }}"
+                 class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none">
+        </div>
+        
         <div class="col-span-2">
           <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1">Fournisseur</label>
           <select name="fournisseur"
@@ -47,7 +58,7 @@
         </div>
       </div>
 
-      <p class="text-xs text-slate-400 mt-3">Les dates de début / fin du marché se renseignent une fois le marché créé, depuis sa fiche.</p>
+      <p class="text-xs text-slate-400 mt-3">La période est facultative, mais lorsqu’elle est renseignée, la date de fin doit être postérieure ou égale à la date de début.</p>
 
       <div class="mt-5 flex items-center gap-2">
         <a href="{% url 'matieres:marches_list' %}" class="px-4 py-2 text-sm font-semibold text-slate-500 hover:text-slate-700">Annuler</a>
