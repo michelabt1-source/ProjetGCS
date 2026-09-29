@@ -210,15 +210,15 @@ body { background: var(--clr-bg); }
       </form>
     {% endif %}
 
-    <a href="{% url 'matieres:bon_sortie_def_g1_etat_sortie' bon.pk %}" target="_blank" class="btn btn-print" aria-label="État Bon de sortie définitive">
+    <a href="{% url 'matieres:bon_sortie_def_g1_etat_sortie' bon.pk %}" class="btn btn-print" aria-label="État Bon de sortie définitive">
       <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
       Bon de sortie définitive
     </a>
-    <a href="{% url 'matieres:bon_sortie_def_g1_etat' bon.pk %}" target="_blank" class="btn btn-print" aria-label="État officiel du PV">
+    <a href="{% url 'matieres:bon_sortie_def_g1_etat' bon.pk %}" class="btn btn-print" aria-label="État officiel du PV">
       <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
       Réforme (Modèle N°5)
     </a>
-    <a href="{% url 'matieres:bon_sortie_def_g1_etat_vd' bon.pk %}" target="_blank" class="btn btn-print" aria-label="État Vente/Destruction">
+    <a href="{% url 'matieres:bon_sortie_def_g1_etat_vd' bon.pk %}" class="btn btn-print" aria-label="État Vente/Destruction">
       <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
       Vente / Destruction (Modèle N°6)
     </a>

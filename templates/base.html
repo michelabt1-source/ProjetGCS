@@ -336,6 +336,19 @@
 
     .main-inner { padding: 24px; flex: 1; }
 
+    /* Bouton standard « Fermer » (pages sans bouton Retour/Fermer/Annuler) */
+    .page-fermer-bar { display: flex; justify-content: flex-end; padding: 12px 24px 0; }
+    .page-fermer-bar[hidden] { display: none; }
+    .page-fermer-btn {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 6px 14px; border-radius: 8px;
+      font-size: 13px; font-weight: 600; font-family: inherit;
+      color: #475569; background: #fff; border: 1px solid #cbd5e1;
+      text-decoration: none; box-shadow: 0 1px 2px rgba(15,23,42,.06);
+      transition: all 150ms;
+    }
+    .page-fermer-btn:hover { color: #dc2626; border-color: #fca5a5; background: #fef2f2; }
+
     /* Filet de sécurité : les inputs/select/textarea des pages claires (.card)
        héritent sinon la couleur de texte claire du thème sombre → illisible sur fond blanc */
     .main-area input:not([type=checkbox]):not([type=radio]),
@@ -983,6 +996,19 @@
     </div>
     {% endif %}
 
+    {% if fermer_url %}
+    <!-- Bouton standard « Fermer » : affiché seulement si la page n'a pas déjà
+         son propre lien Retour / Fermer / Annuler (voir script plus bas). -->
+    <div class="page-fermer-bar" id="page-fermer-bar" hidden>
+      <a href="{{ fermer_url }}" class="page-fermer-btn" title="Fermer cette page">
+        <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+        </svg>
+        Fermer
+      </a>
+    </div>
+    {% endif %}
+
     <div class="main-inner">
       {% block content %}{% endblock %}
     </div>
@@ -992,6 +1018,20 @@
 </div><!-- /app-body -->
 
 {% block scripts %}{% endblock %}
+
+<script>
+/* ── Bouton standard « Fermer » : l'afficher si la page n'a pas déjà sa propre sortie ── */
+(function () {
+  var bar = document.getElementById('page-fermer-bar');
+  var contenu = document.querySelector('.main-inner');
+  if (!bar || !contenu) return;
+  var sortieExistante = Array.prototype.some.call(contenu.querySelectorAll('a[href]'), function (a) {
+    var texte = a.textContent.replace(/\s+/g, ' ').trim();
+    return /^(←\s*)?(retour|fermer|annuler)\b/i.test(texte);
+  });
+  if (!sortieExistante) bar.hidden = false;
+})();
+</script>
 
 <script>
 /* ── HTMX : envoyer automatiquement le jeton CSRF sur tous les POST ── */
@@ -1042,7 +1082,10 @@ document.body.addEventListener('htmx:configRequest', function (evt) {
     }
   }
 
-  activateTab(activeTab, false);
+  /* Au chargement : page en plein écran. On surligne seulement l'onglet actif ;
+     son panneau ne s'ouvre qu'au clic sur l'onglet. */
+  const activeBtn = document.querySelector(`.tab-btn[data-tab="${activeTab}"]`);
+  if (activeBtn) activeBtn.classList.add('active');
 
   /* ── Clic sur un onglet ── */
   document.querySelectorAll('.tab-btn').forEach(btn => {

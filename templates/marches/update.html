@@ -14,7 +14,7 @@
       <span class="w-1.5 h-1.5 rounded-full bg-current"></span>
       {{ marche.get_statut_display }}
     </span>
-    <a href="{% url 'matieres:marche_etat' marche.pk %}" target="_blank" class="ml-auto text-xs font-semibold text-indigo-600 hover:text-indigo-700">Imprimer</a>
+    <a href="{% url 'matieres:marche_etat' marche.pk %}" class="ml-auto text-xs font-semibold text-indigo-600 hover:text-indigo-700">Imprimer</a>
     <a href="{% url 'matieres:marche_detail' marche.pk %}" class="text-xs font-semibold text-indigo-600 hover:text-indigo-700">Voir la fiche →</a>
   </div>
 

@@ -5,7 +5,7 @@
     <h1 style="font-size:22px;font-weight:700;color:#0f172a">Fiches de Stock — Inventaire Individuel</h1>
     <p style="color:#64748b;font-size:13px;margin-top:4px">{{ total }} produit(s) — <span style="color:#dc2626;font-weight:600">{{ nb_ecarts }} écart(s)</span> détecté(s) · Recherchez un produit puis ouvrez sa fiche de stock imprimable</p>
   </div>
-  <a href="{% url 'matieres:inventaire_individuel_etat' %}" target="_blank" class="btn-primary" style="padding:10px 18px; white-space:nowrap;">Voir l'état imprimable</a>
+  <a href="{% url 'matieres:inventaire_individuel_etat' %}" class="btn-primary" style="padding:10px 18px; white-space:nowrap;">Voir l'état imprimable</a>
 </div>
 
 {% if nb_ecarts > 0 %}
