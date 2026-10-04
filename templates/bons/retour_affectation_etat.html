@@ -131,8 +131,8 @@
           <td>{{ d.designation }}</td>
           <td class="c">{{ d.unite|default:"—" }}</td>
           <td class="r">{{ d.qte }}</td>
-          <td class="r">{{ d.prix_ttc|floatformat:2 }}</td>
-          <td class="r">{{ d.montant_ttc|floatformat:2 }}</td>
+          <td class="r">{{ d.prix_ttc|floatformat:"2g" }}</td>
+          <td class="r">{{ d.montant_ttc|floatformat:"2g" }}</td>
           <td>{{ d.observation|default:"" }}</td>
         </tr>
         {% empty %}
@@ -169,7 +169,7 @@
         <p>
           Je, soussigné, reconnais avoir augmenté mes prises en charge des matières
           portées au présent bordereau de retour d'affectation de <span class="filled" style="min-width:60px">{{ total_qte }}</span>
-          unités représentant une valeur de <span class="filled" style="min-width:100px">{{ total_ttc|floatformat:2 }}</span> F CFA
+          unités représentant une valeur de <span class="filled" style="min-width:100px">{{ total_ttc|floatformat:"2g" }}</span> F CFA
         </p>
         <p>A <span class="dotted">{{ societe.ville|default:"" }}</span> le <span class="dotted">{{ bon.date_retour|date:"d/m/Y" }}</span></p>
         <div class="signature">

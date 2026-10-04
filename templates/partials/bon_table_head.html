@@ -1,0 +1,28 @@
+{% load humanize %}{% comment %}
+  En-tête du tableau des articles d'un bon (composant bon-saisie).
+  Paramètres : titre, badge (optionnel), total, saisie_bloquee (message optionnel).
+  Contexte requis : bon, details.
+{% endcomment %}
+<div class="bs-table-head">
+  <span class="bs-table-title">{{ titre }}</span>
+  {% if badge %}<span class="bs-badge">{{ badge }}</span>{% endif %}
+  <span class="bs-summary" data-bs-summary{% if not details %} hidden{% endif %}>
+    <strong data-bs-count>{{ details|length }}</strong>
+    <span data-bs-count-label>article{{ details|length|pluralize }}</span>
+    &nbsp;·&nbsp;
+    <strong class="bs-summary-total" data-bs-total>{{ total|floatformat:0|intcomma }} FCFA</strong>
+  </span>
+  {% if bon.valide %}
+  <span class="bs-pill bs-pill-ok">
+    <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+    Bon validé — consultation seule
+  </span>
+  {% elif saisie_bloquee %}
+  <span class="bs-pill bs-pill-warn">{{ saisie_bloquee }}</span>
+  {% else %}
+  <button type="button" class="bs-btn-open" data-bs-open aria-haspopup="dialog">
+    <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.8"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+    Saisir des articles
+  </button>
+  {% endif %}
+</div>

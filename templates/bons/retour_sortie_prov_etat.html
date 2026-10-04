@@ -155,8 +155,8 @@
           <td>{{ d.specification|default:"" }}</td>
           <td class="r">{{ d.qte }}</td>
           <td class="c">{{ d.unite|default:"—" }}</td>
-          <td class="r">{{ d.prix_ttc|floatformat:2 }}</td>
-          <td class="r">{{ d.montant_ttc|floatformat:2 }}</td>
+          <td class="r">{{ d.prix_ttc|floatformat:"2g" }}</td>
+          <td class="r">{{ d.montant_ttc|floatformat:"2g" }}</td>
           <td>{{ d.observation|default:"" }}</td>
         </tr>
         {% empty %}
@@ -164,10 +164,10 @@
         {% endfor %}
         <tr>
           <td colspan="7" class="totaux-lbl">TOTAUX</td>
-          <td class="r" style="font-weight:700">{{ total_qte|floatformat:2 }}</td>
+          <td class="r" style="font-weight:700">{{ total_qte|floatformat:"2g" }}</td>
           <td></td>
           <td></td>
-          <td class="r" style="font-weight:700">{{ total_ttc|floatformat:2 }}</td>
+          <td class="r" style="font-weight:700">{{ total_ttc|floatformat:"2g" }}</td>
           <td></td>
         </tr>
       </tbody>
@@ -177,8 +177,8 @@
       <div>
         <div class="titre">CERTIFICATIONS</div>
         <p>
-          Arrêté le présent bon à <span class="filled" style="min-width:60px">{{ total_qte|floatformat:2 }}</span>
-          unités représentant une valeur de <span class="filled" style="min-width:90px">{{ total_ttc|floatformat:2 }}</span>
+          Arrêté le présent bon à <span class="filled" style="min-width:60px">{{ total_qte|floatformat:"2g" }}</span>
+          unités représentant une valeur de <span class="filled" style="min-width:90px">{{ total_ttc|floatformat:"2g" }}</span>
           francs dont je certifie le retour de sortie provisoire.
         </p>
         <p>A <span class="dotted">{{ societe.ville|default:"" }}</span> le <span class="dotted">{{ bon.date_retour|date:"d/m/Y" }}</span></p>

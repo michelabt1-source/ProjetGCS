@@ -9,6 +9,8 @@
   <script src="{% static 'vendor/tailwind.js' %}"></script>
   <script src="{% static 'vendor/htmx.js' %}"></script>
   <script src="{% static 'vendor/apexcharts.js' %}"></script>
+  <link rel="stylesheet" href="{% static 'css/bon-saisie.css' %}">
+  <script src="{% static 'js/bon-saisie.js' %}" defer></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@600;700&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
   <script>tailwind.config={theme:{extend:{colors:{primary:{50:'#f5f3ff',100:'#ede9fe',200:'#ddd6fe',300:'#c4b5fd',400:'#a78bfa',500:'#8b5cf6',600:'#7c4fe0',700:'#6d28d9',800:'#5b21b6',900:'#4c1d95',950:'#2e1065'}}}}}</script>
@@ -151,41 +153,6 @@
       flex-shrink: 0;
     }
 
-    /* Search */
-    .search-wrap { position: relative; }
-    .search-wrap input {
-      width: 210px;
-      background: rgba(255,255,255,0.04);
-      border: 1px solid var(--border-md);
-      border-radius: 8px;
-      color: var(--text-1);
-      font-size: 12.5px;
-      font-family: inherit;
-      padding: 6px 12px 6px 32px;
-      outline: none;
-      transition: border-color var(--transition), background var(--transition);
-    }
-    .search-wrap input::placeholder { color: var(--text-3); }
-    .search-wrap input:focus {
-      border-color: rgba(99,102,241,.5);
-      background: rgba(99,102,241,.05);
-    }
-    .search-wrap .search-icon {
-      position: absolute; left: 9px; top: 50%; transform: translateY(-50%);
-      color: var(--text-3); pointer-events: none;
-    }
-    #search-results {
-      position: absolute;
-      top: calc(100% + 8px); left: 0;
-      width: 100%; min-width: 280px;
-      background: var(--bg-card);
-      border: 1px solid var(--border-md);
-      border-radius: 12px;
-      box-shadow: 0 20px 60px rgba(0,0,0,.6);
-      display: none;
-      z-index: 300;
-      overflow: hidden;
-    }
 
     /* User */
     .user-wrap { display: flex; align-items: center; gap: 8px; }
@@ -482,17 +449,6 @@
 
   <!-- Right zone -->
   <div class="topbar-right">
-    <div class="search-wrap">
-      <svg class="search-icon" width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-        <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0"/>
-      </svg>
-      <input type="text" placeholder="Rechercher un produit…" name="q"
-        hx-get="{% url 'matieres:htmx_recherche_produit' %}"
-        hx-trigger="keyup changed delay:300ms"
-        hx-target="#search-results">
-      <div id="search-results"></div>
-    </div>
-
     <div class="user-wrap">
       <div class="user-avatar">{{ request.user.username|first|upper }}</div>
       <span class="user-name">{{ request.user.get_full_name|default:request.user.username }}</span>
@@ -1108,21 +1064,6 @@ document.body.addEventListener('htmx:configRequest', function (evt) {
       }
     });
   });
-
-  /* ── Recherche ── */
-  const searchInput = document.querySelector('input[name="q"]');
-  const searchBox   = document.getElementById('search-results');
-  if (searchInput && searchBox) {
-    searchInput.addEventListener('focus', () => { searchBox.style.display = 'block'; });
-    document.addEventListener('click', e => {
-      if (!searchBox.contains(e.target) && e.target !== searchInput)
-        searchBox.style.display = 'none';
-    });
-    /* Style les résultats HTMX */
-    document.body.addEventListener('htmx:afterSwap', e => {
-      if (e.target === searchBox) searchBox.style.display = 'block';
-    });
-  }
 
 })();
 </script>

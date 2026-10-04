@@ -145,7 +145,7 @@ body { background: var(--clr-bg); }
 @media (max-width: 900px) { .saisie-panel { grid-column: 1; grid-row: auto; } }
 
 /* ── Tableau détails ── */
-.table-panel { grid-column: 2; grid-row: 2; }
+.table-panel { grid-column: 2; grid-row: 1 / 3; }
 @media (max-width: 900px) { .table-panel { grid-column: 1; grid-row: auto; } }
 
 /* ══════════════════════════════════════════════
@@ -421,7 +421,7 @@ body { background: var(--clr-bg); }
 {% endif %}
 
 <!-- ══════════════════════ WORKSPACE ══════════════════════ -->
-<div class="bon-workspace">
+<div class="bon-workspace" style="--bs-accent:#2563eb;--bs-accent-dk:#1d4ed8;--bs-accent-soft:#eff6ff">
 
   <!-- ── PANNEAU EN-TÊTE ── -->
   <aside class="panel entete-panel" aria-label="En-tête du bon">
@@ -523,15 +523,12 @@ body { background: var(--clr-bg); }
 
   <!-- ── PANNEAU SAISIE ARTICLE ── -->
   {% if not bon.valide %}
-  <section class="panel saisie-panel" aria-label="Saisie d'un article">
-    <div class="panel-header">
-      <svg width="13" height="13" fill="none" stroke="var(--clr-muted)" viewBox="0 0 24 24" stroke-width="2">
-        <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
-      </svg>
-      <span class="panel-title">Saisie article</span>
-      <span class="badge badge-g1" style="margin-left:6px">Groupe 1</span>
-      <span style="margin-left:auto;font-size:10.5px;color:var(--clr-subtle)">Ctrl+Entrée pour saisir</span>
-    </div>
+  <div class="bs-backdrop" data-bs-backdrop></div>
+  <section class="bs-drawer" data-bs-drawer role="dialog" aria-modal="true" aria-hidden="true"
+           aria-labelledby="bs-drawer-titre"
+           data-rows="#ba-detail-rows-container" data-add-btn="#ba-btn-saisir" data-focus="#ba-f-designation">
+    {% include 'partials/bon_drawer_head.html' with badge="Groupe 1" %}
+    <div class="bs-drawer-body">
     <div class="panel-body">
       <div class="f-stack">
 
@@ -549,7 +546,7 @@ body { background: var(--clr-bg); }
                      name="q" autocomplete="off"
                      aria-label="Rechercher un produit" aria-autocomplete="list"
                      aria-controls="ba-produit-dropdown">
-              <button type="button" onclick="baOpenModal()"
+              <button type="button" data-bs-catalogue onclick="baOpenModal()"
                       class="btn btn-ghost" style="flex-shrink:0;padding:0 11px"
                       title="Ouvrir le catalogue complet (F2)"
                       aria-label="Ouvrir le catalogue produits">
@@ -683,35 +680,14 @@ body { background: var(--clr-bg); }
       </div>
       <input type="hidden" id="ba-f-produit-id">
     </div>
+    </div>
+    {% include 'partials/bon_drawer_foot.html' %}
   </section>
-
-  {% else %}
-  <!-- Bon validé : remplacer le panneau saisie -->
-  <div class="validated-notice saisie-panel" role="status">
-    <svg width="48" height="48" fill="none" stroke="#22c55e" viewBox="0 0 24 24" stroke-width="1.2">
-      <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-    </svg>
-    <p style="font-weight:800;font-size:15px;margin:0">Bon validé</p>
-    <p style="font-size:12.5px;opacity:.7;margin:0">La saisie est verrouillée.<br>Dévalidez pour modifier les articles.</p>
-  </div>
   {% endif %}
 
   <!-- ── TABLEAU DES DÉTAILS ── -->
   <section class="panel table-panel" aria-label="Détails du bon d'affectation" aria-live="polite">
-    <div class="panel-header">
-      <svg width="13" height="13" fill="none" stroke="var(--clr-muted)" viewBox="0 0 24 24" stroke-width="2">
-        <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 10h16M4 14h16M4 18h16"/>
-      </svg>
-      <span class="panel-title">Articles du bon</span>
-      <span class="badge badge-g1" style="margin-left:6px">Matières Groupe 1</span>
-      {% if bon.details.count > 0 %}
-      <span style="margin-left:auto;font-size:12px;color:var(--clr-muted)">
-        <strong style="color:var(--clr-text)">{{ bon.details.count }}</strong> article{{ bon.details.count|pluralize }}
-        &nbsp;·&nbsp;
-        <strong style="color:var(--clr-success)">{{ bon.total_ttc|floatformat:0|intcomma }} FCFA</strong>
-      </span>
-      {% endif %}
-    </div>
+    {% include 'partials/bon_table_head.html' with titre="Articles du bon" badge="Matières Groupe 1" total=bon.total_ttc %}
     <div style="overflow-x:auto">
       <div id="ba-detail-rows-container">
         {% include 'partials/ba_detail_rows.html' with details=details bon=bon %}
@@ -756,7 +732,7 @@ function baCalcMontant() {
   const qte = parseFloat(document.getElementById('ba-f-qte').value) || 0;
   const ttc = parseFloat(document.getElementById('ba-f-prix-ttc').value) || 0;
   document.getElementById('ba-f-montant-ttc').value =
-    new Intl.NumberFormat('fr-FR', {minimumFractionDigits:2, maximumFractionDigits:2}).format(qte * ttc) + ' FCFA';
+    new Intl.NumberFormat('de-DE', {minimumFractionDigits:2, maximumFractionDigits:2}).format(qte * ttc) + ' FCFA';
 }
 function baCalcAutoTTC() {
   const ht = parseFloat(document.getElementById('ba-f-prix-ht').value) || 0;

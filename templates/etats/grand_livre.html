@@ -58,7 +58,7 @@
         <td style="padding:8px 14px;text-align:right;font-weight:600;color:#0f172a">{{ j.qte }}</td>
         <td style="padding:8px 14px;color:#64748b;font-size:11px">{{ j.unite }}</td>
         <td style="padding:8px 14px;color:#64748b;font-size:11px">{{ j.bureau|default:j.service|default:"—"|truncatechars:14 }}</td>
-        <td style="padding:8px 14px;text-align:right;color:#475569">{{ j.montant_ttc|floatformat:0 }}</td>
+        <td style="padding:8px 14px;text-align:right;color:#475569">{{ j.montant_ttc|floatformat:"0g" }}</td>
         <td style="padding:8px 14px;text-align:center">
           {% if j.depot %}<span style="background:#dbeafe;color:#1e40af;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600">{{ j.depot }}</span>{% endif %}
         </td>

@@ -130,9 +130,9 @@
           <td>{{ l.origine_destination }}</td>
           <td class="r">{{ l.entree|default:"" }}</td>
           <td class="r">{{ l.sortie_def|default:"" }}</td>
-          <td class="r">{{ l.prix_unitaire|floatformat:"2u" }}</td>
-          <td class="r" style="font-weight:700">{{ l.existant|floatformat:"-2" }}</td>
-          <td class="r">{{ l.montant_existant|floatformat:2 }}</td>
+          <td class="r">{{ l.prix_unitaire|floatformat:"2g" }}</td>
+          <td class="r" style="font-weight:700">{{ l.existant|floatformat:"-2g" }}</td>
+          <td class="r">{{ l.montant_existant|floatformat:"2g" }}</td>
           <td class="r">{{ l.sortie_prov|default:"" }}</td>
           <td class="c">{{ l.date_retour|date:"d/m/Y"|default:"" }}</td>
         </tr>

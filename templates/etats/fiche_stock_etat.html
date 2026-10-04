@@ -133,14 +133,14 @@
           <td class="c">{{ l.date|date:"d/m/Y"|default:"—" }}</td>
           <td class="c">{{ l.type_entree }} N°{{ l.num_bon|stringformat:"04d" }}</td>
           <td class="r">{{ l.entree_qte|default:"" }}</td>
-          <td class="r">{{ l.entree_prix|default:""|floatformat:"2u" }}</td>
-          <td class="r">{{ l.entree_montant|default:""|floatformat:"2u" }}</td>
+          <td class="r">{{ l.entree_prix|default:""|floatformat:"2g" }}</td>
+          <td class="r">{{ l.entree_montant|default:""|floatformat:"2g" }}</td>
           <td class="r">{{ l.sortie_qte|default:"" }}</td>
-          <td class="r">{{ l.sortie_prix|default:""|floatformat:"2u" }}</td>
-          <td class="r">{{ l.sortie_montant|default:""|floatformat:"2u" }}</td>
-          <td class="r" style="font-weight:700">{{ l.solde_qte|floatformat:"-2" }}</td>
-          <td class="r">{{ l.solde_prix|floatformat:2 }}</td>
-          <td class="r" style="font-weight:700">{{ l.solde_montant|floatformat:2 }}</td>
+          <td class="r">{{ l.sortie_prix|default:""|floatformat:"2g" }}</td>
+          <td class="r">{{ l.sortie_montant|default:""|floatformat:"2g" }}</td>
+          <td class="r" style="font-weight:700">{{ l.solde_qte|floatformat:"-2g" }}</td>
+          <td class="r">{{ l.solde_prix|floatformat:"2g" }}</td>
+          <td class="r" style="font-weight:700">{{ l.solde_montant|floatformat:"2g" }}</td>
           <td>{{ l.observation|default:"" }}</td>
         </tr>
         {% empty %}

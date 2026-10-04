@@ -1,0 +1,10 @@
+{% comment %}
+  En-tête du volet de saisie (composant bon-saisie). Paramètres : titre (optionnel), badge (optionnel), bureau (code affiché après le badge, optionnel).
+{% endcomment %}
+<div class="bs-drawer-head">
+  <svg width="16" height="16" fill="none" stroke="var(--bs-accent)" viewBox="0 0 24 24" stroke-width="2.4"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+  <span class="bs-drawer-title" id="bs-drawer-titre">{{ titre|default:"Saisie d'un article" }}</span>
+  {% if badge %}<span class="bs-badge">{{ badge }}{% if bureau %} — affecté à {{ bureau }}{% endif %}</span>{% endif %}
+  <button type="button" class="bs-drawer-close" data-bs-close title="Fermer la saisie (Échap)" aria-label="Fermer la saisie">✕</button>
+</div>
+<div class="bs-flash" role="status" aria-live="polite"></div>

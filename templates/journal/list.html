@@ -232,48 +232,48 @@
   <td style="font-family:monospace;font-size:11px;color:#c2410c;font-weight:700">{{ j.nomenclature }}</td>
   <td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;font-weight:600;color:#0f172a" title="{{ j.designation }}">{{ j.designation }}</td>
   <td style="max-width:120px;overflow:hidden;text-overflow:ellipsis;color:#64748b;font-size:11px" title="{{ j.specification }}">{{ j.specification|default:"—" }}</td>
-  <td class="num" style="font-weight:700;color:#0f172a">{{ j.qte|floatformat:"-2" }}</td>
+  <td class="num" style="font-weight:700;color:#0f172a">{{ j.qte|floatformat:"-2g" }}</td>
   <td class="center" style="color:#475569">{{ j.unite|default:"—" }}</td>
 
   <!-- Prix -->
-  <td class="num">{{ j.prix_ht|floatformat:2 }}</td>
-  <td class="num">{{ j.prix_ttc|floatformat:2 }}</td>
+  <td class="num">{{ j.prix_ht|floatformat:"2g" }}</td>
+  <td class="num">{{ j.prix_ttc|floatformat:"2g" }}</td>
   <td class="num" style="font-weight:700;color:#059669">{{ j.montant_ttc|floatformat:0|intcomma }}</td>
 
   <!-- Mouvements -->
-  <td class="num {% if not j.existant %}zero{% endif %}">{{ j.existant|floatformat:"-2" }}</td>
+  <td class="num {% if not j.existant %}zero{% endif %}">{{ j.existant|floatformat:"-2g" }}</td>
   <td class="num {% if not j.entree_periode %}zero{% endif %}" style="{% if j.entree_periode %}color:#059669;font-weight:700{% endif %}">
-    {{ j.entree_periode|floatformat:"-2" }}
+    {{ j.entree_periode|floatformat:"-2g" }}
   </td>
-  <td class="num {% if not j.total_entree %}zero{% endif %}">{{ j.total_entree|floatformat:"-2" }}</td>
+  <td class="num {% if not j.total_entree %}zero{% endif %}">{{ j.total_entree|floatformat:"-2g" }}</td>
   <td class="num {% if not j.sortie_periode %}zero{% endif %}" style="{% if j.sortie_periode %}color:#dc2626;font-weight:700{% endif %}">
-    {{ j.sortie_periode|floatformat:"-2" }}
+    {{ j.sortie_periode|floatformat:"-2g" }}
   </td>
-  <td class="num {% if not j.existant_fin_periode %}zero{% endif %}">{{ j.existant_fin_periode|floatformat:"-2" }}</td>
+  <td class="num {% if not j.existant_fin_periode %}zero{% endif %}">{{ j.existant_fin_periode|floatformat:"-2g" }}</td>
   <td class="num {% if not j.montant_existant %}zero{% endif %}">{{ j.montant_existant|floatformat:0|intcomma }}</td>
 
   <!-- BA Affectation -->
   <td class="center" style="color:#475569;font-size:11px">{{ j.date_affectation|date:"d/m/Y"|default:"—" }}</td>
   <td class="num {% if not j.qte_affectation %}zero{% endif %}" style="{% if j.qte_affectation %}color:#3b82f6;font-weight:700{% endif %}">
-    {{ j.qte_affectation|floatformat:"-2" }}
+    {{ j.qte_affectation|floatformat:"-2g" }}
   </td>
   <td class="center" style="color:#64748b;font-size:11px">{{ j.qte_stock_partielle|default:"—" }}</td>
 
   <!-- BRA Retour -->
   <td class="center" style="color:#475569;font-size:11px">{{ j.date_retour_affectation|date:"d/m/Y"|default:"—" }}</td>
   <td class="num {% if not j.qte_rba %}zero{% endif %}" style="{% if j.qte_rba %}color:#0891b2;font-weight:700{% endif %}">
-    {{ j.qte_rba|floatformat:"-2" }}
+    {{ j.qte_rba|floatformat:"-2g" }}
   </td>
 
   <!-- BSP/BRSP -->
   <td class="num {% if not j.qte_sp %}zero{% endif %}" style="{% if j.qte_sp %}color:#ea580c;font-weight:700{% endif %}">
-    {{ j.qte_sp|floatformat:"-2" }}
+    {{ j.qte_sp|floatformat:"-2g" }}
   </td>
   <td class="center" style="color:#475569;font-size:11px">{{ j.date_retour|date:"d/m/Y"|default:"—" }}</td>
 
   <!-- BSD -->
   <td class="num {% if not j.qte_sd %}zero{% endif %}" style="{% if j.qte_sd %}color:#7c3aed;font-weight:700{% endif %}">
-    {{ j.qte_sd|floatformat:"-2" }}
+    {{ j.qte_sd|floatformat:"-2g" }}
   </td>
   <td class="num {% if not j.num_bon_sortie %}zero{% endif %}">{{ j.num_bon_sortie|default:"—" }}</td>
 

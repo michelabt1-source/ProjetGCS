@@ -42,7 +42,8 @@
     <tr>
       <td colspan="{% if bon.valide %}8{% else %}9{% endif %}"
           style="padding:32px;text-align:center;color:#94a3b8;font-style:italic">
-        Aucun article — saisissez un produit Groupe 1 à retourner
+        Aucun article dans ce bon pour le moment.
+        {% include 'partials/bon_empty_cta.html' %}
       </td>
     </tr>
     {% endfor %}
@@ -51,7 +52,7 @@
   <tfoot>
     <tr style="background:#f8fafc">
       <td colspan="6" style="padding:8px 12px;text-align:right;font-size:12px;font-weight:600;color:#64748b">TOTAL TTC :</td>
-      <td style="padding:8px 12px;text-align:right;font-size:14px;font-weight:800;color:#059669">{{ bon.total_ttc|floatformat:0|intcomma }} FCFA</td>
+      <td data-bs-total-source style="padding:8px 12px;text-align:right;font-size:14px;font-weight:800;color:#059669">{{ bon.total_ttc|floatformat:0|intcomma }} FCFA</td>
       <td colspan="{% if bon.valide %}1{% else %}2{% endif %}"></td>
     </tr>
   </tfoot>

@@ -111,7 +111,7 @@
         <td style="padding:8px 16px;text-align:right;color:#64748b">{{ j.existant }}</td>
         <td style="padding:8px 16px;text-align:right;font-weight:600;color:#4f46e5">{{ j.existant_fin_periode }}</td>
         <td style="padding:8px 16px;color:#64748b;font-size:11px">{{ j.bureau|default:j.service|default:"—" }}</td>
-        <td style="padding:8px 16px;text-align:right;color:#475569">{{ j.montant_ttc|floatformat:0 }}</td>
+        <td style="padding:8px 16px;text-align:right;color:#475569">{{ j.montant_ttc|floatformat:"0g" }}</td>
       </tr>
       {% endfor %}
     </tbody>

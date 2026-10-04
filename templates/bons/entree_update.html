@@ -119,6 +119,7 @@
     padding: 14px 16px;
     background: #fafbff;
   }
+  .bs-aside .be-panel-left { border-right: none; }
 
   /* ── Tableau lignes ── */
   .lines-table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
@@ -280,159 +281,166 @@
 </div>
 
 <!-- ══════════════════════════════════════════════
-     BLOC PRINCIPAL : ENTÊTE + SAISIE ARTICLE
+     EN-TÊTE (gauche) + ARTICLES DU BON (prioritaire)
 ════════════════════════════════════════════════ -->
-<div class="section-card">
-  <div class="section-header">
-    <div class="dot"></div>
-    Entête des entrées des matières
-    <span style="margin-left:auto;font-weight:400;color:#6366f1;font-size:10px;letter-spacing:0">
-      BE-{{ bon_num }}
-    </span>
-  </div>
+<div class="bs-workspace" style="--bs-accent:#4f46e5;--bs-accent-dk:#4338ca;--bs-accent-soft:#eef2ff">
+  <div class="bs-aside">
+    <div class="section-card" style="margin-bottom:0">
+      <div class="section-header">
+        <div class="dot"></div>
+        Entête des entrées des matières
+        <span style="margin-left:auto;font-weight:400;color:#6366f1;font-size:10px;letter-spacing:0">
+          BE-{{ bon_num }}
+        </span>
+      </div>
+        <div class="be-panel-left">
+          <form method="post" action="{% url 'matieres:bon_entree_update' pk=bon.pk %}">
+            {% csrf_token %}
 
-  <div class="be-panels">
+            <div class="grid grid-cols-2 gap-x-4 gap-y-3">
 
-    <!-- ── Panneau gauche : entête ── -->
-    <div class="be-panel-left">
-      <form method="post" action="{% url 'matieres:bon_entree_update' pk=bon.pk %}">
-        {% csrf_token %}
+              <div class="col-span-2">
+                <label class="f-label">Marché lié</label>
+                <select name="marche_id" id="id-marche" class="f-select" {% if bon.valide %}disabled{% endif %} onchange="appliquerMarche(this.value)">
+                  <option value="">— Aucun / hors marché —</option>
+                  {% for m in marches %}<option value="{{ m.pk }}" {% if bon.marche_id == m.pk %}selected{% endif %}>{{ m.num_marche }}{% if m.fournisseur %} — {{ m.fournisseur }}{% endif %}</option>{% endfor %}
+                </select>
+              </div>
 
-        <div class="grid grid-cols-2 gap-x-4 gap-y-3">
+              <div>
+                <label class="f-label">N° Bon Entrée</label>
+                <input type="text" value="{{ bon_num }}" class="f-input" readonly
+                       style="font-weight:700;color:#4f46e5;font-size:14px">
+              </div>
+              <div>
+                <label class="f-label">TypeEntré</label>
+                <select name="type_entree" class="f-select" {% if bon.valide %}disabled{% endif %}>
+                  <option value="">—</option>
+                  {% for t in types_operation %}
+                    <option value="{{ t.pk }}" {% if bon.type_entree and bon.type_entree.pk == t.pk %}selected{% endif %}>
+                      {{ t.libelle }}
+                    </option>
+                  {% endfor %}
+                </select>
+              </div>
 
-          <div class="col-span-2">
-            <label class="f-label">Marché lié</label>
-            <select name="marche_id" id="id-marche" class="f-select" {% if bon.valide %}disabled{% endif %} onchange="appliquerMarche(this.value)">
-              <option value="">— Aucun / hors marché —</option>
-              {% for m in marches %}<option value="{{ m.pk }}" {% if bon.marche_id == m.pk %}selected{% endif %}>{{ m.num_marche }}{% if m.fournisseur %} — {{ m.fournisseur }}{% endif %}</option>{% endfor %}
-            </select>
-          </div>
+              <div>
+                <label class="f-label">Date De Création</label>
+                <input type="date" name="date_creation"
+                       value="{{ bon.date_creation|date:'Y-m-d' }}" class="f-input"
+                       {% if bon.valide %}readonly{% endif %} required>
+              </div>
+              <div>
+                <label class="f-label">Fournisseur</label>
+                <select name="fournisseur" id="id-fournisseur" class="f-select" {% if bon.valide %}disabled{% endif %}>
+                  <option value="">—</option>
+                  {% for f in fournisseurs %}
+                    <option value="{{ f.pk }}" {% if bon.fournisseur and bon.fournisseur.pk == f.pk %}selected{% endif %}>
+                      {{ f.nom }}
+                    </option>
+                  {% endfor %}
+                </select>
+              </div>
 
-          <div>
-            <label class="f-label">N° Bon Entrée</label>
-            <input type="text" value="{{ bon_num }}" class="f-input" readonly
-                   style="font-weight:700;color:#4f46e5;font-size:14px">
-          </div>
-          <div>
-            <label class="f-label">TypeEntré</label>
-            <select name="type_entree" class="f-select" {% if bon.valide %}disabled{% endif %}>
-              <option value="">—</option>
-              {% for t in types_operation %}
-                <option value="{{ t.pk }}" {% if bon.type_entree and bon.type_entree.pk == t.pk %}selected{% endif %}>
-                  {{ t.libelle }}
-                </option>
-              {% endfor %}
-            </select>
-          </div>
+              <div>
+                <label class="f-label">Année d'exercice</label>
+                <select name="annee_exercice" class="f-select" {% if bon.valide %}disabled{% endif %}>
+                  <option value="">—</option>
+                  {% for a in annees %}
+                    <option value="{{ a.pk }}" {% if bon.annee_exercice and bon.annee_exercice.pk == a.pk %}selected{% endif %}>
+                      {{ a.annee }}
+                    </option>
+                  {% endfor %}
+                </select>
+              </div>
+              <div>
+                <label class="f-label">N° Bon Engagement</label>
+                <input type="number" name="num_bon_engagement" id="id-num-bon-engagement"
+                       value="{{ bon.num_bon_engagement }}" class="f-input" min="0"
+                       style="text-align:right" {% if bon.valide %}readonly{% endif %}>
+              </div>
 
-          <div>
-            <label class="f-label">Date De Création</label>
-            <input type="date" name="date_creation"
-                   value="{{ bon.date_creation|date:'Y-m-d' }}" class="f-input"
-                   {% if bon.valide %}readonly{% endif %} required>
-          </div>
-          <div>
-            <label class="f-label">Fournisseur</label>
-            <select name="fournisseur" id="id-fournisseur" class="f-select" {% if bon.valide %}disabled{% endif %}>
-              <option value="">—</option>
-              {% for f in fournisseurs %}
-                <option value="{{ f.pk }}" {% if bon.fournisseur and bon.fournisseur.pk == f.pk %}selected{% endif %}>
-                  {{ f.nom }}
-                </option>
-              {% endfor %}
-            </select>
-          </div>
+              <div>
+                <label class="f-label">Références Pièces</label>
+                <input type="text" name="references_pieces"
+                       value="{{ bon.references_pieces }}" class="f-input"
+                       {% if bon.valide %}readonly{% endif %}>
+              </div>
+              <div>
+                <label class="f-label">N° Bon Commande</label>
+                <input type="number" name="num_bon_commande"
+                       value="{{ bon.num_bon_commande }}" class="f-input" min="0"
+                       style="text-align:right" {% if bon.valide %}readonly{% endif %}>
+              </div>
 
-          <div>
-            <label class="f-label">Année d'exercice</label>
-            <select name="annee_exercice" class="f-select" {% if bon.valide %}disabled{% endif %}>
-              <option value="">—</option>
-              {% for a in annees %}
-                <option value="{{ a.pk }}" {% if bon.annee_exercice and bon.annee_exercice.pk == a.pk %}selected{% endif %}>
-                  {{ a.annee }}
-                </option>
-              {% endfor %}
-            </select>
-          </div>
-          <div>
-            <label class="f-label">N° Bon Engagement</label>
-            <input type="number" name="num_bon_engagement" id="id-num-bon-engagement"
-                   value="{{ bon.num_bon_engagement }}" class="f-input" min="0"
-                   style="text-align:right" {% if bon.valide %}readonly{% endif %}>
-          </div>
+              <div>
+                <label class="f-label">N° PVC</label>
+                <input type="text" name="num_pvc"
+                       value="{{ bon.num_pvc }}" class="f-input"
+                       placeholder="Numéro PVC" {% if bon.valide %}readonly{% endif %}>
+              </div>
+              <div>
+                <label class="f-label">Dépôt</label>
+                <select name="depot" class="f-select" {% if bon.valide %}disabled{% endif %}>
+                  <option value="">—</option>
+                  {% for d in depots %}
+                    <option value="{{ d.pk }}" {% if bon.depot and bon.depot.pk == d.pk %}selected{% endif %}>
+                      {{ d.code }}
+                    </option>
+                  {% endfor %}
+                </select>
+              </div>
+              <div>
+                <label class="f-label">Chapitre</label>
+                <input type="text" name="chapitre" id="id-chapitre"
+                       value="{{ bon.chapitre }}" class="f-input"
+                       {% if bon.valide %}readonly{% endif %}>
+              </div>
 
-          <div>
-            <label class="f-label">Références Pièces</label>
-            <input type="text" name="references_pieces"
-                   value="{{ bon.references_pieces }}" class="f-input"
-                   {% if bon.valide %}readonly{% endif %}>
-          </div>
-          <div>
-            <label class="f-label">N° Bon Commande</label>
-            <input type="number" name="num_bon_commande"
-                   value="{{ bon.num_bon_commande }}" class="f-input" min="0"
-                   style="text-align:right" {% if bon.valide %}readonly{% endif %}>
-          </div>
+            </div>
 
-          <div>
-            <label class="f-label">N° PVC</label>
-            <input type="text" name="num_pvc"
-                   value="{{ bon.num_pvc }}" class="f-input"
-                   placeholder="Numéro PVC" {% if bon.valide %}readonly{% endif %}>
-          </div>
-          <div>
-            <label class="f-label">Dépôt</label>
-            <select name="depot" class="f-select" {% if bon.valide %}disabled{% endif %}>
-              <option value="">—</option>
-              {% for d in depots %}
-                <option value="{{ d.pk }}" {% if bon.depot and bon.depot.pk == d.pk %}selected{% endif %}>
-                  {{ d.code }}
-                </option>
-              {% endfor %}
-            </select>
-          </div>
-          <div>
-            <label class="f-label">Chapitre</label>
-            <input type="text" name="chapitre" id="id-chapitre"
-                   value="{{ bon.chapitre }}" class="f-input"
-                   {% if bon.valide %}readonly{% endif %}>
-          </div>
+            {% if not bon.valide %}
+            <div class="mt-4 flex items-center gap-2">
+              <button type="submit" class="line-btn line-btn-save">
+                <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
+                </svg>
+                Enregistrer l'entête
+              </button>
+            </div>
+            {% else %}
+            <div class="mt-4 flex items-center gap-2">
+              <div class="status-badge status-valide" style="font-size:11px">
+                <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                Bon validé — entête verrouillée
+              </div>
+            </div>
+            {% endif %}
 
+          </form>
         </div>
-
-        {% if not bon.valide %}
-        <div class="mt-4 flex items-center gap-2">
-          <button type="submit" class="line-btn line-btn-save">
-            <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
-            </svg>
-            Enregistrer l'entête
-          </button>
-        </div>
-        {% else %}
-        <div class="mt-4 flex items-center gap-2">
-          <div class="status-badge status-valide" style="font-size:11px">
-            <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
-            Bon validé — entête verrouillée
-          </div>
-        </div>
-        {% endif %}
-
-      </form>
     </div>
+  </div>
+  <div class="bs-main">
+    <div class="section-card bs-table-card" style="margin-bottom:0">
+      {% include 'partials/bon_table_head.html' with titre="Détails des entrées des matières" total=bon.total_ttc %}
 
-    <!-- ── Panneau droit : saisie article ── -->
-    <div class="be-panel-right">
-      <div class="mb-3" style="font-size:10.5px;font-weight:700;color:#4f46e5;text-transform:uppercase;letter-spacing:.07em">
-        Saisie d'un article
+      <div style="overflow-x:auto">
+        <div id="detail-rows-container">
+          {% include 'partials/be_detail_rows.html' with details=details bon=bon %}
+        </div>
       </div>
+    </div>
+  </div>
+</div>
 
-      {% if bon.valide %}
-      <div style="background:#fef3c7;border:1px solid #fde68a;border-radius:8px;padding:10px 14px;font-size:12px;color:#92400e;display:flex;align-items:center;gap:8px">
-        <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
-        Bon validé — saisie des articles verrouillée. Dévalidez pour modifier.
-      </div>
-      {% else %}
+{% if not bon.valide %}
+<div class="bs-backdrop" data-bs-backdrop></div>
+<section class="bs-drawer" data-bs-drawer role="dialog" aria-modal="true" aria-hidden="true"
+         aria-labelledby="bs-drawer-titre" style="--bs-accent:#4f46e5;--bs-accent-dk:#4338ca;--bs-accent-soft:#eef2ff"
+         data-rows="#detail-rows-container" data-add-btn="#btn-saisir" data-focus="#f-designation">
+  {% include 'partials/bon_drawer_head.html' %}
+  <div class="bs-drawer-body">
 
       <!-- Champ Désignation avec autocomplete + bouton œil (modal) -->
       <div class="mb-3">
@@ -450,7 +458,7 @@
                    hx-target="#produit-dropdown"
                    name="q"
                    style="padding-right:36px">
-            <button type="button" id="btn-vision"
+            <button type="button" id="btn-vision" data-bs-catalogue
                     style="position:absolute;right:7px;top:50%;transform:translateY(-50%);
                            width:26px;height:26px;border-radius:6px;
                            background:linear-gradient(135deg,#6366f1,#7c3aed);border:none;
@@ -587,29 +595,10 @@
         <input type="hidden" name="observation" id="h-observation">
       </div>
 
-      {% endif %}
-    </div>
   </div>
-</div>
-
-<!-- ══════════════════════════════════════════════
-     BLOC DÉTAILS
-════════════════════════════════════════════════ -->
-<div class="section-card">
-  <div class="section-header">
-    <div class="dot"></div>
-    Détails des entrées des matières
-    <span class="ml-auto" style="font-weight:400;color:#6366f1;font-size:10px;letter-spacing:0">
-      {{ details|length }} ligne{{ details|length|pluralize }}
-    </span>
-  </div>
-
-  <div style="overflow-x:auto">
-    <div id="detail-rows-container">
-      {% include 'partials/be_detail_rows.html' with details=details bon=bon %}
-    </div>
-  </div>
-</div>
+  {% include 'partials/bon_drawer_foot.html' %}
+</section>
+{% endif %}
 
 <script>
 const MARCHES = {{ marches_json|safe }};
@@ -628,7 +617,7 @@ function calcMontant() {
   const ttc     = parseFloat(document.getElementById('f-prix-ttc').value)  || 0;
   const montant = qte * ttc;
   document.getElementById('f-montant-ttc').value =
-    new Intl.NumberFormat('fr-FR', {minimumFractionDigits:2, maximumFractionDigits:2}).format(montant) + ' FCFA';
+    new Intl.NumberFormat('de-DE', {minimumFractionDigits:2, maximumFractionDigits:2}).format(montant) + ' FCFA';
 }
 
 // ── Saisie du HT → calcule le TTC = HT × 1,18 (TVA 18%) ──

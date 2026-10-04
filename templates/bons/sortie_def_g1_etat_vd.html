@@ -180,8 +180,8 @@
           <td class="c">{{ d.sous_compte_disp|default:"—" }}</td>
           <td>{{ d.designation }}</td>
           <td class="r">{{ d.qte }}</td>
-          <td class="r">{{ d.prix_unitaire|floatformat:"2u" }}</td>
-          <td class="r">{{ d.montant|floatformat:"2u" }}</td>
+          <td class="r">{{ d.prix_unitaire|floatformat:"2g" }}</td>
+          <td class="r">{{ d.montant|floatformat:"2g" }}</td>
           <td class="r">{% if d.decision == 'vendre' %}<span class="dotted" style="min-width:40px"></span>{% endif %}</td>
           <td class="r">{% if d.decision == 'vendre' %}<span class="dotted" style="min-width:40px"></span>{% endif %}</td>
           <td class="r">{% if d.decision == 'vendre' %}<span class="dotted" style="min-width:40px"></span>{% endif %}</td>

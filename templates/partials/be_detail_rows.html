@@ -55,7 +55,8 @@
           <svg width="28" height="28" fill="none" stroke="#cbd5e1" viewBox="0 0 24 24" stroke-width="1.5">
             <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
           </svg>
-          Aucun article — saisissez un produit dans le panneau de droite
+          Aucun article dans ce bon pour le moment.
+        {% include 'partials/bon_empty_cta.html' %}
         </div>
       </td>
     </tr>
@@ -68,7 +69,7 @@
         <span style="color:#64748b;font-weight:400;font-size:11.5px">Total —</span>
         {{ details|length }} article{{ details|length|pluralize }}
       </td>
-      <td class="r">
+      <td data-bs-total-source class="r">
         {% with total=0 %}
           {% for d in details %}
             {% with total=total|add:d.montant_ttc %}{% endwith %}

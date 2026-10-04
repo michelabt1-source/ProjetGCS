@@ -204,15 +204,15 @@
           <td class="c">{{ j.sous_compte }}</td>
           <td>{{ j.nature_matiere|default:"—" }}</td>
           <td class="c">{{ j.num_bon_entree|default:"—" }}</td>
-          <td class="r">{{ j.qte_entree|floatformat:"-2" }}</td>
+          <td class="r">{{ j.qte_entree|floatformat:"-2g" }}</td>
           <td class="c">{{ j.nature_unite_entree|default:"—" }}</td>
           <td class="c">{{ j.num_bon_sortie|default:"—" }}</td>
-          <td class="r">{{ j.qte_sortie|floatformat:"-2" }}</td>
+          <td class="r">{{ j.qte_sortie|floatformat:"-2g" }}</td>
           <td class="c">{{ j.nature_unite_sortie|default:"—" }}</td>
-          <td class="r">{{ j.prix_unitaire|floatformat:2 }}</td>
+          <td class="r">{{ j.prix_unitaire|floatformat:"2g" }}</td>
           <td class="r">{{ j.montant_entree|floatformat:0|intcomma }}</td>
           <td class="r">{{ j.montant_sortie|floatformat:0|intcomma }}</td>
-          <td class="r">{{ j.qte_sp|floatformat:"-2" }}</td>
+          <td class="r">{{ j.qte_sp|floatformat:"-2g" }}</td>
           <td>{{ j.observation|default:"—" }}</td>
         </tr>
         {% empty %}
@@ -226,15 +226,15 @@
           <td colspan="5" class="c">Totaux à reporter</td>
           <td></td>
           <td></td>
-          <td class="r">{{ totaux.total_entrees|floatformat:"-2" }}</td>
+          <td class="r">{{ totaux.total_entrees|floatformat:"-2g" }}</td>
           <td></td>
           <td></td>
-          <td class="r">{{ totaux.total_sorties|floatformat:"-2" }}</td>
+          <td class="r">{{ totaux.total_sorties|floatformat:"-2g" }}</td>
           <td></td>
           <td></td>
           <td class="r">{{ totaux.total_montant_entree|floatformat:0|intcomma }}</td>
           <td class="r">{{ totaux.total_montant_sortie|floatformat:0|intcomma }}</td>
-          <td class="r">{{ totaux.total_qte_sp|floatformat:"-2" }}</td>
+          <td class="r">{{ totaux.total_qte_sp|floatformat:"-2g" }}</td>
           <td></td>
         </tr>
         {% endif %}

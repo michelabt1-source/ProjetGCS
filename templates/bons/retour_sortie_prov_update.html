@@ -92,7 +92,8 @@
 {% endfor %}</div>
 {% endif %}
 
-<div class="update-grid">
+<div class="bs-workspace" style="--bs-accent:#d97706;--bs-accent-dk:#b45309;--bs-accent-soft:#fef3c7">
+  <div class="bs-aside">
   <div class="section-card">
     <div class="section-title">En-tête du bon</div>
     <form method="post" action="{% url 'matieres:bon_retour_sortie_prov_update' bon.pk %}">
@@ -146,11 +147,26 @@
     </form>
   </div>
 
-  {% if not bon.valide %}
-  <div class="section-card">
-    <div class="section-title">
-      Saisie d'un article <span class="badge-g1">Groupe 1</span>
+  </div>
+  <div class="bs-main">
+  <div class="section-card bs-table-card" style="padding:0">
+    {% include 'partials/bon_table_head.html' with titre="Détails du bon de retour" badge="Matières Groupe 1" total=bon.total_ttc %}
+    <div style="overflow-x:auto">
+      <div id="brsp-detail-rows-container">
+        {% include 'partials/brsp_detail_rows.html' with details=details bon=bon %}
+      </div>
     </div>
+  </div>
+  </div>
+</div>
+
+{% if not bon.valide %}
+<div class="bs-backdrop" data-bs-backdrop></div>
+<section class="bs-drawer" data-bs-drawer role="dialog" aria-modal="true" aria-hidden="true"
+         aria-labelledby="bs-drawer-titre" style="--bs-accent:#d97706;--bs-accent-dk:#b45309;--bs-accent-soft:#fef3c7"
+         data-rows="#brsp-detail-rows-container" data-add-btn="#brsp-btn-saisir" data-focus="#brsp-f-designation">
+  {% include 'partials/bon_drawer_head.html' with badge="Groupe 1" %}
+  <div class="bs-drawer-body">
     <div style="display:grid;gap:9px">
       <div>
         <label class="f-label">Désignation *</label>
@@ -161,7 +177,7 @@
                    hx-trigger="input changed delay:250ms"
                    hx-target="#brsp-produit-dropdown"
                    name="q" autocomplete="off">
-            <button type="button" onclick="brspOpenModal()"
+            <button type="button" data-bs-catalogue onclick="brspOpenModal()"
                     style="flex-shrink:0;padding:0 11px;background:#fef3c7;border:1.5px solid #fde68a;border-radius:7px;cursor:pointer;color:#d97706" title="Catalogue G1">
               <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
@@ -253,33 +269,9 @@
       <input type="hidden" name="observation"   id="brsp-h-observation">
     </div>
   </div>
-  {% else %}
-  <div class="section-card" style="background:#f0fdf4;border-color:#bbf7d0;display:flex;align-items:center;justify-content:center">
-    <div style="text-align:center;color:#166534">
-      <svg width="40" height="40" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5" style="margin:0 auto 10px;display:block"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-      <p style="font-weight:700;font-size:15px">Bon validé — saisie verrouillée</p>
-    </div>
-  </div>
-  {% endif %}
-</div>
-
-<div class="section-card" style="padding:0">
-  <div style="padding:14px 18px;border-bottom:1px solid #f1f5f9;display:flex;align-items:center;gap:10px">
-    <span style="font-size:12px;font-weight:700;color:#1e293b;text-transform:uppercase;letter-spacing:.05em">Détails du bon de retour</span>
-    <span class="badge-g1">Matières Groupe 1</span>
-    {% if bon.details.count > 0 %}
-    <span style="margin-left:auto;font-size:12px;color:#64748b">
-      <strong>{{ bon.details.count }}</strong> article{{ bon.details.count|pluralize }} —
-      <strong style="color:#059669">{% with bon.total_ttc as t %}{{ t|floatformat:0|intcomma }} FCFA{% endwith %}</strong>
-    </span>
-    {% endif %}
-  </div>
-  <div style="overflow-x:auto">
-    <div id="brsp-detail-rows-container">
-      {% include 'partials/brsp_detail_rows.html' with details=details bon=bon %}
-    </div>
-  </div>
-</div>
+  {% include 'partials/bon_drawer_foot.html' %}
+</section>
+{% endif %}
 
 <!-- Modal -->
 <div id="brsp-produit-modal-overlay" onclick="brspCloseModalOnBg(event)">
@@ -303,7 +295,7 @@
 </div>
 
 <script>
-function brspCalcMontant(){const q=parseFloat(document.getElementById('brsp-f-qte').value)||0,t=parseFloat(document.getElementById('brsp-f-prix-ttc').value)||0;document.getElementById('brsp-f-montant-ttc').value=new Intl.NumberFormat('fr-FR',{minimumFractionDigits:2,maximumFractionDigits:2}).format(q*t)+' FCFA';}
+function brspCalcMontant(){const q=parseFloat(document.getElementById('brsp-f-qte').value)||0,t=parseFloat(document.getElementById('brsp-f-prix-ttc').value)||0;document.getElementById('brsp-f-montant-ttc').value=new Intl.NumberFormat('de-DE',{minimumFractionDigits:2,maximumFractionDigits:2}).format(q*t)+' FCFA';}
 function brspCalcAutoTTC(){const h=parseFloat(document.getElementById('brsp-f-prix-ht').value)||0;document.getElementById('brsp-f-prix-ttc').value=(Math.round(h*118)/100).toFixed(2);brspCalcMontant();}
 function brspClearForm(){['brsp-f-designation','brsp-f-nomenclature','brsp-f-specification','brsp-f-code-immatriculation','brsp-f-observation'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});['brsp-f-qte','brsp-f-prix-ht','brsp-f-prix-ttc'].forEach(id=>document.getElementById(id).value='0');document.getElementById('brsp-f-montant-ttc').value='0,00 FCFA';document.getElementById('brsp-f-produit-id').value='';document.getElementById('brsp-f-unite-id').value='';document.getElementById('brsp-f-stock-sp').value='';document.getElementById('brsp-f-unite-sel').value='';const dd=document.getElementById('brsp-produit-dropdown');if(dd){dd.classList.remove('open');dd.innerHTML='';}document.getElementById('brsp-f-designation').focus();}
 function brspPrepareSubmit(){document.getElementById('brsp-h-produit-id').value=document.getElementById('brsp-f-produit-id').value;document.getElementById('brsp-h-designation').value=document.getElementById('brsp-f-designation').value;document.getElementById('brsp-h-nomenclature').value=document.getElementById('brsp-f-nomenclature').value;document.getElementById('brsp-h-specification').value=document.getElementById('brsp-f-specification').value;document.getElementById('brsp-h-code-immatriculation').value=document.getElementById('brsp-f-code-immatriculation').value;document.getElementById('brsp-h-qte').value=document.getElementById('brsp-f-qte').value;document.getElementById('brsp-h-unite-id').value=document.getElementById('brsp-f-unite-sel').value||document.getElementById('brsp-f-unite-id').value;document.getElementById('brsp-h-prix-ht').value=document.getElementById('brsp-f-prix-ht').value;document.getElementById('brsp-h-prix-ttc').value=document.getElementById('brsp-f-prix-ttc').value;document.getElementById('brsp-h-observation').value=document.getElementById('brsp-f-observation').value;}

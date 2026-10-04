@@ -130,7 +130,7 @@ body { background: var(--clr-bg); }
 @media (max-width: 900px) { .entete-panel { grid-column: 1; grid-row: auto; } }
 .saisie-panel { grid-column: 2; grid-row: 1; }
 @media (max-width: 900px) { .saisie-panel { grid-column: 1; grid-row: auto; } }
-.table-panel { grid-column: 2; grid-row: 2; }
+.table-panel { grid-column: 2; grid-row: 1 / 3; }
 @media (max-width: 900px) { .table-panel { grid-column: 1; grid-row: auto; } }
 
 /* ══════════════════════════════════════════════
@@ -382,7 +382,7 @@ body { background: var(--clr-bg); }
 {% endif %}
 
 <!-- ══════════════════════ WORKSPACE ══════════════════════ -->
-<div class="bon-workspace">
+<div class="bon-workspace" style="--bs-accent:#dc2626;--bs-accent-dk:#991b1b;--bs-accent-soft:#fef2f2">
 
   <!-- ── PANNEAU EN-TÊTE ── -->
   <aside class="panel entete-panel" aria-label="En-tête du bon">
@@ -494,15 +494,12 @@ body { background: var(--clr-bg); }
 
   <!-- ── PANNEAU SAISIE ARTICLE ── -->
   {% if not bon.valide %}
-  <section class="panel saisie-panel" aria-label="Saisie d'un article">
-    <div class="panel-header">
-      <svg width="13" height="13" fill="none" stroke="var(--clr-muted)" viewBox="0 0 24 24" stroke-width="2">
-        <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
-      </svg>
-      <span class="panel-title">Saisie article</span>
-      <span class="badge badge-g2" style="margin-left:6px">Groupe 2</span>
-      <span style="margin-left:auto;font-size:10.5px;color:var(--clr-subtle)">Ctrl+Entrée pour saisir</span>
-    </div>
+  <div class="bs-backdrop" data-bs-backdrop></div>
+  <section class="bs-drawer" data-bs-drawer role="dialog" aria-modal="true" aria-hidden="true"
+           aria-labelledby="bs-drawer-titre"
+           data-rows="#bg-detail-rows-container" data-add-btn="#bg-btn-saisir" data-focus="#bg-f-designation">
+    {% include 'partials/bon_drawer_head.html' with badge="Groupe 2" %}
+    <div class="bs-drawer-body">
     <div class="panel-body">
       <div class="f-stack">
 
@@ -534,7 +531,7 @@ body { background: var(--clr-bg); }
                      hx-target="#bg-produit-dropdown"
                      hx-include="[id='bg-f-designation']"
                      name="q" autocomplete="off">
-              <button type="button" onclick="bgOpenModal()"
+              <button type="button" data-bs-catalogue onclick="bgOpenModal()"
                       class="btn btn-ghost" style="flex-shrink:0;padding:0 11px"
                       title="Ouvrir le catalogue complet (F2)">
                 <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
@@ -647,34 +644,14 @@ body { background: var(--clr-bg); }
       <input type="hidden" id="bg-f-produit-id">
       <input type="hidden" id="bg-f-detail-commande-service-id">
     </div>
+    </div>
+    {% include 'partials/bon_drawer_foot.html' %}
   </section>
-
-  {% else %}
-  <div class="validated-notice saisie-panel" role="status">
-    <svg width="48" height="48" fill="none" stroke="#22c55e" viewBox="0 0 24 24" stroke-width="1.2">
-      <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-    </svg>
-    <p style="font-weight:800;font-size:15px;margin:0">Bon validé</p>
-    <p style="font-size:12.5px;opacity:.7;margin:0">Les articles ont définitivement quitté le stock.<br>Dévalidez pour corriger.</p>
-  </div>
   {% endif %}
 
   <!-- ── TABLEAU DES DÉTAILS ── -->
   <section class="panel table-panel" aria-label="Détails du bon" aria-live="polite">
-    <div class="panel-header">
-      <svg width="13" height="13" fill="none" stroke="var(--clr-muted)" viewBox="0 0 24 24" stroke-width="2">
-        <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 10h16M4 14h16M4 18h16"/>
-      </svg>
-      <span class="panel-title">Articles du bon</span>
-      <span class="badge badge-g2" style="margin-left:6px">Matières Groupe 2</span>
-      {% if bon.details.count > 0 %}
-      <span style="margin-left:auto;font-size:12px;color:var(--clr-muted)">
-        <strong style="color:var(--clr-text)">{{ bon.details.count }}</strong> article{{ bon.details.count|pluralize }}
-        &nbsp;·&nbsp;
-        <strong style="color:var(--clr-success)">{{ bon.total_ttc|floatformat:0|intcomma }} FCFA</strong>
-      </span>
-      {% endif %}
-    </div>
+    {% include 'partials/bon_table_head.html' with titre="Articles du bon" badge="Matières Groupe 2" total=bon.total_ttc %}
     <div style="overflow-x:auto">
       <div id="bg-detail-rows-container">
         {% include 'partials/bsdg2_detail_rows.html' with details=details bon=bon %}
@@ -714,7 +691,7 @@ function bgCalcMontant() {
   const qte = parseFloat(document.getElementById('bg-f-qte').value) || 0;
   const ttc = parseFloat(document.getElementById('bg-f-prix-ttc').value) || 0;
   document.getElementById('bg-f-montant-ttc').value =
-    new Intl.NumberFormat('fr-FR', {minimumFractionDigits:2, maximumFractionDigits:2}).format(qte * ttc) + ' FCFA';
+    new Intl.NumberFormat('de-DE', {minimumFractionDigits:2, maximumFractionDigits:2}).format(qte * ttc) + ' FCFA';
 }
 function bgCalcAutoTTC() {
   const ht = parseFloat(document.getElementById('bg-f-prix-ht').value) || 0;

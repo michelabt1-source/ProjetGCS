@@ -162,8 +162,8 @@
           <td>{{ d.specification|default:"" }}</td>
           <td class="r">{{ d.qte }}</td>
           <td class="c">{{ d.unite|default:"—" }}</td>
-          <td class="r">{{ d.prix_ttc|floatformat:2 }}</td>
-          <td class="r">{{ d.montant_ttc|floatformat:2 }}</td>
+          <td class="r">{{ d.prix_ttc|floatformat:"2g" }}</td>
+          <td class="r">{{ d.montant_ttc|floatformat:"2g" }}</td>
           <td>{{ d.observation|default:"" }}</td>
         </tr>
         {% empty %}
@@ -171,10 +171,10 @@
         {% endfor %}
         <tr>
           <td colspan="7" class="totaux-lbl">TOTAUX</td>
-          <td class="r" style="font-weight:700">{{ total_qte|floatformat:2 }}</td>
+          <td class="r" style="font-weight:700">{{ total_qte|floatformat:"2g" }}</td>
           <td></td>
           <td></td>
-          <td class="r" style="font-weight:700">{{ total_ttc|floatformat:2 }}</td>
+          <td class="r" style="font-weight:700">{{ total_ttc|floatformat:"2g" }}</td>
           <td></td>
         </tr>
       </tbody>
@@ -184,9 +184,9 @@
       <div>
         <div class="titre">CERTIFICATIONS</div>
         <p>
-          Arrêté le présent bon à <span class="filled" style="min-width:70px">{{ total_qte|floatformat:2 }}</span>
+          Arrêté le présent bon à <span class="filled" style="min-width:70px">{{ total_qte|floatformat:"2g" }}</span>
           unités représentant une valeur
-          de <span class="filled" style="min-width:100px">{{ total_ttc|floatformat:2 }}</span> francs dont je certifie la prise en charge
+          de <span class="filled" style="min-width:100px">{{ total_ttc|floatformat:"2g" }}</span> francs dont je certifie la prise en charge
         </p>
         <p>A <span class="dotted">{{ societe.ville|default:"" }}</span> le <span class="dotted">{{ bon.date_creation|date:"d/m/Y" }}</span></p>
         <div class="signature">
@@ -199,8 +199,8 @@
         <div class="titre">AUGMENTATION DES PRISES EN CHARGE</div>
         <p>
           Le comptable des matières, soussigné, déclare ce jour, augmenter mes prises en charge
-          de <span class="filled" style="min-width:70px">{{ total_qte|floatformat:2 }}</span>
-          unités représentant une valeur de <span class="filled" style="min-width:100px">{{ total_ttc|floatformat:2 }}</span> Francs.
+          de <span class="filled" style="min-width:70px">{{ total_qte|floatformat:"2g" }}</span>
+          unités représentant une valeur de <span class="filled" style="min-width:100px">{{ total_ttc|floatformat:"2g" }}</span> Francs.
         </p>
         <p>A <span class="dotted">{{ societe.ville|default:"" }}</span> le <span class="dotted">{{ bon.date_creation|date:"d/m/Y" }}</span></p>
         <div class="signature">

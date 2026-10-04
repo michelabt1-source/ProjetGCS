@@ -96,7 +96,8 @@
   {{ msg }}</div>{% endfor %}</div>
 {% endif %}
 
-<div class="update-grid">
+<div class="bs-workspace" style="--bs-accent:#0891b2;--bs-accent-dk:#0e7490;--bs-accent-soft:#cffafe">
+  <div class="bs-aside">
   <!-- En-tête -->
   <div class="section-card">
     <div class="section-title">
@@ -144,12 +145,26 @@
   </div>
 
   <!-- Saisie article -->
-  {% if not bon.valide %}
-  <div class="section-card">
-    <div class="section-title">
-      <svg width="13" height="13" fill="none" stroke="#64748b" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
-      Saisie d'un article <span class="badge-g1">Groupe 1</span>
+  </div>
+  <div class="bs-main">
+  <div class="section-card bs-table-card" style="padding:0">
+    {% include 'partials/bon_table_head.html' with titre="Détails du retour" badge="Matières Groupe 1" total=bon.total_ttc %}
+    <div style="overflow-x:auto">
+      <div id="bra-detail-rows-container">
+        {% include 'partials/bra_detail_rows.html' with details=details bon=bon %}
+      </div>
     </div>
+  </div>
+  </div>
+</div>
+
+{% if not bon.valide %}
+<div class="bs-backdrop" data-bs-backdrop></div>
+<section class="bs-drawer" data-bs-drawer role="dialog" aria-modal="true" aria-hidden="true"
+         aria-labelledby="bs-drawer-titre" style="--bs-accent:#0891b2;--bs-accent-dk:#0e7490;--bs-accent-soft:#cffafe"
+         data-rows="#bra-detail-rows-container" data-add-btn="#bra-btn-saisir" data-focus="#bra-f-designation">
+  {% include 'partials/bon_drawer_head.html' with badge="Groupe 1" %}
+  <div class="bs-drawer-body">
     <div style="display:grid;gap:9px">
       <div>
         <label class="f-label">Désignation *</label>
@@ -160,7 +175,7 @@
                    hx-trigger="input changed delay:250ms"
                    hx-target="#bra-produit-dropdown"
                    name="q" autocomplete="off">
-            <button type="button" onclick="braOpenModal()"
+            <button type="button" data-bs-catalogue onclick="braOpenModal()"
                     style="flex-shrink:0;padding:0 11px;background:#ecfeff;border:1.5px solid #a5f3fc;border-radius:7px;cursor:pointer;color:#0891b2" title="Catalogue G1">
               <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
@@ -247,35 +262,9 @@
       <input type="hidden" name="observation"   id="bra-h-observation">
     </div>
   </div>
-  {% else %}
-  <div class="section-card" style="background:#f0fdf4;border-color:#bbf7d0;display:flex;align-items:center;justify-content:center">
-    <div style="text-align:center;color:#166534">
-      <svg width="40" height="40" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5" style="margin:0 auto 10px;display:block"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-      <p style="font-weight:700;font-size:15px">Bon validé</p>
-      <p style="font-size:12px;opacity:.7;margin-top:4px">Dévalidez pour modifier</p>
-    </div>
-  </div>
-  {% endif %}
-</div>
-
-<!-- Tableau détails -->
-<div class="section-card" style="padding:0">
-  <div style="padding:14px 18px;border-bottom:1px solid #f1f5f9;display:flex;align-items:center;gap:10px">
-    <span style="font-size:12px;font-weight:700;color:#1e293b;text-transform:uppercase;letter-spacing:.05em">Détails du retour</span>
-    <span class="badge-g1">Matières Groupe 1</span>
-    {% if bon.details.count > 0 %}
-    <span style="margin-left:auto;font-size:12px;color:#64748b">
-      <strong>{{ bon.details.count }}</strong> article{{ bon.details.count|pluralize }} —
-      <strong style="color:#059669">{% with bon.total_ttc as t %}{{ t|floatformat:0|intcomma }} FCFA{% endwith %}</strong>
-    </span>
-    {% endif %}
-  </div>
-  <div style="overflow-x:auto">
-    <div id="bra-detail-rows-container">
-      {% include 'partials/bra_detail_rows.html' with details=details bon=bon %}
-    </div>
-  </div>
-</div>
+  {% include 'partials/bon_drawer_foot.html' %}
+</section>
+{% endif %}
 
 <!-- Modal -->
 <div id="bra-produit-modal-overlay" onclick="braCloseModalOnBg(event)">
@@ -303,7 +292,7 @@ function braCalcMontant() {
   const qte = parseFloat(document.getElementById('bra-f-qte').value) || 0;
   const ttc = parseFloat(document.getElementById('bra-f-prix-ttc').value) || 0;
   document.getElementById('bra-f-montant-ttc').value =
-    new Intl.NumberFormat('fr-FR',{minimumFractionDigits:2,maximumFractionDigits:2}).format(qte*ttc) + ' FCFA';
+    new Intl.NumberFormat('de-DE',{minimumFractionDigits:2,maximumFractionDigits:2}).format(qte*ttc) + ' FCFA';
 }
 function braCalcAutoTTC() {
   const ht = parseFloat(document.getElementById('bra-f-prix-ht').value) || 0;

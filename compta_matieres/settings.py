@@ -70,6 +70,10 @@ TIME_ZONE = 'Africa/Dakar'
 USE_I18N = True
 USE_TZ = True
 
+# Séparateur de milliers « . » pour les montants (intcomma, floatformat:"…g").
+# USE_THOUSAND_SEPARATOR reste désactivé : les identifiants et années ne sont pas groupés.
+FORMAT_MODULE_PATH = ['compta_matieres.formats']
+
 STATIC_URL = '/static/'
 STATICFILES_DIRS = [BASE_DIR / 'static']
 STATIC_ROOT = BASE_DIR / 'staticfiles'
