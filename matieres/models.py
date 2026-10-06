@@ -310,6 +310,15 @@ class Produit(models.Model):
     def __str__(self):
         return f"{self.nomenclature} - {self.designation}"
 
+    @property
+    def stock_disponible(self):
+        return self.stock_global - self.qte_affectation - self.qte_sp
+
+    @property
+    def groupe(self):
+        """'1' si nomenclature 1x.xx.xx, '2' si 2x.xx.xx, '' sinon."""
+        return self.nomenclature[0] if self.nomenclature else ''
+
 
 def depot_pour_produit(produit):
     """Dépôt (comptable des matières) qui gère ce produit, déduit de sa
@@ -334,15 +343,6 @@ def depot_pour_produit(produit):
     except (ValueError, IndexError):
         return None
     return Depot.objects.filter(comptes_principaux__num_compte=num_compte).first()
-
-    @property
-    def stock_disponible(self):
-        return self.stock_global - self.qte_affectation - self.qte_sp
-
-    @property
-    def groupe(self):
-        """'1' si nomenclature 1x.xx.xx, '2' si 2x.xx.xx, '' sinon."""
-        return self.nomenclature[0] if self.nomenclature else ''
 
 
 class MatieresDepot(models.Model):
