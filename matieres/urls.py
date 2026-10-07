@@ -96,6 +96,8 @@ urlpatterns = [
     path('expressions-besoin/<int:pk>/modifier/', views.expression_update, name='expression_update'),
     path('htmx/expression/<int:pk>/add-detail/', views.htmx_expression_add_detail, name='htmx_expression_add_detail'),
     path('htmx/expression/detail/<int:detail_pk>/delete/', views.htmx_expression_delete_detail, name='htmx_expression_delete_detail'),
+    path('htmx/expression/detail/<int:detail_pk>/qte/', views.htmx_expression_set_qte, name='htmx_expression_set_qte'),
+    path('htmx/expression/<int:pk>/reprendre-marche/', views.htmx_expression_reprendre, name='htmx_expression_reprendre'),
 
     # Bons de commande de services
     path('bons-commande-service/', views.bons_commande_service_list, name='bons_commande_service_list'),

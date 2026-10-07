@@ -1,0 +1,16 @@
+{% load humanize %}{% comment %}
+  Exécution financière d'un marché. Rechargé hors cible (hx-swap-oob) à chaque
+  ajout / suppression de ligne : paramètre oob=True dans ce cas.
+{% endcomment %}
+{% with total=marche.total_ttc livre=marche.total_livre solde=marche.solde_restant taux=marche.taux_execution %}
+<div class="be-panel-left" id="marche-execution"{% if oob %} hx-swap-oob="true"{% endif %}>
+  <div class="exec-grid">
+    <div class="exec-item"><div class="lbl">Montant</div><div class="val" title="{{ total|floatformat:0|intcomma }} FCFA">{{ total|floatformat:0|intcomma }}</div></div>
+    <div class="exec-item"><div class="lbl">Livré</div><div class="val" style="color:#059669" title="{{ livre|floatformat:0|intcomma }} FCFA">{{ livre|floatformat:0|intcomma }}</div></div>
+    <div class="exec-item"><div class="lbl">Reste</div><div class="val" style="color:{% if solde > 0 %}#b45309{% else %}#64748b{% endif %}" title="{{ solde|floatformat:0|intcomma }} FCFA">{{ solde|floatformat:0|intcomma }}</div></div>
+  </div>
+  <div class="exec-bar" role="progressbar" aria-valuenow="{{ taux }}" aria-valuemin="0" aria-valuemax="100"
+       aria-label="Taux d'exécution"><span style="width:{{ taux }}%"></span></div>
+  <div class="mt-2 text-xs text-slate-500">{{ taux }} % livré · montants en FCFA, bons d'entrée validés uniquement</div>
+</div>
+{% endwith %}

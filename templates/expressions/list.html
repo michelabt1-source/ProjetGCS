@@ -32,7 +32,7 @@
             <th class="text-left px-4 py-3">Référence</th>
             <th class="text-left px-4 py-3">Date</th>
             <th class="text-left px-4 py-3">Service demandeur</th>
-            <th class="text-left px-4 py-3">Reçue</th>
+            <th class="text-left px-4 py-3">Type</th>
             <th class="text-left px-4 py-3">Statut</th>
             <th class="text-left px-4 py-3">Marché lié</th>
             <th class="px-4 py-3"></th>
@@ -42,12 +42,12 @@
           {% for e in expressions %}
           <tr class="border-b border-slate-100 hover:bg-slate-50 transition-colors">
             <td class="px-4 py-3 font-semibold text-indigo-600">
-              <a href="{% url 'matieres:expression_detail' e.pk %}" class="hover:underline">{{ e.reference|default:"—" }} {% if not e.reference %}#{{ e.id }}{% endif %}</a>
+              <a href="{% url 'matieres:expression_update' e.pk %}" class="hover:underline">{{ e.reference|default:"—" }} {% if not e.reference %}#{{ e.id }}{% endif %}</a>
             </td>
             <td class="px-4 py-3 text-slate-600">{{ e.date_creation|date:"d/m/Y" }}</td>
             <td class="px-4 py-3 text-slate-700">{{ e.demandeur_service|default:"—" }}</td>
             <td class="px-4 py-3">
-              {% if e.recu_par_comptable %}<span class="text-emerald-600 font-semibold text-xs">Oui</span>{% else %}<span class="text-slate-400 text-xs">Non</span>{% endif %}
+              <span class="text-xs font-semibold {% if e.sur_marche %}text-indigo-600{% else %}text-slate-500{% endif %}">{{ e.get_mode_display }}</span>
             </td>
             <td class="px-4 py-3">
               <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold
@@ -59,11 +59,10 @@
               </span>
             </td>
             <td class="px-4 py-3 text-slate-600">
-              {% if e.marche %}<a href="{% url 'matieres:marche_detail' e.marche.pk %}" class="text-indigo-600 hover:underline font-semibold">{{ e.marche.num_marche }}</a>{% else %}—{% endif %}
+              {% if e.marche %}<a href="{% url 'matieres:marche_update' e.marche.pk %}" class="text-indigo-600 hover:underline font-semibold">{{ e.marche.num_marche }}</a>{% else %}—{% endif %}
             </td>
             <td class="px-4 py-3 text-right whitespace-nowrap">
-              <a href="{% url 'matieres:expression_detail' e.pk %}" class="text-slate-500 hover:text-indigo-600 text-xs font-semibold mr-3">Voir</a>
-              <a href="{% url 'matieres:expression_update' e.pk %}" class="text-slate-500 hover:text-indigo-600 text-xs font-semibold">Modifier</a>
+              <a href="{% url 'matieres:expression_update' e.pk %}" class="text-slate-500 hover:text-indigo-600 text-xs font-semibold">Ouvrir</a>
             </td>
           </tr>
           {% empty %}

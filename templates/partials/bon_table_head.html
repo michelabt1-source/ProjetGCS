@@ -1,6 +1,7 @@
 {% load humanize %}{% comment %}
   En-tête du tableau des articles d'un bon (composant bon-saisie).
-  Paramètres : titre, badge (optionnel), total, saisie_bloquee (message optionnel).
+  Paramètres : titre, badge (optionnel), total, saisie_bloquee (message optionnel),
+  sans_saisie (masque le bouton d'ouverture du volet, sans message).
   Contexte requis : bon, details.
 {% endcomment %}
 <div class="bs-table-head">
@@ -19,6 +20,7 @@
   </span>
   {% elif saisie_bloquee %}
   <span class="bs-pill bs-pill-warn">{{ saisie_bloquee }}</span>
+  {% elif sans_saisie %}
   {% else %}
   <button type="button" class="bs-btn-open" data-bs-open aria-haspopup="dialog">
     <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.8"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>

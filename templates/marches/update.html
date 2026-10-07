@@ -1,230 +1,255 @@
 {% extends 'base.html' %}
-{% load humanize %}
+{% load humanize static %}
 {% block content %}
-<div class="p-6 max-w-5xl mx-auto">
 
-  <div class="flex items-center gap-2 mb-5 text-sm text-slate-400">
-    <a href="{% url 'matieres:marches_list' %}" class="hover:text-indigo-600 transition-colors">Marchés</a>
-    <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
-    <span class="text-slate-600 font-semibold">{{ marche.num_marche }}</span>
-    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold
-      {% if marche.statut == 'solde' %}bg-emerald-50 text-emerald-700 border border-emerald-200
-      {% elif marche.statut == 'annule' %}bg-red-50 text-red-700 border border-red-200
-      {% else %}bg-amber-50 text-amber-700 border border-amber-200{% endif %}">
-      <span class="w-1.5 h-1.5 rounded-full bg-current"></span>
-      {{ marche.get_statut_display }}
-    </span>
-    <a href="{% url 'matieres:marche_etat' marche.pk %}" class="ml-auto text-xs font-semibold text-indigo-600 hover:text-indigo-700">Imprimer</a>
-    <a href="{% url 'matieres:marche_detail' marche.pk %}" class="text-xs font-semibold text-indigo-600 hover:text-indigo-700">Voir la fiche →</a>
-  </div>
+<link rel="stylesheet" href="{% static 'css/bon-page.css' %}">
+<style>
+  .status-solde  { background: #dcfce7; color: #15803d; }
+  .status-annule { background: #fee2e2; color: #b91c1c; }
+  .btn-cancel { background: #fff; color: #dc2626; border: 1.5px solid #fecaca; }
+  .btn-cancel:hover { background: #fef2f2; }
 
-  {% if messages %}
-  <div class="mb-4 space-y-2">
-    {% for msg in messages %}
-    <div class="px-4 py-2.5 rounded-lg text-sm font-medium {% if msg.tags == 'error' %}bg-red-50 text-red-700 border border-red-200{% else %}bg-emerald-50 text-emerald-700 border border-emerald-200{% endif %}">{{ msg }}</div>
-    {% endfor %}
+  /* Exécution financière du marché */
+  .exec-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+  .exec-item { background: #f8fafc; border: 1px solid #eef2f7; border-radius: 10px; padding: 8px 10px; min-width: 0; }
+  .exec-item .lbl { font-size: 10px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: .05em; }
+  .exec-item .val { font-size: 13px; font-weight: 700; color: #1e293b; font-variant-numeric: tabular-nums;
+                    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .exec-bar { height: 6px; background: #eef2f7; border-radius: 99px; overflow: hidden; margin-top: 10px; }
+  .exec-bar span { display: block; height: 100%; background: linear-gradient(90deg, #4f46e5, #10b981); border-radius: 99px; }
+
+  /* Tableaux secondaires (bons d'entrée liés, expressions consolidées) */
+  .liens-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; margin-top: 14px; }
+  @media (max-width: 1000px) { .liens-grid { grid-template-columns: minmax(0, 1fr); } }
+  .liens-grid .lines-table tbody tr { cursor: default; }
+  .lien-vide { padding: 22px 16px; text-align: center; color: #94a3b8; font-size: 12.5px; }
+</style>
+
+<!-- Fil d'Ariane -->
+<div class="flex items-center gap-2 mb-4 text-sm text-slate-400">
+  <a href="{% url 'matieres:marches_list' %}" class="hover:text-indigo-600 transition-colors">Marchés</a>
+  <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+  <span class="text-slate-600 font-semibold">Marché {{ marche.num_marche }}</span>
+  <div class="ml-2 status-badge {% if marche.statut == 'solde' %}status-solde{% elif marche.statut == 'annule' %}status-annule{% else %}status-attente{% endif %}">
+    <span style="width:6px;height:6px;border-radius:50%;background:currentColor;display:inline-block;flex-shrink:0"></span>
+    {{ marche.get_statut_display }}
   </div>
+</div>
+
+
+<!-- ── BARRE D'ACTIONS ── -->
+<div class="action-bar no-print">
+  <a href="{% url 'matieres:marches_list' %}" class="btn-action btn-back">
+    <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
+    Retour
+  </a>
+
+  <div class="sep"></div>
+
+  {% if marche.statut == 'en_cours' %}
+  <form method="post" action="{% url 'matieres:marche_solder' marche.pk %}" style="margin:0"
+        onsubmit="return confirm('Solder le marché {{ marche.num_marche }} ? Il ne pourra plus recevoir de livraison.')">
+    {% csrf_token %}
+    <button type="submit" class="btn-action btn-validate">
+      <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+      Solder le marché
+    </button>
+  </form>
+  <form method="post" action="{% url 'matieres:marche_annuler' marche.pk %}" style="margin:0"
+        onsubmit="return confirm('Annuler le marché {{ marche.num_marche }} ?')">
+    {% csrf_token %}
+    <button type="submit" class="btn-action btn-cancel">
+      <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+      Annuler le marché
+    </button>
+  </form>
+  {% else %}
+  <form method="post" action="{% url 'matieres:marche_reouvrir' marche.pk %}" style="margin:0"
+        onsubmit="return confirm('Rouvrir le marché {{ marche.num_marche }} ?')">
+    {% csrf_token %}
+    <button type="submit" class="btn-action btn-devalidate">
+      <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+      Rouvrir le marché
+    </button>
+  </form>
   {% endif %}
 
-  <!-- Barre d'actions du workflow -->
-  <div class="flex items-center gap-2 mb-5 bg-white border border-slate-200 rounded-xl px-4 py-3 shadow-sm flex-wrap">
-    {% if marche.statut == 'en_cours' %}
-    <form method="post" action="{% url 'matieres:marche_solder' marche.pk %}" onsubmit="return confirm('Solder le marché {{ marche.num_marche }} ? Il ne sera plus modifiable.')">
-      {% csrf_token %}
-      <button type="submit" class="inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm font-semibold hover:bg-emerald-700 transition-colors">
-        <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-        Solder le marché
-      </button>
-    </form>
-    <form method="post" action="{% url 'matieres:marche_annuler' marche.pk %}" onsubmit="return confirm('Annuler le marché {{ marche.num_marche }} ?')">
-      {% csrf_token %}
-      <button type="submit" class="inline-flex items-center gap-2 px-4 py-2 bg-white text-red-600 border border-red-200 rounded-lg text-sm font-semibold hover:bg-red-50 transition-colors">
-        <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
-        Annuler le marché
-      </button>
-    </form>
-    {% else %}
-    <div class="text-sm text-slate-500">
-      {% if marche.statut == 'solde' %}Marché soldé — en-tête et articles verrouillés.{% else %}Marché annulé.{% endif %}
-    </div>
-    <form method="post" action="{% url 'matieres:marche_reouvrir' marche.pk %}" class="ml-auto" onsubmit="return confirm('Rouvrir le marché {{ marche.num_marche }} ?')">
-      {% csrf_token %}
-      <button type="submit" class="inline-flex items-center gap-2 px-4 py-2 bg-white text-slate-600 border border-slate-200 rounded-lg text-sm font-semibold hover:bg-slate-50 transition-colors">
-        Rouvrir
-      </button>
-    </form>
-    {% endif %}
+  <div class="sep"></div>
+
+  <a href="{% url 'matieres:marche_etat' marche.pk %}" class="btn-action btn-print" title="Imprimer l'état du marché">
+    <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
+    État du marché
+  </a>
+
+  <div class="ml-auto text-xs text-slate-400 flex items-center gap-2 no-print">
+    <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+    {{ marche.date_creation|date:"d/m/Y" }}
   </div>
+</div>
 
-  <div class="grid grid-cols-1 lg:grid-cols-[320px_1fr] gap-5">
-
-    <!-- En-tête du marché -->
-    <div class="bg-white border border-slate-200 rounded-2xl shadow-sm p-5 h-fit">
-      <div class="text-[11px] font-bold text-indigo-600 uppercase tracking-wide mb-4">En-tête du marché</div>
-      <form method="post" action="{% url 'matieres:marche_update' marche.pk %}" class="space-y-3">
-        {% csrf_token %}
-        <div>
-          <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1">Date de création</label>
-          <input type="date" name="date_creation" value="{{ marche.date_creation|date:'Y-m-d' }}" {% if not editable %}readonly{% endif %}
-                 class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none">
-        </div>
-        <div class="grid grid-cols-2 gap-3">
-          <div>
-            <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1">Date début</label>
-            <input type="date" name="date_debut" value="{{ marche.date_debut|date:'Y-m-d' }}" {% if not editable %}readonly{% endif %}
-                   class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none">
-          </div>
-          <div>
-            <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1">Date fin</label>
-            <input type="date" name="date_fin" value="{{ marche.date_fin|date:'Y-m-d' }}" {% if not editable %}readonly{% endif %}
-                   class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none">
-          </div>
-        </div>
-        <div>
-          <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1">Fournisseur</label>
-          <select name="fournisseur" {% if not editable %}disabled{% endif %} class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm bg-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none">
-            <option value="">— Sélectionner —</option>
-            {% for f in fournisseurs %}<option value="{{ f.pk }}" {% if marche.fournisseur_id == f.pk %}selected{% endif %}>{{ f.nom }}</option>{% endfor %}
-          </select>
-        </div>
-        <div>
-          <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1">N° Bon d'engagement</label>
-          <input type="number" name="num_bon_engagement" min="0" value="{{ marche.num_bon_engagement }}" {% if not editable %}readonly{% endif %}
-                 class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm text-right focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none">
-        </div>
-        <div>
-          <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1">Référence du marché</label>
-          <input type="text" name="reference_marche" value="{{ marche.reference_marche }}" {% if not editable %}readonly{% endif %}
-                 class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none">
-        </div>
-        <div>
-          <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1">Chapitre</label>
-          <input type="text" name="chapitre" value="{{ marche.chapitre }}" {% if not editable %}readonly{% endif %}
-                 class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none">
-        </div>
-        {% if editable %}
-        <button type="submit" class="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-indigo-600 text-white rounded-lg text-sm font-semibold hover:bg-indigo-700 transition-colors">
-          <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
-          Enregistrer l'en-tête
-        </button>
-        {% endif %}
-      </form>
-    </div>
-
-    <!-- Saisie d'article + tableau des lignes -->
-    <div class="space-y-5">
-      {% if editable %}
-      <div class="bg-white border border-slate-200 rounded-2xl shadow-sm p-5">
-        <div class="text-[11px] font-bold text-indigo-600 uppercase tracking-wide mb-4">Ajouter un article du marché</div>
-        <form hx-post="{% url 'matieres:htmx_marche_add_detail' marche.pk %}" hx-target="#marche-detail-rows" hx-swap="innerHTML"
-              hx-on::after-request="this.reset()">
+<!-- ══════════════════════════════════════════════
+     EN-TÊTE (gauche) + ARTICLES DU MARCHÉ (prioritaire)
+════════════════════════════════════════════════ -->
+<div class="bs-workspace" style="--bs-accent:#4f46e5;--bs-accent-dk:#4338ca;--bs-accent-soft:#eef2ff">
+  <div class="bs-aside">
+    <div class="section-card">
+      <div class="section-header">
+        <div class="dot"></div>
+        Entête du marché
+        <span style="margin-left:auto;font-weight:400;color:#6366f1;font-size:10px;letter-spacing:0">{{ marche.num_marche }}</span>
+      </div>
+      <div class="be-panel-left">
+        <form method="post" action="{% url 'matieres:marche_update' marche.pk %}">
           {% csrf_token %}
-          <div class="grid grid-cols-2 gap-3">
+          <div class="grid grid-cols-2 gap-x-4 gap-y-3">
+            <div>
+              <label class="f-label">N° Marché</label>
+              <input type="text" value="{{ marche.num_marche }}" class="f-input" readonly
+                     style="font-weight:700;color:#4f46e5;font-size:14px">
+            </div>
+            <div>
+              <label class="f-label" for="m-date-creation">Date de création</label>
+              <input type="date" id="m-date-creation" name="date_creation" value="{{ marche.date_creation|date:'Y-m-d' }}"
+                     class="f-input" {% if not editable %}readonly{% endif %} required>
+            </div>
+
+            <div>
+              <label class="f-label" for="m-date-debut">Date début</label>
+              <input type="date" id="m-date-debut" name="date_debut" value="{{ marche.date_debut|date:'Y-m-d' }}"
+                     class="f-input" {% if not editable %}readonly{% endif %}>
+            </div>
+            <div>
+              <label class="f-label" for="m-date-fin">Date fin</label>
+              <input type="date" id="m-date-fin" name="date_fin" value="{{ marche.date_fin|date:'Y-m-d' }}"
+                     class="f-input" {% if not editable %}readonly{% endif %}>
+            </div>
+
             <div class="col-span-2">
-              <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1">Désignation *</label>
-              <input name="designation" required class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none">
-            </div>
-            <div>
-              <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1">Nomenclature</label>
-              <input name="nomenclature" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm font-mono focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none">
-            </div>
-            <div>
-              <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1">Spécification</label>
-              <input name="specification" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none">
-            </div>
-            <div>
-              <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1">Quantité</label>
-              <input type="number" name="qte" min="0" value="0" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm text-right focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none">
-            </div>
-            <div>
-              <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1">Unité</label>
-              <select name="unite_id" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm bg-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none">
+              <label class="f-label" for="m-fournisseur">Fournisseur titulaire</label>
+              <select id="m-fournisseur" name="fournisseur" class="f-select" {% if not editable %}disabled{% endif %}>
                 <option value="">—</option>
-                {% for u in unites %}<option value="{{ u.pk }}">{{ u.libelle }}</option>{% endfor %}
+                {% for f in fournisseurs %}<option value="{{ f.pk }}" {% if marche.fournisseur_id == f.pk %}selected{% endif %}>{{ f.nom }}</option>{% endfor %}
               </select>
             </div>
+
             <div>
-              <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1">Prix HT</label>
-              <input type="number" name="prix_ht" min="0" step="0.01" value="0" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm text-right focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none">
+              <label class="f-label" for="m-engagement">N° Bon Engagement</label>
+              <input type="number" id="m-engagement" name="num_bon_engagement" min="0" value="{{ marche.num_bon_engagement }}"
+                     class="f-input" style="text-align:right" {% if not editable %}readonly{% endif %}>
             </div>
             <div>
-              <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1">Prix TTC</label>
-              <input type="number" name="prix_ttc" min="0" step="0.01" value="0" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm text-right focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none">
+              <label class="f-label" for="m-chapitre">Chapitre</label>
+              <input type="text" id="m-chapitre" name="chapitre" value="{{ marche.chapitre }}"
+                     class="f-input" {% if not editable %}readonly{% endif %}>
+            </div>
+
+            <div class="col-span-2">
+              <label class="f-label" for="m-reference">Référence du marché</label>
+              <input type="text" id="m-reference" name="reference_marche" value="{{ marche.reference_marche }}"
+                     class="f-input" {% if not editable %}readonly{% endif %}>
             </div>
           </div>
-          <button type="submit" class="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm font-semibold hover:bg-emerald-700 transition-colors">
-            <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
-            Ajouter la ligne
-          </button>
+
+          <div class="mt-4 flex items-center gap-2">
+            {% if editable %}
+            <button type="submit" class="line-btn line-btn-save">
+              <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+              Enregistrer l'entête
+            </button>
+            {% else %}
+            <div class="status-badge {% if marche.statut == 'solde' %}status-solde{% else %}status-annule{% endif %}" style="font-size:11px">
+              Marché {{ marche.get_statut_display|lower }} — entête verrouillée
+            </div>
+            {% endif %}
+          </div>
         </form>
       </div>
+    </div>
+
+    <!-- Exécution du marché -->
+    <div class="section-card" style="margin-bottom:0">
+      <div class="section-header"><div class="dot"></div>Exécution du marché</div>
+      {% include 'partials/marche_execution.html' %}
+    </div>
+  </div>
+
+  <div class="bs-main">
+    <div class="section-card bs-table-card" style="margin-bottom:0">
+      {% if editable %}
+        {% include 'partials/bon_table_head.html' with titre="Articles du marché" total=total_marche %}
+      {% else %}
+        {% include 'partials/bon_table_head.html' with titre="Articles du marché" total=total_marche saisie_bloquee="Marché clos — consultation seule" %}
       {% endif %}
-
-      <div class="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
-        <div class="px-5 py-3 border-b border-slate-100 text-[11px] font-bold text-indigo-600 uppercase tracking-wide">Articles du marché</div>
-        <div class="overflow-x-auto" id="marche-detail-rows">
-          {% include 'partials/marche_detail_rows.html' with details=marche.details.all marche=marche %}
+      <div style="overflow-x:auto">
+        <div id="detail-rows-container">
+          {% include 'partials/marche_detail_rows.html' %}
         </div>
       </div>
+    </div>
 
-      <div class="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
-        <div class="px-5 py-3 border-b border-slate-100 text-[11px] font-bold text-indigo-600 uppercase tracking-wide">
-          Bons d'entrée liés — {{ bons_entree|length }}
-        </div>
-        <div class="overflow-x-auto">
-          <table class="w-full text-sm">
-            <thead>
-              <tr class="bg-slate-50 text-slate-500 text-[11px] uppercase tracking-wide font-bold border-b border-slate-200">
-                <th class="text-left px-4 py-2.5">N° Bon</th>
-                <th class="text-left px-4 py-2.5">Date</th>
-                <th class="text-right px-4 py-2.5">Montant TTC</th>
-                <th class="px-4 py-2.5"></th>
-              </tr>
-            </thead>
-            <tbody>
-              {% for be in bons_entree %}
-              <tr class="border-b border-slate-100 hover:bg-slate-50">
-                <td class="px-4 py-2.5 font-mono font-semibold text-indigo-600">BE-{{ be.num_bon|stringformat:"04d" }}</td>
-                <td class="px-4 py-2.5 text-slate-600">{{ be.date_creation|date:"d/m/Y" }}</td>
-                <td class="px-4 py-2.5 text-right font-semibold">{{ be.total_ttc|floatformat:0|intcomma }} FCFA</td>
-                <td class="px-4 py-2.5 text-right"><a href="{% url 'matieres:bon_entree_update' be.pk %}" class="text-slate-500 hover:text-indigo-600 text-xs font-semibold">Ouvrir</a></td>
-              </tr>
-              {% empty %}
-              <tr><td colspan="4" class="px-4 py-8 text-center text-slate-400">Aucun bon d'entrée encore réceptionné sur ce marché.</td></tr>
-              {% endfor %}
-            </tbody>
-          </table>
-        </div>
+    <!-- Chaîne Expression de besoin → Marché → Bon d'entrée -->
+    <div class="liens-grid">
+      <div class="section-card" style="margin-bottom:0">
+        <div class="section-header"><div class="dot"></div>Bons d'entrée liés <span style="margin-left:auto">{{ bons_entree|length }}</span></div>
+        {% if bons_entree %}
+        <table class="lines-table">
+          <thead><tr><th>N° Bon</th><th>Date</th><th>État</th><th class="r">Montant TTC</th><th></th></tr></thead>
+          <tbody>
+            {% for be in bons_entree %}
+            <tr>
+              <td class="mono">BE-{{ be.num_bon|stringformat:"04d" }}</td>
+              <td>{{ be.date_creation|date:"d/m/Y" }}</td>
+              <td>{% if be.valide %}<span class="badge-success">Validé</span>{% else %}<span class="badge-warning">Brouillon</span>{% endif %}</td>
+              <td class="r">{{ be.total_ttc|floatformat:0|intcomma }}</td>
+              <td style="text-align:right"><a href="{% url 'matieres:bon_entree_update' be.pk %}" class="text-xs font-semibold text-indigo-600 hover:text-indigo-800">Ouvrir</a></td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        {% else %}
+        <div class="lien-vide">Aucune livraison réceptionnée sur ce marché pour l'instant.</div>
+        {% endif %}
       </div>
 
-      <div class="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
-        <div class="px-5 py-3 border-b border-slate-100 text-[11px] font-bold text-indigo-600 uppercase tracking-wide">
-          Expressions de besoin consolidées — {{ expressions_besoin|length }}
-        </div>
-        <div class="overflow-x-auto">
-          <table class="w-full text-sm">
-            <thead>
-              <tr class="bg-slate-50 text-slate-500 text-[11px] uppercase tracking-wide font-bold border-b border-slate-200">
-                <th class="text-left px-4 py-2.5">Référence</th>
-                <th class="text-left px-4 py-2.5">Service demandeur</th>
-                <th class="px-4 py-2.5"></th>
-              </tr>
-            </thead>
-            <tbody>
-              {% for e in expressions_besoin %}
-              <tr class="border-b border-slate-100 hover:bg-slate-50">
-                <td class="px-4 py-2.5 font-semibold text-indigo-600">{{ e.reference|default:"—" }} {% if not e.reference %}#{{ e.id }}{% endif %}</td>
-                <td class="px-4 py-2.5 text-slate-700">{{ e.demandeur_service|default:"—" }}</td>
-                <td class="px-4 py-2.5 text-right"><a href="{% url 'matieres:expression_detail' e.pk %}" class="text-slate-500 hover:text-indigo-600 text-xs font-semibold">Ouvrir</a></td>
-              </tr>
-              {% empty %}
-              <tr><td colspan="3" class="px-4 py-8 text-center text-slate-400">Aucune expression de besoin consolidée dans ce marché.</td></tr>
-              {% endfor %}
-            </tbody>
-          </table>
-        </div>
+      <div class="section-card" style="margin-bottom:0">
+        <div class="section-header"><div class="dot"></div>Expressions de besoin liées <span style="margin-left:auto">{{ expressions_besoin|length }}</span></div>
+        {% if expressions_besoin %}
+        <table class="lines-table">
+          <thead><tr><th>Référence</th><th>Type</th><th>Service demandeur</th><th></th></tr></thead>
+          <tbody>
+            {% for e in expressions_besoin %}
+            <tr>
+              <td class="nowrap" style="font-weight:600">{{ e }}</td>
+              <td class="nowrap">{% if e.sur_marche %}Sur marché{% else %}Consolidée{% endif %}</td>
+              <td>{{ e.demandeur_service|default:"—" }}</td>
+              <td style="text-align:right"><a href="{% url 'matieres:expression_update' e.pk %}" class="text-xs font-semibold text-indigo-600 hover:text-indigo-800">Ouvrir</a></td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        {% else %}
+        <div class="lien-vide">Aucune expression de besoin n'est encore liée à ce marché.</div>
+        {% endif %}
       </div>
     </div>
   </div>
 </div>
+
+{% if editable %}
+<div class="bs-backdrop" data-bs-backdrop></div>
+<section class="bs-drawer" data-bs-drawer role="dialog" aria-modal="true" aria-hidden="true"
+         aria-labelledby="bs-drawer-titre" style="--bs-accent:#4f46e5;--bs-accent-dk:#4338ca;--bs-accent-soft:#eef2ff"
+         data-rows="#detail-rows-container" data-add-btn="#btn-saisir" data-focus="#f-designation">
+  {% include 'partials/bon_drawer_head.html' with titre="Saisie d'un article du marché" badge=marche.num_marche %}
+  <div class="bs-drawer-body">
+    {% url 'matieres:htmx_marche_add_detail' pk=marche.pk as add_url %}
+    {% include 'partials/article_saisie_form.html' with add_url=add_url nb_articles=details|length total=total_marche %}
+  </div>
+  {% include 'partials/bon_drawer_foot.html' %}
+</section>
+
+<script src="{% static 'js/article-saisie.js' %}"></script>
+{% include 'partials/produit_catalogue_modal.html' %}
+{% endif %}
+
 {% endblock %}

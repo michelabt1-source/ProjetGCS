@@ -1,49 +1,84 @@
 {% extends 'base.html' %}
+{% load static %}
 {% block content %}
-<div class="p-6 max-w-2xl mx-auto">
 
-  <div class="flex items-center gap-2 mb-5 text-sm text-slate-400">
+<link rel="stylesheet" href="{% static 'css/bon-page.css' %}">
+<style>
+  .eb-modes { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .eb-mode {
+    display: flex; align-items: flex-start; gap: 10px; padding: 12px 14px; cursor: pointer;
+    border: 1.5px solid #e2e8f0; border-radius: 11px; background: #fff; transition: all 140ms;
+  }
+  .eb-mode:has(input:checked) { border-color: #6366f1; background: #eef2ff; }
+  .eb-mode input { margin-top: 3px; accent-color: #4f46e5; }
+  .eb-mode .t { font-size: 13.5px; font-weight: 700; color: #1e293b; }
+  .eb-mode .d { font-size: 11.5px; color: #64748b; line-height: 1.4; }
+  @media (max-width: 640px) { .eb-modes { grid-template-columns: 1fr; } }
+</style>
+
+<div class="max-w-3xl mx-auto">
+  <div class="flex items-center gap-2 mb-4 text-sm text-slate-400">
     <a href="{% url 'matieres:expressions_list' %}" class="hover:text-indigo-600 transition-colors">Expressions de besoins</a>
     <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
     <span class="text-slate-600 font-semibold">Nouvelle expression</span>
   </div>
 
-  <div class="bg-white border border-slate-200 rounded-2xl shadow-sm p-6">
-    <form method="post" action="{% url 'matieres:expression_create' %}">
+
+  <div class="section-card">
+    <div class="section-header"><div class="dot"></div>Nouvelle expression de besoin</div>
+    <form method="post" action="{% url 'matieres:expression_create' %}" class="be-panel-left" style="padding:18px 20px">
       {% csrf_token %}
-      <div class="grid grid-cols-2 gap-4">
+      <div class="grid grid-cols-2 gap-x-4 gap-y-4">
         <div>
-          <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1">Référence</label>
-          <input type="text" name="reference" placeholder="Ex. EB-2026/014"
-                 class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none">
+          <label class="f-label" for="n-reference">Référence</label>
+          <input type="text" id="n-reference" name="reference" value="{{ saisie.reference }}" placeholder="EB-2026/014" class="f-input">
         </div>
         <div>
-          <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1">Date de création *</label>
-          <input type="date" name="date_creation" value="{{ today|date:'Y-m-d' }}" required
-                 class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none">
+          <label class="f-label" for="n-date">Date de création</label>
+          <input type="date" id="n-date" name="date_creation" value="{{ saisie.date_creation|default:today|date:'Y-m-d' }}" required class="f-input">
         </div>
         <div>
-          <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1">Service demandeur</label>
-          <select name="service" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm bg-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none">
-            <option value="">— Sélectionner —</option>
-            {% for s in services %}<option value="{{ s.pk }}">{{ s }}</option>{% endfor %}
+          <label class="f-label" for="n-service">Service demandeur</label>
+          <select id="n-service" name="service" class="f-select">
+            <option value="">—</option>
+            {% for s in services %}<option value="{{ s.pk }}" {% if saisie.service == s.pk|stringformat:'s' %}selected{% endif %}>{{ s }}</option>{% endfor %}
           </select>
         </div>
         <div>
-          <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1">Bureau demandeur</label>
-          <select name="bureau" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm bg-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none">
-            <option value="">— Sélectionner —</option>
-            {% for b in bureaux %}<option value="{{ b.pk }}">{{ b }}</option>{% endfor %}
+          <label class="f-label" for="n-bureau">Bureau demandeur</label>
+          <select id="n-bureau" name="bureau" class="f-select">
+            <option value="">—</option>
+            {% for b in bureaux %}<option value="{{ b.pk }}" {% if saisie.bureau == b.pk|stringformat:'s' %}selected{% endif %}>{{ b }}</option>{% endfor %}
           </select>
+        </div>
+
+        <div class="col-span-2">
+          <span class="f-label">Type d'expression</span>
+          <div class="eb-modes" role="radiogroup">
+            <label class="eb-mode">
+              <input type="radio" name="mode" value="libre" {% if saisie.mode != 'sur_marche' %}checked{% endif %}>
+              <span><span class="t">Libre</span><br><span class="d">Le service saisit librement ses articles ; le comptable les consolidera ensuite dans un marché.</span></span>
+            </label>
+            <label class="eb-mode">
+              <input type="radio" name="mode" value="sur_marche" {% if saisie.mode == 'sur_marche' %}checked{% endif %}>
+              <span><span class="t">Sur marché</span><br><span class="d">Le service puise dans un marché en cours : tous ses articles sont listés, il saisit les quantités.</span></span>
+            </label>
+          </div>
+        </div>
+
+        <div class="col-span-2" id="n-marche-wrap" {% if saisie.mode != 'sur_marche' %}hidden{% endif %}>
+          <label class="f-label" for="n-marche">Marché associé</label>
+          <select id="n-marche" name="marche_id" class="f-select">
+            <option value="">— Choisir un marché en cours —</option>
+            {% for m in marches_en_cours %}<option value="{{ m.pk }}" {% if saisie.marche_id == m.pk|stringformat:'s' %}selected{% endif %}>{{ m.num_marche }}{% if m.fournisseur %} — {{ m.fournisseur }}{% endif %}{% if m.reference_marche %} ({{ m.reference_marche }}){% endif %}</option>{% endfor %}
+          </select>
+          {% if not marches_en_cours %}<div class="mt-1 text-xs text-amber-700">Aucun marché en cours pour l'instant.</div>{% endif %}
         </div>
       </div>
 
-      <p class="text-xs text-slate-400 mt-3">Les articles demandés se saisissent une fois l'expression créée, depuis sa fiche.</p>
-
       <div class="mt-5 flex items-center gap-2">
-        <a href="{% url 'matieres:expressions_list' %}" class="px-4 py-2 text-sm font-semibold text-slate-500 hover:text-slate-700">Annuler</a>
-        <button type="submit"
-                class="ml-auto inline-flex items-center gap-2 px-5 py-2.5 bg-indigo-600 text-white rounded-xl text-sm font-semibold shadow-sm hover:bg-indigo-700 transition-colors">
+        <a href="{% url 'matieres:expressions_list' %}" class="btn-action btn-back">Annuler</a>
+        <button type="submit" class="btn-action btn-validate" style="margin-left:auto">
           <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
           Créer et saisir les articles
         </button>
@@ -51,4 +86,13 @@
     </form>
   </div>
 </div>
+
+<script>
+document.querySelectorAll('input[name="mode"]').forEach(function (radio) {
+  radio.addEventListener('change', function () {
+    document.getElementById('n-marche-wrap').hidden = this.value !== 'sur_marche';
+    if (this.value === 'sur_marche') document.getElementById('n-marche').focus();
+  });
+});
+</script>
 {% endblock %}

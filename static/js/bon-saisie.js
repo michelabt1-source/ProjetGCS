@@ -58,11 +58,13 @@
     return sel ? document.querySelector(sel) : null;
   }
 
-  /* Lignes d'articles réelles (la ligne « Aucun article » n'a qu'une cellule) */
+  /* Lignes d'articles réelles (la ligne « Aucun article » n'a qu'une cellule ;
+     [data-bs-hors-total] : ligne listée mais pas retenue, ex. article de marché à 0) */
   function nbLignes() {
     const c = conteneurLignes();
     if (!c) return 0;
-    return Array.prototype.filter.call(c.querySelectorAll('tbody tr'), tr => tr.cells.length > 1).length;
+    return Array.prototype.filter.call(c.querySelectorAll('tbody tr'),
+      tr => tr.cells.length > 1 && !tr.hasAttribute('data-bs-hors-total')).length;
   }
 
   function majResume() {
@@ -77,6 +79,18 @@
     if (label) label.textContent = n > 1 ? 'articles' : 'article';
     const source = conteneurLignes()?.querySelector('[data-bs-total-source]');
     if (total && source) total.textContent = source.textContent.replace(/\s+/g, ' ').trim();
+    // Rappel en bas du volet de saisie (même information)
+    const rappel = document.getElementById('f-stock-info');
+    if (rappel && total) {
+      rappel.textContent = '';
+      if (n) {
+        rappel.textContent = n + (n > 1 ? ' articles — ' : ' article — ');
+        const fort = document.createElement('strong');
+        fort.style.color = '#059669';
+        fort.textContent = total.textContent;
+        rappel.appendChild(fort);
+      }
+    }
   }
 
   let flashTimer = null;
@@ -134,8 +148,12 @@
     if (!c || e.detail.target !== c) return;
     majResume();
     if (lignesAvantAjout === null) return;
+    // Refus métier renvoyé par le serveur (bandeau role="alert" dans le partial)
+    const alerte = c.querySelector('[role="alert"]');
     if (nbLignes() > lignesAvantAjout) {
-      flash('✓ Article ajouté au bon. Vous pouvez saisir le suivant.', 'ok');
+      flash('✓ Article ajouté. Vous pouvez saisir le suivant.', 'ok');
+    } else if (alerte) {
+      flash(alerte.textContent.trim(), 'warn');
     } else {
       flash("Article non ajouté : choisissez d'abord un article dans la liste ou le catalogue, puis la quantité.", 'warn');
     }

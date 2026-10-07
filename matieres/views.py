@@ -5,7 +5,7 @@ from django.db import transaction
 from django.db.models import Sum, Count, Q
 from django.http import JsonResponse, HttpResponse
 from datetime import date, datetime, timedelta
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 from functools import wraps
 import json
 
@@ -280,6 +280,12 @@ def bon_entree_create(request):
             num_pvc = request.POST.get('num_pvc', '')
             chapitre = request.POST.get('chapitre', '')
             marche_id = request.POST.get('marche_id') or None
+            if marche_id:
+                marche = get_object_or_404(Marche, pk=marche_id)
+                fournisseur_id = fournisseur_id or marche.fournisseur_id
+                erreur = marche.erreur_rattachement(fournisseur_id)
+                if erreur:
+                    raise ValueError(erreur)
 
             bon = BonEntree.objects.create(
                 num_bon=num_bon,
@@ -331,17 +337,33 @@ def bon_entree_update(request, pk):
     bon = get_object_or_404(BonEntree, pk=pk)
     if request.method == 'POST':
         try:
+            marche_id = request.POST.get('marche_id') or None
+            fournisseur_id = request.POST.get('fournisseur') or None
+            if bon.valide:
+                # Dépôt, marché, quantités ont déjà mouvementé le stock et le journal.
+                raise ValueError("Bon validé : dévalidez-le avant de modifier son en-tête.")
+            if marche_id:
+                marche = get_object_or_404(Marche, pk=marche_id)
+                fournisseur_id = fournisseur_id or marche.fournisseur_id
+                erreurs = []
+                erreur = marche.erreur_rattachement(fournisseur_id, marche_actuel_id=bon.marche_id)
+                if erreur:
+                    erreurs.append(erreur)
+                if marche.pk != bon.marche_id:
+                    erreurs += marche.erreurs_lignes(bon, bon.details.values_list('nomenclature', 'qte'))
+                if erreurs:
+                    raise ValueError(" | ".join(erreurs))
             bon.date_creation = request.POST.get('date_creation') or bon.date_creation
             bon.annee_exercice_id = request.POST.get('annee_exercice') or None
             bon.references_pieces = request.POST.get('references_pieces', '')
             bon.type_entree_id = request.POST.get('type_entree') or None
             bon.depot_id = request.POST.get('depot') or None
-            bon.fournisseur_id = request.POST.get('fournisseur') or None
+            bon.fournisseur_id = fournisseur_id
             bon.num_bon_engagement = int(request.POST.get('num_bon_engagement') or 0)
             bon.num_bon_commande = int(request.POST.get('num_bon_commande') or 0)
             bon.num_pvc = request.POST.get('num_pvc', '')
             bon.chapitre = request.POST.get('chapitre', '')
-            bon.marche_id = request.POST.get('marche_id') or None
+            bon.marche_id = marche_id
             bon.save()
             messages.success(request, "En-tête du bon mis à jour.")
         except Exception as e:
@@ -410,15 +432,8 @@ def marche_create(request):
 
 @login_required
 def marche_detail(request, pk):
-    marche = get_object_or_404(Marche, pk=pk)
-    context = {
-        'page_title': f"Marché {marche.num_marche}",
-        'marche': marche,
-        'details': marche.details.all(),
-        'bons_entree': marche.bons_entree.select_related('depot').order_by('-date_creation'),
-        'expressions_besoin': marche.expressions_besoin.select_related('demandeur_service').order_by('-date_creation'),
-    }
-    return render(request, 'marches/detail.html', context)
+    # Une seule page par marché : saisie tant qu'il est en cours, consultation ensuite.
+    return redirect('matieres:marche_update', pk=pk)
 
 
 @login_required
@@ -469,57 +484,85 @@ def marche_reouvrir(request, pk):
 
 @login_required
 def expressions_list(request):
-    exprs = ExpressionBesoin.objects.select_related('demandeur_service', 'demandeur_bureau').order_by('-date_creation')
+    exprs = ExpressionBesoin.objects.select_related('demandeur_service', 'demandeur_bureau', 'marche').order_by('-date_creation')
     context = {'page_title': 'Expressions de besoins', 'expressions': exprs}
     return render(request, 'expressions/list.html', context)
+
+
+def _changer_type_expression(expr, mode, marche_id):
+    """Applique le type (libre / sur marché) et le marché choisis dans l'en-tête.
+    Retourne True si l'expression doit (re)prendre les articles d'un marché.
+    Lève ValueError si le changement ferait perdre des quantités déjà saisies."""
+    mode = 'sur_marche' if mode == 'sur_marche' else 'libre'
+    marche = None
+    if mode == 'sur_marche':
+        marche = Marche.objects.filter(pk=marche_id).first() if marche_id else None
+        if not marche:
+            raise ValueError("Choisissez le marché dans lequel le service puise ses articles.")
+        if marche.statut != 'en_cours' and marche.pk != expr.marche_id:
+            raise ValueError(f"Le marché {marche.num_marche} n'est pas en cours.")
+    if mode == expr.mode and (mode == 'libre' or marche.pk == expr.marche_id):
+        return False
+    if expr.pk:
+        if expr.details.filter(qte__gt=0).exists():
+            raise ValueError("Des articles sont déjà demandés : supprimez-les ou remettez leurs quantités "
+                             "à 0 avant de changer de type ou de marché.")
+        expr.details.all().delete()
+    expr.mode = mode
+    expr.marche = marche
+    return mode == 'sur_marche'
 
 
 @login_required
 def expression_create(request):
     if request.method == 'POST':
         try:
-            reference = request.POST.get('reference', '')
-            date_creation = request.POST.get('date_creation') or date.today().isoformat()
-            service_id = request.POST.get('service') or None
-            bureau_id = request.POST.get('bureau') or None
-            expr = ExpressionBesoin.objects.create(
-                reference=reference,
-                date_creation=date_creation,
-                demandeur_service_id=service_id,
-                demandeur_bureau_id=bureau_id,
-            )
-            messages.success(request, f"Expression de besoin créée (#{expr.id}).")
+            with transaction.atomic():
+                expr = ExpressionBesoin(
+                    reference=request.POST.get('reference', '').strip(),
+                    date_creation=request.POST.get('date_creation') or date.today().isoformat(),
+                    demandeur_service_id=request.POST.get('service') or None,
+                    demandeur_bureau_id=request.POST.get('bureau') or None,
+                )
+                reprendre = _changer_type_expression(expr, request.POST.get('mode'), request.POST.get('marche_id'))
+                expr.save()
+                if reprendre:
+                    n = expr.reprendre_articles_marche()
+                    messages.success(request, f"Expression créée : les {n} articles du marché {expr.marche.num_marche} "
+                                              f"sont listés, saisissez les quantités demandées.")
+                else:
+                    messages.success(request, "Expression créée : saisissez les articles demandés.")
             return redirect('matieres:expression_update', pk=expr.pk)
-        except Exception as e:
-            messages.error(request, f"Erreur: {e}")
+        except ValueError as e:
+            messages.error(request, str(e))
 
-    context = {'page_title': 'Nouvelle expression de besoin', 'services': Service.objects.all(), 'bureaux': Bureau.objects.all(), 'today': date.today()}
+    context = {
+        'page_title': 'Nouvelle expression de besoin',
+        'services': Service.objects.all(),
+        'bureaux': Bureau.objects.all(),
+        'marches_en_cours': Marche.objects.filter(statut='en_cours').select_related('fournisseur').order_by('-date_creation'),
+        'today': date.today(),
+        'saisie': request.POST,
+    }
     return render(request, 'expressions/form.html', context)
 
 
 @login_required
 def expression_detail(request, pk):
-    expr = get_object_or_404(ExpressionBesoin, pk=pk)
-    context = {
-        'page_title': f'Expression #{expr.id}',
-        'expression': expr,
-        'details': expr.details.all(),
-        'marches_en_cours': Marche.objects.filter(statut='en_cours').order_by('-date_creation'),
-    }
-    return render(request, 'expressions/detail.html', context)
+    # Une seule page par expression : saisie tant qu'elle est nouvelle, consultation ensuite.
+    return redirect('matieres:expression_update', pk=pk)
 
 
 @login_required
 def expression_recevoir(request, pk):
     expr = get_object_or_404(ExpressionBesoin, pk=pk)
-    if request.method == 'POST' and not expr.recu_par_comptable:
-        expr.recu_par_comptable = True
-        expr.date_reception_comptable = date.today()
-        if expr.statut == 'nouveau':
-            expr.statut = 'recu'
-        expr.save(update_fields=['recu_par_comptable', 'date_reception_comptable', 'statut'])
-        messages.success(request, "Expression marquée reçue par le comptable des matières.")
-    return redirect('matieres:expression_detail', pk=pk)
+    if request.method == 'POST':
+        try:
+            expr.recevoir(date.today())
+            messages.success(request, "Expression reçue par le comptable des matières : elle est désormais figée.")
+        except ValueError as e:
+            messages.error(request, str(e))
+    return redirect('matieres:expression_update', pk=pk)
 
 
 @login_required
@@ -536,7 +579,7 @@ def expression_consolider(request, pk):
                 messages.success(request, f"Expression consolidée dans le marché {marche.num_marche}.")
             except ValueError as e:
                 messages.error(request, str(e))
-    return redirect('matieres:expression_detail', pk=pk)
+    return redirect('matieres:expression_update', pk=pk)
 
 
 @login_required
@@ -559,6 +602,8 @@ def marche_update(request, pk):
         'page_title': f'Marché {marche.num_marche}',
         'marche': marche,
         'editable': editable,
+        'details': marche.details.select_related('produit', 'unite').all(),
+        'total_marche': marche.total_ttc(),
         'fournisseurs': Fournisseur.objects.all(),
         'unites': Unite.objects.all(),
         'today': date.today(),
@@ -571,108 +616,221 @@ def marche_update(request, pk):
 
 @login_required
 def expression_update(request, pk):
-    expr = get_object_or_404(ExpressionBesoin, pk=pk)
-    editable = expr.statut != 'consolide'
-    if request.method == 'POST' and editable:
-        expr.reference = request.POST.get('reference', expr.reference)
-        expr.date_creation = request.POST.get('date_creation') or expr.date_creation
-        expr.demandeur_service_id = request.POST.get('service') or None
-        expr.demandeur_bureau_id = request.POST.get('bureau') or None
-        expr.save()
-        messages.success(request, "Expression mise à jour.")
+    expr = get_object_or_404(ExpressionBesoin.objects.select_related('marche'), pk=pk)
+    if request.method == 'POST':
+        if not expr.modifiable:
+            messages.error(request, "Expression reçue par le comptable : elle n'est plus modifiable.")
+            return redirect('matieres:expression_update', pk=pk)
+        try:
+            with transaction.atomic():
+                expr.reference = request.POST.get('reference', expr.reference).strip()
+                expr.date_creation = request.POST.get('date_creation') or expr.date_creation
+                expr.demandeur_service_id = request.POST.get('service') or None
+                expr.demandeur_bureau_id = request.POST.get('bureau') or None
+                reprendre = _changer_type_expression(expr, request.POST.get('mode'), request.POST.get('marche_id'))
+                expr.save()
+                if reprendre:
+                    n = expr.reprendre_articles_marche()
+                    messages.success(request, f"Marché {expr.marche.num_marche} associé : {n} articles listés, "
+                                              f"saisissez les quantités demandées.")
+                else:
+                    messages.success(request, "En-tête de l'expression enregistré.")
+        except ValueError as e:
+            messages.error(request, str(e))
         return redirect('matieres:expression_update', pk=pk)
 
+    marches = Marche.objects.filter(Q(statut='en_cours') | Q(pk=expr.marche_id)).select_related('fournisseur')
     context = {
-        'page_title': f'Expression #{expr.id}',
-        'expression': expr,
-        'editable': editable,
+        'page_title': str(expr),
+        'unites': Unite.objects.all(),
         'services': Service.objects.all(),
         'bureaux': Bureau.objects.all(),
-        'unites': Unite.objects.all(),
+        'marches_en_cours': marches.order_by('-date_creation'),
+        'marches_consolidation': Marche.objects.filter(statut='en_cours').order_by('-date_creation'),
         'today': date.today(),
+        **_expression_lignes_contexte(expr),
     }
     return render(request, 'expressions/update.html', context)
+
+
+def _lire_ligne_article(post):
+    """Lit une ligne d'article saisie dans un volet (marché, expression de besoin).
+    Tolère « 1 500 », « 1.500,50 » ou une virgule décimale ; lève ValueError avec
+    un message lisible par l'utilisateur si la ligne est incomplète."""
+    def nombre(champ, libelle):
+        brut = str(post.get(champ) or '0').replace('\xa0', '').replace(' ', '')
+        if ',' in brut:                      # format français : « . » milliers, « , » décimales
+            brut = brut.replace('.', '').replace(',', '.')
+        try:
+            valeur = Decimal(brut)
+        except InvalidOperation:
+            raise ValueError(f"{libelle} invalide : « {post.get(champ)} ».")
+        if valeur < 0:
+            raise ValueError(f"{libelle} ne peut pas être négatif.")
+        return valeur
+
+    designation = post.get('designation', '').strip()
+    if not designation:
+        raise ValueError("Choisissez un article (désignation) avant de saisir la ligne.")
+    qte = nombre('qte', 'Quantité')
+    if qte != qte.to_integral_value():
+        raise ValueError("La quantité doit être un nombre entier.")
+    if qte <= 0:
+        raise ValueError("Indiquez une quantité supérieure à zéro.")
+    produit_id = post.get('produit_id') or None
+    if produit_id and not Produit.objects.filter(pk=produit_id).exists():
+        produit_id = None
+    unite_id = post.get('unite_id') or None
+    if unite_id and not Unite.objects.filter(pk=unite_id).exists():
+        unite_id = None
+    prix_ttc = nombre('prix_ttc', 'Prix TTC')
+    return {
+        'produit_id': produit_id,
+        'designation': designation[:300],
+        'nomenclature': post.get('nomenclature', '').strip()[:30],
+        'specification': post.get('specification', '').strip()[:300],
+        'qte': int(qte),
+        'unite_id': unite_id,
+        'prix_ht': nombre('prix_ht', 'Prix HT'),
+        'prix_ttc': prix_ttc,
+        'montant_ttc': int(qte) * prix_ttc,
+        'observation': post.get('observation', '').strip(),
+    }
+
+
+def _marche_lignes(request, marche, erreur=None):
+    return render(request, 'partials/marche_detail_rows.html', {
+        'details': marche.details.select_related('produit', 'unite').all(),
+        'marche': marche,
+        'editable': marche.statut == 'en_cours',
+        'erreur': erreur,
+        'oob': True,   # recharge aussi le bloc « Exécution du marché »
+    })
 
 
 @login_required
 def htmx_marche_add_detail(request, pk):
     marche = get_object_or_404(Marche, pk=pk)
-    if request.method == 'POST' and marche.statut == 'en_cours':
-        designation = request.POST.get('designation', '').strip()
-        if designation:
-            produit_id = request.POST.get('produit_id') or None
-            nomenclature = request.POST.get('nomenclature', '').strip()
-            specification = request.POST.get('specification', '').strip()
-            qte = int(request.POST.get('qte') or 0)
-            unite_id = request.POST.get('unite_id') or None
-            prix_ht = Decimal(str(request.POST.get('prix_ht') or '0').replace(',', '.'))
-            prix_ttc = Decimal(str(request.POST.get('prix_ttc') or '0').replace(',', '.'))
-            montant_ttc = qte * prix_ttc
-            DetailMarche.objects.create(
-                marche=marche,
-                produit_id=produit_id,
-                designation=designation,
-                nomenclature=nomenclature,
-                specification=specification,
-                qte=qte,
-                unite_id=unite_id,
-                prix_ht=prix_ht,
-                prix_ttc=prix_ttc,
-                montant_ttc=montant_ttc,
-            )
-    details = marche.details.select_related('produit', 'unite').all()
-    return render(request, 'partials/marche_detail_rows.html', {'details': details, 'marche': marche})
+    erreur = None
+    if request.method == 'POST':
+        if marche.statut != 'en_cours':
+            erreur = f"Le marché est {marche.get_statut_display().lower()} : ses articles ne sont plus modifiables."
+        else:
+            try:
+                DetailMarche.objects.create(marche=marche, **_lire_ligne_article(request.POST))
+            except ValueError as e:
+                erreur = str(e)
+    return _marche_lignes(request, marche, erreur)
 
 
 @login_required
 def htmx_marche_delete_detail(request, detail_pk):
     detail = get_object_or_404(DetailMarche, pk=detail_pk)
     marche = detail.marche
-    if marche.statut == 'en_cours':
-        detail.delete()
-    details = marche.details.select_related('produit', 'unite').all()
-    return render(request, 'partials/marche_detail_rows.html', {'details': details, 'marche': marche})
+    erreur = None
+    if request.method == 'POST':
+        if marche.statut != 'en_cours':
+            erreur = "Marché clos : ses articles ne sont plus modifiables."
+        elif detail.nomenclature and marche.qte_livree(detail.nomenclature):
+            erreur = f"{detail.nomenclature} a déjà été livré sur ce marché : la ligne ne peut plus être supprimée."
+        elif detail.demandes.filter(qte__gt=0).exists():
+            erreur = f"{detail.designation} est demandé par une expression de besoin : la ligne ne peut plus être supprimée."
+        else:
+            detail.delete()
+    return _marche_lignes(request, marche, erreur)
+
+
+def _expression_lignes_contexte(expr, erreur=None):
+    details = list(expr.details.select_related('produit', 'unite', 'ligne_marche').order_by('pk'))
+    for d in details:
+        if d.ligne_marche_id:
+            d.qte_marche = d.ligne_marche.qte
+            d.disponible = d.ligne_marche.qte_disponible(exclure_expression=expr)
+    demandes = [d for d in details if d.qte > 0]
+    return {
+        'details': details,
+        'expression': expr,
+        'editable': expr.modifiable,
+        'erreur': erreur,
+        'demandes': demandes,
+        'nb_demandes': len(demandes),
+        'total_demande': sum(d.montant_ttc for d in demandes),
+    }
+
+
+def _expression_lignes(request, expr, erreur=None):
+    return render(request, 'partials/expression_detail_rows.html', _expression_lignes_contexte(expr, erreur))
 
 
 @login_required
 def htmx_expression_add_detail(request, pk):
     expr = get_object_or_404(ExpressionBesoin, pk=pk)
-    if request.method == 'POST' and expr.statut != 'consolide':
-        designation = request.POST.get('designation', '').strip()
-        if designation:
-            produit_id = request.POST.get('produit_id') or None
-            nomenclature = request.POST.get('nomenclature', '').strip()
-            specification = request.POST.get('specification', '').strip()
-            qte = int(request.POST.get('qte') or 0)
-            unite_id = request.POST.get('unite_id') or None
-            prix_ht = Decimal(str(request.POST.get('prix_ht') or '0').replace(',', '.'))
-            prix_ttc = Decimal(str(request.POST.get('prix_ttc') or '0').replace(',', '.'))
-            montant_ttc = qte * prix_ttc
-            DetailExpressionBesoin.objects.create(
-                expression=expr,
-                produit_id=produit_id,
-                designation=designation,
-                nomenclature=nomenclature,
-                specification=specification,
-                qte=qte,
-                unite_id=unite_id,
-                prix_ht=prix_ht,
-                prix_ttc=prix_ttc,
-                montant_ttc=montant_ttc,
-            )
-    details = expr.details.select_related('produit', 'unite').all()
-    return render(request, 'partials/expression_detail_rows.html', {'details': details, 'expression': expr})
+    erreur = None
+    if request.method == 'POST':
+        if not expr.modifiable:
+            erreur = "Expression reçue par le comptable : elle n'est plus modifiable."
+        elif expr.sur_marche:
+            erreur = "Expression sur marché : seuls les articles du marché peuvent être demandés."
+        else:
+            try:
+                DetailExpressionBesoin.objects.create(expression=expr, **_lire_ligne_article(request.POST))
+            except ValueError as e:
+                erreur = str(e)
+    return _expression_lignes(request, expr, erreur)
+
+
+@login_required
+def htmx_expression_set_qte(request, detail_pk):
+    """Quantité demandée sur un article du marché (saisie directe dans le tableau)."""
+    detail = get_object_or_404(DetailExpressionBesoin.objects.select_related('expression', 'ligne_marche'), pk=detail_pk)
+    expr = detail.expression
+    erreur = None
+    if request.method == 'POST':
+        brut = (request.POST.get('qte') or '0').replace(' ', '').replace('\xa0', '')
+        if not expr.modifiable:
+            erreur = "Expression reçue par le comptable : elle n'est plus modifiable."
+        elif not brut.isdigit():
+            erreur = f"{detail.designation} : saisissez une quantité entière positive."
+        else:
+            qte = int(brut)
+            disponible = detail.ligne_marche.qte_disponible(exclure_expression=expr) if detail.ligne_marche else None
+            if disponible is not None and qte > disponible:
+                erreur = (f"{detail.designation} : {qte} demandé(s) pour {disponible} encore disponible(s) "
+                          f"sur le marché.")
+            else:
+                detail.qte = qte
+                detail.montant_ttc = qte * detail.prix_ttc
+                detail.save(update_fields=['qte', 'montant_ttc'])
+    return _expression_lignes(request, expr, erreur)
+
+
+@login_required
+def htmx_expression_reprendre(request, pk):
+    """Ajoute les articles du marché qui ne figurent pas encore dans l'expression."""
+    expr = get_object_or_404(ExpressionBesoin, pk=pk)
+    erreur = None
+    if request.method == 'POST':
+        try:
+            if not expr.modifiable:
+                raise ValueError("Expression reçue par le comptable : elle n'est plus modifiable.")
+            if not expr.reprendre_articles_marche():
+                erreur = "Tous les articles du marché figurent déjà dans l'expression."
+        except ValueError as e:
+            erreur = str(e)
+    return _expression_lignes(request, expr, erreur)
 
 
 @login_required
 def htmx_expression_delete_detail(request, detail_pk):
     detail = get_object_or_404(DetailExpressionBesoin, pk=detail_pk)
     expr = detail.expression
-    if expr.statut != 'consolide':
-        detail.delete()
-    details = expr.details.select_related('produit', 'unite').all()
-    return render(request, 'partials/expression_detail_rows.html', {'details': details, 'expression': expr})
-
+    erreur = None
+    if request.method == 'POST':
+        if expr.modifiable:
+            detail.delete()
+        else:
+            erreur = "Expression reçue par le comptable : elle n'est plus modifiable."
+    return _expression_lignes(request, expr, erreur)
 
 
 @login_required
@@ -682,49 +840,67 @@ def bon_entree_valider(request, pk):
         if not bon.details.exists():
             messages.error(request, "Impossible de valider : aucun article dans le bon.")
             return redirect('matieres:bon_entree_update', pk=pk)
-        bon.valide = True
-        bon.save()
-        annee_val = bon.annee_exercice.annee if bon.annee_exercice else None
-        for detail in bon.details.select_related('produit', 'unite').all():
-            if detail.produit:
-                stock_avant = detail.produit.stock_global
-                detail.produit.stock_global += detail.qte
-                detail.produit.entree += detail.qte
-                if detail.unite_id and detail.produit.unite_id != detail.unite_id:
-                    detail.produit.unite = detail.unite
-                detail.produit.save()
-                if bon.depot:
-                    sd, _ = StockDepot.objects.get_or_create(
-                        produit=detail.produit, depot=bon.depot,
-                        defaults={'nomenclature': detail.nomenclature, 'designation': detail.designation}
-                    )
-                    sd.qte_stock += detail.qte
-                    sd.save()
-                Journal.objects.create(
-                    date_creation=bon.date_creation,
-                    num_bon=bon.num_bon,
-                    type_entree=bon.type_entree.libelle if bon.type_entree else 'Bon Entrée',
-                    groupe=detail.produit.groupe if detail.produit else '',
-                    designation=detail.designation,
-                    nomenclature=detail.nomenclature,
-                    specification=detail.specification,
-                    qte=detail.qte,
-                    unite=str(detail.unite) if detail.unite else '',
-                    prix_ht=detail.prix_ht,
-                    prix_ttc=detail.prix_ttc,
-                    montant_ttc=detail.montant_ttc,
-                    annee_exercice=annee_val,
-                    depot=str(bon.depot) if bon.depot else '',
-                    observation=detail.observation,
-                    existant=stock_avant,
-                    entree_periode=detail.qte,
-                    total_entree=detail.produit.entree,
-                    sortie_periode=0,
-                    existant_fin_periode=detail.produit.stock_global,
-                    montant_existant=detail.produit.stock_global * detail.prix_ht,
-                )
+        if bon.marche:
+            # Contrôle refait ici : deux brouillons ont pu chacun passer à la saisie
+            # et dépasser ensemble le reste à livrer.
+            erreurs = bon.marche.erreurs_lignes(bon, bon.details.values_list('nomenclature', 'qte'))
+            erreur = bon.marche.erreur_rattachement(bon.fournisseur_id, marche_actuel_id=bon.marche_id)
+            if erreur:
+                erreurs.insert(0, erreur)
+            if bon.marche.statut != 'en_cours':
+                erreurs.insert(0, f"Le marché {bon.marche.num_marche} est {bon.marche.get_statut_display().lower()}.")
+            if erreurs:
+                messages.error(request, "Validation impossible — " + " | ".join(erreurs))
+                return redirect('matieres:bon_entree_update', pk=pk)
+        with transaction.atomic():
+            _valider_bon_entree(bon)
         messages.success(request, f"Bon BE-{bon.num_bon:04d} validé. Stock mis à jour.")
     return redirect('matieres:bon_entree_update', pk=pk)
+
+
+def _valider_bon_entree(bon):
+    """Mouvements de stock et écritures de journal d'un bon d'entrée — à appeler dans une transaction."""
+    bon.valide = True
+    bon.save()
+    annee_val = bon.annee_exercice.annee if bon.annee_exercice else None
+    for detail in bon.details.select_related('produit', 'unite').all():
+        if detail.produit:
+            stock_avant = detail.produit.stock_global
+            detail.produit.stock_global += detail.qte
+            detail.produit.entree += detail.qte
+            if detail.unite_id and detail.produit.unite_id != detail.unite_id:
+                detail.produit.unite = detail.unite
+            detail.produit.save()
+            if bon.depot:
+                sd, _ = StockDepot.objects.get_or_create(
+                    produit=detail.produit, depot=bon.depot,
+                    defaults={'nomenclature': detail.nomenclature, 'designation': detail.designation}
+                )
+                sd.qte_stock += detail.qte
+                sd.save()
+            Journal.objects.create(
+                date_creation=bon.date_creation,
+                num_bon=bon.num_bon,
+                type_entree=bon.type_entree.libelle if bon.type_entree else 'Bon Entrée',
+                groupe=detail.produit.groupe if detail.produit else '',
+                designation=detail.designation,
+                nomenclature=detail.nomenclature,
+                specification=detail.specification,
+                qte=detail.qte,
+                unite=str(detail.unite) if detail.unite else '',
+                prix_ht=detail.prix_ht,
+                prix_ttc=detail.prix_ttc,
+                montant_ttc=detail.montant_ttc,
+                annee_exercice=annee_val,
+                depot=str(bon.depot) if bon.depot else '',
+                observation=detail.observation,
+                existant=stock_avant,
+                entree_periode=detail.qte,
+                total_entree=detail.produit.entree,
+                sortie_periode=0,
+                existant_fin_periode=detail.produit.stock_global,
+                montant_existant=detail.produit.stock_global * detail.prix_ht,
+            )
 
 
 @login_required
@@ -801,6 +977,14 @@ def htmx_be_add_detail(request, pk):
                     Unite.objects.get(pk=unite_id)
                 except Exception:
                     unite_id = None
+
+            if bon.marche:
+                lignes = list(bon.details.values_list('nomenclature', 'qte')) + [(nomenclature, qte)]
+                erreurs = bon.marche.erreurs_lignes(bon, lignes)
+                if erreurs:
+                    details = bon.details.select_related('produit', 'unite').all()
+                    return render(request, 'partials/be_detail_rows.html',
+                                  {'details': details, 'bon': bon, 'erreur': " ".join(erreurs)})
 
             DetailBonEntree.objects.create(
                 bon_entree=bon,

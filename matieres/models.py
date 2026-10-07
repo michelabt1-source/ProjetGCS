@@ -1,4 +1,4 @@
-from django.db import models
+from django.db import models, transaction
 from django.contrib.auth.models import User
 
 
@@ -466,11 +466,61 @@ class Marche(models.Model):
         return sum(d.montant_ttc for d in self.details.all())
 
     def total_livre(self):
-        """Somme des bons d'entrée déjà réceptionnés contre ce marché."""
-        return sum(be.total_ttc() for be in self.bons_entree.all())
+        """Somme des bons d'entrée validés contre ce marché (les brouillons ne comptent pas)."""
+        return sum(be.total_ttc() for be in self.bons_entree.all() if be.valide)
 
     def solde_restant(self):
         return self.total_ttc() - self.total_livre()
+
+    def taux_execution(self):
+        """Part du montant du marché déjà livrée, en % entier (0 à 100)."""
+        total = self.total_ttc()
+        return min(100, round(self.total_livre() * 100 / total)) if total else 0
+
+    # ── Contrôle des réceptions (bons d'entrée) ──
+    # Les lignes se rapprochent par nomenclature : c'est la seule clé toujours
+    # renseignée des deux côtés (DetailMarche.produit peut être vide en saisie libre).
+
+    def qte_commandee(self, nomenclature):
+        return self.details.filter(nomenclature=nomenclature).aggregate(t=models.Sum('qte'))['t'] or 0
+
+    def qte_livree(self, nomenclature, exclure_bon=None):
+        """Quantité déjà réceptionnée par des bons d'entrée validés."""
+        qs = DetailBonEntree.objects.filter(
+            bon_entree__marche=self, bon_entree__valide=True, nomenclature=nomenclature
+        )
+        if exclure_bon is not None:
+            qs = qs.exclude(bon_entree=exclure_bon)
+        return qs.aggregate(t=models.Sum('qte'))['t'] or 0
+
+    def erreur_rattachement(self, fournisseur_id, marche_actuel_id=None):
+        """Message d'erreur si un bon d'entrée (de ce fournisseur, actuellement rattaché à
+        marche_actuel_id) ne peut pas être rattaché à ce marché, sinon None. Un bon déjà
+        rattaché garde son marché même si celui-ci a été soldé depuis."""
+        if self.statut != 'en_cours' and marche_actuel_id != self.pk:
+            return f"Le marché {self.num_marche} est {self.get_statut_display().lower()} : il ne peut plus recevoir de livraison."
+        if self.fournisseur_id and fournisseur_id and int(fournisseur_id) != self.fournisseur_id:
+            return f"Le fournisseur du bon n'est pas le titulaire du marché {self.num_marche} ({self.fournisseur})."
+        return None
+
+    def erreurs_lignes(self, bon, lignes):
+        """Contrôle des lignes (nomenclature, qte) qu'un bon d'entrée réceptionnerait sur ce marché :
+        chaque article doit figurer au marché et la quantité cumulée du bon ne doit pas dépasser
+        le reste à livrer (commandé − déjà livré par les autres bons validés)."""
+        cumul = {}
+        for nomenclature, qte in lignes:
+            cumul[nomenclature] = cumul.get(nomenclature, 0) + qte
+        erreurs = []
+        for nomenclature, qte in cumul.items():
+            commandee = self.qte_commandee(nomenclature)
+            if not commandee:
+                erreurs.append(f"{nomenclature} ne figure pas au marché {self.num_marche}.")
+                continue
+            reste = commandee - self.qte_livree(nomenclature, exclure_bon=bon)
+            if qte > reste:
+                erreurs.append(f"{nomenclature} : {qte} réceptionné(s) pour un reste à livrer de {reste} "
+                               f"(commandé {commandee}).")
+        return erreurs
 
 
 class DetailMarche(models.Model):
@@ -497,6 +547,14 @@ class DetailMarche(models.Model):
     def __str__(self):
         return f"{self.designation} x{self.qte}"
 
+    def qte_disponible(self, exclure_expression=None):
+        """Quantité de cette ligne pas encore demandée par les expressions de besoin
+        « sur marché » (l'expression en cours de saisie peut être exclue du calcul)."""
+        demandes = self.demandes.all()
+        if exclure_expression is not None:
+            demandes = demandes.exclude(expression=exclure_expression)
+        return self.qte - (demandes.aggregate(t=models.Sum('qte'))['t'] or 0)
+
 
 class ExpressionBesoin(models.Model):
     STATUT_CHOICES = [
@@ -504,7 +562,12 @@ class ExpressionBesoin(models.Model):
         ('recu', 'Reçu par comptable'),
         ('consolide', 'Consolidée dans un marché'),
     ]
+    MODE_CHOICES = [
+        ('libre', 'Libre'),            # articles saisis librement, consolidés ensuite dans un marché
+        ('sur_marche', 'Sur marché'),  # le service puise dans les articles d'un marché en cours
+    ]
 
+    mode = models.CharField(max_length=12, choices=MODE_CHOICES, default='libre', verbose_name="Type d'expression")
     reference = models.CharField(max_length=100, blank=True, verbose_name="Référence")
     date_creation = models.DateField(verbose_name="Date de création")
     demandeur_service = models.ForeignKey(
@@ -532,17 +595,73 @@ class ExpressionBesoin(models.Model):
     def total_ttc(self):
         return sum(d.montant_ttc for d in self.details.all())
 
+    @property
+    def sur_marche(self):
+        return self.mode == 'sur_marche'
+
+    @property
+    def modifiable(self):
+        """Une expression n'est modifiable que tant que le comptable ne l'a pas reçue."""
+        return self.statut == 'nouveau'
+
+    def reprendre_articles_marche(self):
+        """Ajoute à l'expression, à quantité 0, chaque article du marché associé qu'elle
+        ne contient pas encore. Retourne le nombre de lignes ajoutées."""
+        if not self.sur_marche or not self.marche_id:
+            raise ValueError("Associez d'abord un marché à cette expression.")
+        if self.marche.statut != 'en_cours':
+            raise ValueError(f"Le marché {self.marche.num_marche} n'est plus en cours.")
+        deja = set(self.details.exclude(ligne_marche=None).values_list('ligne_marche_id', flat=True))
+        lignes = [
+            DetailExpressionBesoin(
+                expression=self, ligne_marche=l, produit=l.produit, designation=l.designation,
+                nomenclature=l.nomenclature, specification=l.specification, qte=0, unite=l.unite,
+                prix_ht=l.prix_ht, prix_ttc=l.prix_ttc, montant_ttc=0,
+            )
+            for l in self.marche.details.order_by('pk') if l.pk not in deja
+        ]
+        DetailExpressionBesoin.objects.bulk_create(lignes)
+        return len(lignes)
+
+    @transaction.atomic
+    def recevoir(self, le_jour):
+        """Réception par le comptable des matières : l'expression est figée. Les articles
+        d'un marché laissés à 0 ne sont pas retenus."""
+        if self.recu_par_comptable:
+            return
+        if self.sur_marche:
+            self.details.filter(qte=0).delete()
+        if not self.details.filter(qte__gt=0).exists():
+            raise ValueError("Aucun article demandé : saisissez au moins une quantité avant la transmission.")
+        self.recu_par_comptable = True
+        self.date_reception_comptable = le_jour
+        self.statut = 'recu'
+        self.save(update_fields=['recu_par_comptable', 'date_reception_comptable', 'statut'])
+
     def consolider_dans_marche(self, marche):
         """Consolide cette expression de besoin (reçue par le comptable) dans un marché
         en cours : chaque ligne exprimée devient une ligne du marché, appel d'offres
         et contrat fournisseur restant à la charge du marché lui-même. Idempotent."""
         if self.statut == 'consolide' and self.marche_id:
             return self.marche
+        if self.sur_marche:
+            raise ValueError("Une expression « sur marché » puise déjà dans son marché : elle ne se consolide pas.")
         if not self.recu_par_comptable:
             raise ValueError("Cette expression n'a pas encore été reçue par le comptable des matières.")
         if marche.statut != 'en_cours':
             raise ValueError("Le marché sélectionné n'est pas en cours.")
 
+        if not self.details.exists():
+            raise ValueError("Cette expression ne contient aucun article.")
+
+        with transaction.atomic():
+            self._copier_lignes_dans(marche)
+            self.marche = marche
+            self.statut = 'consolide'
+            self.save(update_fields=['marche', 'statut'])
+        return marche
+
+    def _copier_lignes_dans(self, marche):
         for d in self.details.all():
             DetailMarche.objects.create(
                 marche=marche,
@@ -559,11 +678,6 @@ class ExpressionBesoin(models.Model):
                 expression_source=d,
             )
 
-        self.marche = marche
-        self.statut = 'consolide'
-        self.save(update_fields=['marche', 'statut'])
-        return marche
-
 
 class DetailExpressionBesoin(models.Model):
     expression = models.ForeignKey(ExpressionBesoin, on_delete=models.CASCADE, related_name='details')
@@ -577,6 +691,10 @@ class DetailExpressionBesoin(models.Model):
     prix_ttc = models.DecimalField(max_digits=15, decimal_places=2, default=0, verbose_name="Prix TTC")
     montant_ttc = models.DecimalField(max_digits=15, decimal_places=2, default=0, verbose_name="Montant TTC")
     observation = models.TextField(blank=True, verbose_name="Observation")
+    ligne_marche = models.ForeignKey(
+        DetailMarche, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='demandes', verbose_name="Article du marché demandé"
+    )
 
     class Meta:
         verbose_name = "Détail expression de besoin"

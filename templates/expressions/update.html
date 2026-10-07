@@ -1,128 +1,272 @@
 {% extends 'base.html' %}
-{% load humanize %}
+{% load humanize static %}
 {% block content %}
-<div class="p-6 max-w-5xl mx-auto">
 
-  <div class="flex items-center gap-2 mb-5 text-sm text-slate-400">
-    <a href="{% url 'matieres:expressions_list' %}" class="hover:text-indigo-600 transition-colors">Expressions de besoins</a>
-    <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
-    <span class="text-slate-600 font-semibold">{{ expression.reference|default:"Expression #" }}{% if not expression.reference %}{{ expression.id }}{% endif %}</span>
-    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold
-      {% if expression.statut == 'consolide' %}bg-emerald-50 text-emerald-700 border border-emerald-200
-      {% elif expression.statut == 'recu' %}bg-amber-50 text-amber-700 border border-amber-200
-      {% else %}bg-slate-100 text-slate-500 border border-slate-200{% endif %}">
-      <span class="w-1.5 h-1.5 rounded-full bg-current"></span>
-      {{ expression.get_statut_display }}
-    </span>
-    <a href="{% url 'matieres:expression_detail' expression.pk %}" class="ml-auto text-xs font-semibold text-indigo-600 hover:text-indigo-700">Voir la fiche →</a>
-  </div>
+<link rel="stylesheet" href="{% static 'css/bon-page.css' %}">
+<style>
+  .status-nouveau   { background: #f1f5f9; color: #475569; }
+  .status-recu      { background: #fef3c7; color: #92400e; }
+  .status-consolide { background: #dcfce7; color: #15803d; }
 
-  {% if messages %}
-  <div class="mb-4 space-y-2">
-    {% for msg in messages %}
-    <div class="px-4 py-2.5 rounded-lg text-sm font-medium {% if msg.tags == 'error' %}bg-red-50 text-red-700 border border-red-200{% else %}bg-emerald-50 text-emerald-700 border border-emerald-200{% endif %}">{{ msg }}</div>
-    {% endfor %}
+  /* Choix du type d'expression */
+  .eb-modes { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+  .eb-mode {
+    display: flex; align-items: flex-start; gap: 8px; padding: 8px 10px; cursor: pointer;
+    border: 1.5px solid #e2e8f0; border-radius: 9px; background: #fff; transition: all 140ms;
+  }
+  .eb-mode:has(input:checked) { border-color: #6366f1; background: #eef2ff; }
+  .eb-mode:has(input:disabled) { cursor: default; }
+  .eb-mode input { margin-top: 2px; accent-color: #4f46e5; }
+  .eb-mode .t { font-size: 12.5px; font-weight: 700; color: #1e293b; }
+  .eb-mode .d { font-size: 10.5px; color: #64748b; line-height: 1.35; }
+
+  /* Bandeau du marché associé */
+  .eb-marche-bar {
+    display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+    padding: 9px 16px; background: #f8faff; border-bottom: 1px solid #e0e7ff; font-size: 12.5px; color: #475569;
+  }
+  .eb-marche-bar strong { color: #3730a3; }
+
+  /* Quantité demandée saisie dans le tableau */
+  .eb-qte {
+    width: 72px; padding: 4px 8px; text-align: right; font-weight: 700; font-size: 13px;
+    border: 1.5px solid #e2e8f0; border-radius: 7px; background: #fff; color: #1e293b;
+    font-variant-numeric: tabular-nums; outline: none; transition: border-color 140ms, box-shadow 140ms;
+  }
+  .eb-qte:focus { border-color: #6366f1; box-shadow: 0 0 0 3px rgba(99,102,241,.12); }
+  .eb-marche-table tbody tr { cursor: default; }
+  .eb-marche-table tbody tr.eb-ligne-demandee { background: #f0fdf4; }
+  .eb-marche-table tbody tr.eb-ligne-demandee:hover { background: #e7f9ee; }
+  .eb-marche-table tbody tr.eb-ligne-demandee .eb-qte { border-color: #86efac; }
+
+  .btn-workflow { background: linear-gradient(135deg, #4f46e5, #6366f1); color: #fff; box-shadow: 0 2px 8px rgba(79,70,229,.25); }
+  .btn-workflow:hover { background: linear-gradient(135deg, #4338ca, #4f46e5); }
+</style>
+
+<!-- Fil d'Ariane -->
+<div class="flex items-center gap-2 mb-4 text-sm text-slate-400">
+  <a href="{% url 'matieres:expressions_list' %}" class="hover:text-indigo-600 transition-colors">Expressions de besoins</a>
+  <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+  <span class="text-slate-600 font-semibold">{{ expression }}</span>
+  <div class="ml-2 status-badge status-{{ expression.statut }}">
+    <span style="width:6px;height:6px;border-radius:50%;background:currentColor;display:inline-block;flex-shrink:0"></span>
+    {{ expression.get_statut_display }}
   </div>
+  <span class="bs-badge" style="margin-left:4px">{{ expression.get_mode_display }}</span>
+</div>
+
+
+<!-- ── BARRE D'ACTIONS : circuit de l'expression ── -->
+<div class="action-bar no-print" style="flex-wrap:wrap">
+  <a href="{% url 'matieres:expressions_list' %}" class="btn-action btn-back">
+    <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
+    Retour
+  </a>
+  <div class="sep"></div>
+
+  {% if expression.statut == 'nouveau' %}
+  <form method="post" action="{% url 'matieres:expression_recevoir' expression.pk %}" style="margin:0"
+        onsubmit="return confirm('Transmettre l\'expression au comptable des matières ? Elle ne sera plus modifiable.')">
+    {% csrf_token %}
+    <button type="submit" class="btn-action btn-validate">
+      <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+      Marquer reçue par le comptable
+    </button>
+  </form>
+  <span class="text-xs text-slate-400">
+    {% if expression.sur_marche %}Les articles laissés à 0 ne seront pas retenus.{% else %}L'expression sera ensuite consolidée dans un marché.{% endif %}
+  </span>
+
+  {% elif expression.statut == 'recu' and not expression.sur_marche %}
+  <form method="post" action="{% url 'matieres:expression_consolider' expression.pk %}" style="margin:0;display:flex;align-items:center;gap:8px"
+        onsubmit="return confirm('Consolider cette expression dans le marché sélectionné ?')">
+    {% csrf_token %}
+    <select name="marche_id" required class="f-select" style="width:260px" aria-label="Marché de consolidation">
+      <option value="">— Marché en cours —</option>
+      {% for m in marches_consolidation %}<option value="{{ m.pk }}">{{ m.num_marche }}{% if m.reference_marche %} — {{ m.reference_marche }}{% endif %}</option>{% endfor %}
+    </select>
+    <button type="submit" class="btn-action btn-workflow">
+      <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
+      Consolider dans ce marché
+    </button>
+  </form>
+  {% if not marches_consolidation %}<a href="{% url 'matieres:marche_create' %}" class="text-xs font-semibold text-indigo-600">+ Créer un marché</a>{% endif %}
+
+  {% else %}
+  <span class="text-sm text-slate-500 flex items-center gap-2">
+    <svg width="14" height="14" fill="none" stroke="#059669" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+    {% if expression.statut == 'consolide' %}Consolidée dans le marché{% else %}Reçue le {{ expression.date_reception_comptable|date:"d/m/Y" }} — demande sur le marché{% endif %}
+    {% if expression.marche %}<a href="{% url 'matieres:marche_update' expression.marche.pk %}" class="font-semibold text-indigo-600 hover:underline">{{ expression.marche.num_marche }}</a>{% endif %}
+  </span>
   {% endif %}
 
-  <div class="grid grid-cols-1 lg:grid-cols-[320px_1fr] gap-5">
+  <div class="ml-auto text-xs text-slate-400 flex items-center gap-2">
+    <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+    {{ expression.date_creation|date:"d/m/Y" }}
+  </div>
+</div>
 
-    <!-- En-tête de l'expression -->
-    <div class="bg-white border border-slate-200 rounded-2xl shadow-sm p-5 h-fit">
-      <div class="text-[11px] font-bold text-indigo-600 uppercase tracking-wide mb-4">En-tête de l'expression</div>
-      <form method="post" action="{% url 'matieres:expression_update' expression.pk %}" class="space-y-3">
-        {% csrf_token %}
-        <div>
-          <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1">Référence</label>
-          <input type="text" name="reference" value="{{ expression.reference }}" {% if not editable %}readonly{% endif %}
-                 class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none">
-        </div>
-        <div>
-          <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1">Date de création</label>
-          <input type="date" name="date_creation" value="{{ expression.date_creation|date:'Y-m-d' }}" {% if not editable %}readonly{% endif %}
-                 class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none">
-        </div>
-        <div>
-          <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1">Service demandeur</label>
-          <select name="service" {% if not editable %}disabled{% endif %} class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm bg-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none">
-            <option value="">— Sélectionner —</option>
-            {% for s in services %}<option value="{{ s.pk }}" {% if expression.demandeur_service_id == s.pk %}selected{% endif %}>{{ s }}</option>{% endfor %}
-          </select>
-        </div>
-        <div>
-          <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1">Bureau demandeur</label>
-          <select name="bureau" {% if not editable %}disabled{% endif %} class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm bg-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none">
-            <option value="">— Sélectionner —</option>
-            {% for b in bureaux %}<option value="{{ b.pk }}" {% if expression.demandeur_bureau_id == b.pk %}selected{% endif %}>{{ b }}</option>{% endfor %}
-          </select>
-        </div>
-        {% if editable %}
-        <button type="submit" class="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-indigo-600 text-white rounded-lg text-sm font-semibold hover:bg-indigo-700 transition-colors">
-          <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
-          Enregistrer l'en-tête
-        </button>
-        {% else %}
-        <div class="text-xs text-slate-500">Expression consolidée — en-tête verrouillé.</div>
-        {% endif %}
-      </form>
-    </div>
-
-    <!-- Saisie d'article + tableau des lignes -->
-    <div class="space-y-5">
-      {% if editable %}
-      <div class="bg-white border border-slate-200 rounded-2xl shadow-sm p-5">
-        <div class="text-[11px] font-bold text-indigo-600 uppercase tracking-wide mb-4">Ajouter un article demandé</div>
-        <form hx-post="{% url 'matieres:htmx_expression_add_detail' expression.pk %}" hx-target="#expression-detail-rows" hx-swap="innerHTML"
-              hx-on::after-request="this.reset()">
+<!-- ══════════════════════════════════════════════
+     EN-TÊTE (gauche) + ARTICLES DEMANDÉS (prioritaire)
+════════════════════════════════════════════════ -->
+<div class="bs-workspace" style="--bs-accent:#4f46e5;--bs-accent-dk:#4338ca;--bs-accent-soft:#eef2ff">
+  <div class="bs-aside">
+    <div class="section-card" style="margin-bottom:0">
+      <div class="section-header">
+        <div class="dot"></div>
+        Entête de l'expression de besoin
+      </div>
+      <div class="be-panel-left">
+        <form method="post" action="{% url 'matieres:expression_update' expression.pk %}" id="eb-entete">
           {% csrf_token %}
-          <div class="grid grid-cols-2 gap-3">
+          <div class="grid grid-cols-2 gap-x-4 gap-y-3">
+            <div>
+              <label class="f-label" for="e-reference">Référence</label>
+              <input type="text" id="e-reference" name="reference" value="{{ expression.reference }}" class="f-input"
+                     placeholder="EB-2026/014" {% if not editable %}readonly{% endif %}>
+            </div>
+            <div>
+              <label class="f-label" for="e-date">Date de création</label>
+              <input type="date" id="e-date" name="date_creation" value="{{ expression.date_creation|date:'Y-m-d' }}"
+                     class="f-input" {% if not editable %}readonly{% endif %} required>
+            </div>
             <div class="col-span-2">
-              <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1">Désignation *</label>
-              <input name="designation" required class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none">
-            </div>
-            <div>
-              <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1">Nomenclature</label>
-              <input name="nomenclature" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm font-mono focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none">
-            </div>
-            <div>
-              <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1">Spécification</label>
-              <input name="specification" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none">
-            </div>
-            <div>
-              <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1">Quantité</label>
-              <input type="number" name="qte" min="0" value="0" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm text-right focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none">
-            </div>
-            <div>
-              <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1">Unité</label>
-              <select name="unite_id" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm bg-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none">
+              <label class="f-label" for="e-service">Service demandeur</label>
+              <select id="e-service" name="service" class="f-select" {% if not editable %}disabled{% endif %}>
                 <option value="">—</option>
-                {% for u in unites %}<option value="{{ u.pk }}">{{ u.libelle }}</option>{% endfor %}
+                {% for s in services %}<option value="{{ s.pk }}" {% if expression.demandeur_service_id == s.pk %}selected{% endif %}>{{ s }}</option>{% endfor %}
               </select>
             </div>
-            <div>
-              <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1">Prix HT</label>
-              <input type="number" name="prix_ht" min="0" step="0.01" value="0" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm text-right focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none">
+            <div class="col-span-2">
+              <label class="f-label" for="e-bureau">Bureau demandeur</label>
+              <select id="e-bureau" name="bureau" class="f-select" {% if not editable %}disabled{% endif %}>
+                <option value="">—</option>
+                {% for b in bureaux %}<option value="{{ b.pk }}" {% if expression.demandeur_bureau_id == b.pk %}selected{% endif %}>{{ b }}</option>{% endfor %}
+              </select>
             </div>
-            <div>
-              <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1">Prix TTC</label>
-              <input type="number" name="prix_ttc" min="0" step="0.01" value="0" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm text-right focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none">
+
+            <div class="col-span-2">
+              <span class="f-label">Type d'expression</span>
+              <div class="eb-modes" role="radiogroup">
+                <label class="eb-mode">
+                  <input type="radio" name="mode" value="libre" {% if not expression.sur_marche %}checked{% endif %} {% if not editable %}disabled{% endif %}>
+                  <span><span class="t">Libre</span><br><span class="d">Saisie libre, consolidée ensuite</span></span>
+                </label>
+                <label class="eb-mode">
+                  <input type="radio" name="mode" value="sur_marche" {% if expression.sur_marche %}checked{% endif %} {% if not editable %}disabled{% endif %}>
+                  <span><span class="t">Sur marché</span><br><span class="d">Articles d'un marché en cours</span></span>
+                </label>
+              </div>
+            </div>
+            <div class="col-span-2" id="e-marche-wrap" {% if not expression.sur_marche %}hidden{% endif %}>
+              <label class="f-label" for="e-marche">Marché associé</label>
+              <select id="e-marche" name="marche_id" class="f-select" {% if not editable %}disabled{% endif %}>
+                <option value="">— Choisir un marché en cours —</option>
+                {% for m in marches_en_cours %}<option value="{{ m.pk }}" {% if expression.sur_marche and expression.marche_id == m.pk %}selected{% endif %}>{{ m.num_marche }}{% if m.fournisseur %} — {{ m.fournisseur }}{% endif %}</option>{% endfor %}
+              </select>
+              {% if editable %}<div class="mt-1 text-[11px] text-slate-400">En enregistrant, tous les articles du marché sont listés à quantité 0.</div>{% endif %}
             </div>
           </div>
-          <button type="submit" class="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm font-semibold hover:bg-emerald-700 transition-colors">
-            <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
-            Ajouter la ligne
-          </button>
+
+          <div class="mt-4 flex items-center gap-2">
+            {% if editable %}
+            <button type="submit" class="line-btn line-btn-save">
+              <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+              Enregistrer l'entête
+            </button>
+            {% else %}
+            <div class="status-badge status-{{ expression.statut }}" style="font-size:11px">Expression transmise — entête verrouillée</div>
+            {% endif %}
+          </div>
         </form>
       </div>
-      {% endif %}
+    </div>
+  </div>
 
-      <div class="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
-        <div class="px-5 py-3 border-b border-slate-100 text-[11px] font-bold text-indigo-600 uppercase tracking-wide">Articles demandés</div>
-        <div class="overflow-x-auto" id="expression-detail-rows">
-          {% include 'partials/expression_detail_rows.html' with details=expression.details.all expression=expression %}
+  <div class="bs-main">
+    <div class="section-card bs-table-card" style="margin-bottom:0">
+      {% if expression.sur_marche %}
+        {% include 'partials/bon_table_head.html' with titre="Articles demandés sur le marché" details=demandes total=total_demande sans_saisie=True %}
+        {% if expression.marche %}
+        <div class="eb-marche-bar">
+          <span>Marché <strong>{{ expression.marche.num_marche }}</strong>{% if expression.marche.fournisseur %} — {{ expression.marche.fournisseur }}{% endif %}</span>
+          {% if editable %}
+          <span class="text-slate-400">· saisissez la quantité demandée puis <kbd>Entrée</kbd> ou <kbd>Tab</kbd></span>
+          <button type="button" class="line-btn line-btn-saisir" style="margin-left:auto"
+                  hx-post="{% url 'matieres:htmx_expression_reprendre' pk=expression.pk %}"
+                  hx-target="#detail-rows-container" hx-swap="innerHTML"
+                  title="Ajoute les articles du marché qui ne figurent pas encore dans la liste">
+            <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+            Reprendre les articles du marché
+          </button>
+          {% endif %}
+        </div>
+        {% endif %}
+      {% elif editable %}
+        {% include 'partials/bon_table_head.html' with titre="Articles demandés" total=total_demande %}
+      {% else %}
+        {% include 'partials/bon_table_head.html' with titre="Articles demandés" total=total_demande saisie_bloquee="Expression transmise — consultation seule" %}
+      {% endif %}
+      <div style="overflow-x:auto">
+        <div id="detail-rows-container">
+          {% include 'partials/expression_detail_rows.html' %}
         </div>
       </div>
     </div>
   </div>
 </div>
+
+{% if editable and not expression.sur_marche %}
+<div class="bs-backdrop" data-bs-backdrop></div>
+<section class="bs-drawer" data-bs-drawer role="dialog" aria-modal="true" aria-hidden="true"
+         aria-labelledby="bs-drawer-titre" style="--bs-accent:#4f46e5;--bs-accent-dk:#4338ca;--bs-accent-soft:#eef2ff"
+         data-rows="#detail-rows-container" data-add-btn="#btn-saisir" data-focus="#f-designation">
+  {% include 'partials/bon_drawer_head.html' with titre="Saisie d'un article demandé" %}
+  <div class="bs-drawer-body">
+    {% url 'matieres:htmx_expression_add_detail' pk=expression.pk as add_url %}
+    {% include 'partials/article_saisie_form.html' with add_url=add_url nb_articles=details|length total=total_demande %}
+  </div>
+  {% include 'partials/bon_drawer_foot.html' %}
+</section>
+<script src="{% static 'js/article-saisie.js' %}"></script>
+{% include 'partials/produit_catalogue_modal.html' %}
+{% endif %}
+
+<script>
+// Type d'expression : le choix du marché n'apparaît que pour « Sur marché »
+document.querySelectorAll('#eb-entete input[name="mode"]').forEach(function (radio) {
+  radio.addEventListener('change', function () {
+    document.getElementById('e-marche-wrap').hidden = this.value !== 'sur_marche';
+  });
+});
+
+// Saisie des quantités au clavier : Entrée valide et passe à l'article suivant
+(function () {
+  let suivant = null;
+  document.addEventListener('keydown', function (e) {
+    if (e.key !== 'Enter' || !e.target.classList.contains('eb-qte')) return;
+    e.preventDefault();
+    const champs = Array.from(document.querySelectorAll('.eb-qte'));
+    suivant = champs.indexOf(e.target) + 1;
+    e.target.blur();                        // déclenche « change » → enregistrement HTMX
+  });
+  document.addEventListener('focusout', function (e) {
+    if (e.target.classList && e.target.classList.contains('eb-qte') && suivant === null) {
+      suivant = Array.from(document.querySelectorAll('.eb-qte')).indexOf(e.target) + 1;
+    }
+  });
+  document.body.addEventListener('htmx:beforeRequest', function (e) {
+    if (!e.detail.elt.classList.contains('eb-qte')) suivant = null;   // autre action (suppression…)
+  });
+  document.body.addEventListener('htmx:afterSwap', function (e) {
+    if (e.target.id !== 'detail-rows-container' || suivant === null) return;
+    const champs = document.querySelectorAll('.eb-qte');
+    const alerte = e.target.querySelector('[role="alert"]');
+    const cible = alerte ? champs[suivant - 1] : champs[suivant];   // en cas de refus, on reste sur la ligne
+    if (cible) { cible.focus(); cible.select(); }
+    suivant = null;
+  });
+})();
+</script>
+
 {% endblock %}

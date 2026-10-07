@@ -1,41 +1,34 @@
 {% load humanize %}
+{% if erreur %}
+<div class="mb-2 px-3 py-2 bg-red-50 border border-red-200 text-red-700 text-xs font-medium rounded-lg" role="alert">{{ erreur }}</div>
+{% endif %}
 
 <table class="lines-table">
   <thead>
     <tr>
       <th>Désignation</th>
       <th>Nomenclature</th>
-      <th>Spécification</th>
-      <th class="r">QTé BE</th>
+      <th class="r">Qté BE</th>
       <th>Unité</th>
-      <th class="r">Prix Unitaire HT</th>
-      <th class="r">Prix Unitaire TTC</th>
+      <th class="r">PU HT</th>
+      <th class="r">PU TTC</th>
       <th class="r">Montant TTC</th>
-      <th>Observation</th>
       {% if not bon.valide %}<th></th>{% endif %}
     </tr>
   </thead>
   <tbody>
     {% for d in details %}
     <tr onclick="selectLine({{ d.pk }}, this)">
-      <td>
-        <div style="max-width:180px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:500;color:#1e293b"
-             title="{{ d.designation }}">{{ d.designation }}</div>
+      <td class="desig" title="{{ d.designation }}{% if d.specification %} — {{ d.specification }}{% endif %}{% if d.observation %} — {{ d.observation }}{% endif %}">
+        <div class="nom">{{ d.designation }}</div>
+        {% if d.specification or d.observation %}<div class="sous">{{ d.specification }}{% if d.specification and d.observation %} · {% endif %}{{ d.observation }}</div>{% endif %}
       </td>
-      <td class="mono">{{ d.nomenclature }}</td>
-      <td style="color:#64748b;font-size:11.5px">
-        <div style="max-width:120px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"
-             title="{{ d.specification }}">{{ d.specification|default:"—" }}</div>
-      </td>
+      <td class="mono nowrap">{{ d.nomenclature }}</td>
       <td class="r" style="font-weight:600">{{ d.qte }}</td>
       <td style="color:#64748b">{{ d.unite|default:"—" }}</td>
       <td class="r" style="color:#475569">{{ d.prix_ht|floatformat:0|intcomma }}</td>
       <td class="r" style="color:#475569">{{ d.prix_ttc|floatformat:0|intcomma }}</td>
-      <td class="r" style="font-weight:700;color:#059669">{{ d.montant_ttc|floatformat:0|intcomma }}</td>
-      <td style="color:#64748b;font-size:11.5px">
-        <div style="max-width:120px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"
-             title="{{ d.observation }}">{{ d.observation|default:"" }}</div>
-      </td>
+      <td class="r nowrap" style="font-weight:700;color:#059669">{{ d.montant_ttc|floatformat:0|intcomma }}</td>
       {% if not bon.valide %}
       <td style="text-align:center">
         <button type="button" class="btn-del-line"
@@ -49,7 +42,7 @@
     </tr>
     {% empty %}
     <tr>
-      <td colspan="{% if not bon.valide %}10{% else %}9{% endif %}"
+      <td colspan="{% if not bon.valide %}8{% else %}7{% endif %}"
           style="text-align:center;padding:24px;color:#94a3b8;font-size:12.5px">
         <div style="display:flex;flex-direction:column;align-items:center;gap:8px">
           <svg width="28" height="28" fill="none" stroke="#cbd5e1" viewBox="0 0 24 24" stroke-width="1.5">
@@ -65,19 +58,14 @@
   {% if details %}
   <tfoot>
     <tr>
-      <td colspan="{% if not bon.valide %}7{% else %}6{% endif %}">
+      <td colspan="6">
         <span style="color:#64748b;font-weight:400;font-size:11.5px">Total —</span>
         {{ details|length }} article{{ details|length|pluralize }}
       </td>
       <td data-bs-total-source class="r">
-        {% with total=0 %}
-          {% for d in details %}
-            {% with total=total|add:d.montant_ttc %}{% endwith %}
-          {% endfor %}
-        {% endwith %}
         {{ bon.total_ttc|floatformat:0|intcomma }} FCFA
       </td>
-      <td {% if not bon.valide %}colspan="2"{% endif %}></td>
+      {% if not bon.valide %}<td></td>{% endif %}
     </tr>
   </tfoot>
   {% endif %}

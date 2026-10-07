@@ -1,0 +1,285 @@
+/* ══════════════════════════════════════════════════════════════════
+   Pages de saisie « bon » : champs, barre d'actions, cartes, tableau des
+   lignes, autocomplete et catalogue produit.
+   Utilisé par : bons/entree_update.html, marches/update.html
+   (complète bon-saisie.css, qui gère la disposition et le volet de saisie)
+══════════════════════════════════════════════════════════════════ */
+/* ── Champs du formulaire ── */
+.f-label {
+  display: block;
+  font-size: 10.5px;
+  font-weight: 700;
+  color: #64748b;
+  margin-bottom: 3px;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+}
+.f-input {
+  width: 100%;
+  padding: 6px 10px;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 7px;
+  font-size: 13px;
+  font-family: inherit;
+  color: #1e293b;
+  background: #fff;
+  transition: border-color 140ms, box-shadow 140ms;
+  outline: none;
+}
+.f-input:focus { border-color: #6366f1; box-shadow: 0 0 0 3px rgba(99,102,241,.10); }
+.f-input:read-only { background: #f8fafc; color: #64748b; cursor: default; }
+.f-select {
+  width: 100%;
+  padding: 6px 28px 6px 10px;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 7px;
+  font-size: 13px;
+  font-family: inherit;
+  color: #1e293b;
+  background: #fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' fill='none' viewBox='0 0 10 6'%3E%3Cpath stroke='%2394a3b8' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round' d='M1 1l4 4 4-4'/%3E%3C/svg%3E") no-repeat right 10px center;
+  -webkit-appearance: none; appearance: none;
+  outline: none;
+  transition: border-color 140ms, box-shadow 140ms;
+}
+.f-select:focus { border-color: #6366f1; box-shadow: 0 0 0 3px rgba(99,102,241,.10); }
+.f-select:disabled { background-color: #f8fafc; color: #94a3b8; }
+
+/* ── Barre d'actions ── */
+.action-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  background: #fff;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  margin-bottom: 14px;
+  box-shadow: 0 1px 3px rgba(0,0,0,.05);
+}
+.action-bar .sep { width: 1px; height: 28px; background: #e2e8f0; margin: 0 4px; }
+
+.btn-action {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 7px 14px; border-radius: 8px; font-size: 12.5px; font-weight: 600;
+  font-family: inherit; border: none; cursor: pointer; text-decoration: none;
+  transition: all 150ms; white-space: nowrap;
+}
+.btn-validate {
+  background: linear-gradient(135deg, #059669, #10b981);
+  color: #fff; box-shadow: 0 2px 8px rgba(16,185,129,.25);
+}
+.btn-validate:hover { background: linear-gradient(135deg, #047857, #059669); box-shadow: 0 4px 14px rgba(16,185,129,.35); }
+.btn-devalidate {
+  background: #fff; color: #dc2626;
+  border: 1.5px solid #fecaca;
+}
+.btn-devalidate:hover { background: #fef2f2; }
+.btn-print {
+  background: #f8fafc; color: #475569;
+  border: 1.5px solid #e2e8f0;
+}
+.btn-print:hover { background: #f1f5f9; color: #334155; }
+.btn-back {
+  background: transparent; color: #64748b;
+  border: 1px solid #e2e8f0;
+}
+.btn-back:hover { background: #f8fafc; color: #334155; }
+
+/* ── Sections ── */
+.section-card {
+  background: #fff;
+  border-radius: 14px;
+  border: 1px solid #e2e8f0;
+  overflow: hidden;
+  margin-bottom: 14px;
+  box-shadow: 0 1px 3px rgba(0,0,0,.04);
+}
+.section-header {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 16px;
+  background: linear-gradient(135deg, #f8faff, #f1f5ff);
+  border-bottom: 1px solid #e0e7ff;
+  font-size: 11px; font-weight: 700; color: #4f46e5;
+  text-transform: uppercase; letter-spacing: .07em;
+}
+.section-header .dot {
+  width: 6px; height: 6px; background: #6366f1; border-radius: 50%; flex-shrink: 0;
+}
+
+/* ── Disposition 2 panneaux ── */
+.be-panels {
+  display: grid;
+  grid-template-columns: 320px 1fr;
+  gap: 0;
+}
+.be-panel-left {
+  padding: 14px 16px;
+  border-right: 1px solid #f1f5f9;
+}
+.be-panel-right {
+  padding: 14px 16px;
+  background: #fafbff;
+}
+.bs-aside .be-panel-left { border-right: none; }
+
+/* ── Tableau lignes ── */
+.lines-table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+.lines-table thead th {
+  background: #f8fafc;
+  padding: 8px 10px;
+  text-align: left;
+  font-size: 10.5px; font-weight: 700; color: #64748b;
+  text-transform: uppercase; letter-spacing: .05em;
+  border-bottom: 1px solid #e2e8f0;
+  white-space: nowrap;
+}
+.lines-table thead th.r { text-align: right; }
+.lines-table tbody tr {
+  border-bottom: 1px solid #f1f5f9;
+  transition: background 100ms;
+  cursor: pointer;
+}
+.lines-table tbody tr:hover { background: #f8faff; }
+.lines-table tbody td { padding: 7px 10px; color: #334155; vertical-align: middle; }
+.lines-table tbody td.r { text-align: right; font-variant-numeric: tabular-nums; }
+.lines-table tbody td.mono { font-family: 'IBM Plex Mono', monospace; font-size: 11.5px; color: #6366f1; }
+.lines-table tfoot td {
+  padding: 8px 10px; border-top: 2px solid #e2e8f0;
+  font-weight: 700; color: #1e293b;
+  background: #f8fafc;
+}
+.lines-table tfoot td.r { text-align: right; color: #059669; font-size: 14px; white-space: nowrap; }
+
+.btn-del-line {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 22px; height: 22px; border-radius: 6px;
+  background: #fef2f2; border: 1px solid #fecaca; color: #ef4444;
+  cursor: pointer; font-size: 13px; font-weight: 700;
+  transition: all 120ms; flex-shrink: 0;
+}
+.btn-del-line:hover { background: #fee2e2; border-color: #fca5a5; }
+
+/* Boutons gestion lignes */
+.line-btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 6px 12px; border-radius: 7px;
+  font-size: 12px; font-weight: 600; font-family: inherit;
+  border: none; cursor: pointer; transition: all 140ms; white-space: nowrap;
+}
+.line-btn-saisir { background: #eff6ff; color: #2563eb; border: 1.5px solid #bfdbfe; }
+.line-btn-saisir:hover { background: #dbeafe; }
+.line-btn-save   { background: #f0fdf4; color: #16a34a; border: 1.5px solid #bbf7d0; }
+.line-btn-save:hover { background: #dcfce7; }
+.line-btn-clear  { background: #fafafa; color: #64748b; border: 1.5px solid #e2e8f0; }
+.line-btn-clear:hover { background: #f1f5f9; }
+
+/* Autocomplete produit */
+.produit-dropdown {
+  position: absolute; top: calc(100% + 4px); left: 0; right: 0; z-index: 50;
+  background: #fff; border: 1.5px solid #e0e7ff;
+  border-radius: 10px; box-shadow: 0 10px 40px rgba(99,102,241,.15);
+  max-height: 220px; overflow-y: auto; display: none;
+}
+.produit-dropdown.open { display: block; }
+.produit-item {
+  display: flex; align-items: flex-start; gap: 10px;
+  padding: 9px 13px; cursor: pointer;
+  transition: background 100ms; border-bottom: 1px solid #f1f5f9;
+}
+.produit-item:last-child { border-bottom: none; }
+.produit-item:hover { background: #f5f3ff; }
+.produit-item .nom { font-size: 12.5px; font-weight: 600; color: #1e293b; }
+.produit-item .sub { font-size: 11px; color: #64748b; }
+.produit-item .badge-stock {
+  margin-left: auto; font-size: 10.5px; font-weight: 600;
+  padding: 2px 7px; border-radius: 20px; flex-shrink: 0;
+}
+
+.htmx-indicator { opacity: 0; transition: opacity 150ms; }
+.htmx-request .htmx-indicator, .htmx-request.htmx-indicator { opacity: 1; }
+
+.status-badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 4px 12px; border-radius: 20px; font-size: 11.5px; font-weight: 700;
+}
+.status-valide { background: #dcfce7; color: #15803d; }
+.status-attente { background: #fef3c7; color: #92400e; }
+
+@media print {
+  .action-bar, .be-panel-right, .line-btns-row, .btn-del-line, .no-print { display: none !important; }
+  .be-panels { grid-template-columns: 1fr !important; }
+}
+
+.selected-line { background: #eff6ff !important; outline: 2px solid #6366f1; }
+
+/* ── Modal produits ── */
+#produit-modal-overlay {
+  display: none;
+  position: fixed; inset: 0; z-index: 1000;
+  background: rgba(15,23,42,.55);
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+  align-items: center; justify-content: center;
+}
+#produit-modal-overlay.open { display: flex; }
+#produit-modal-box {
+  background: #fff;
+  border-radius: 16px;
+  width: min(840px, 95vw);
+  max-height: 82vh;
+  display: flex; flex-direction: column;
+  box-shadow: 0 25px 80px rgba(0,0,0,.35);
+  overflow: hidden;
+  animation: modalIn 180ms cubic-bezier(.34,1.56,.64,1);
+}
+@keyframes modalIn {
+  from { opacity:0; transform:scale(.95) translateY(12px); }
+  to   { opacity:1; transform:scale(1)  translateY(0);     }
+}
+#produit-modal-header {
+  padding: 16px 20px;
+  border-bottom: 1px solid #e2e8f0;
+  display: flex; align-items: center; gap: 12px;
+  background: linear-gradient(135deg,#f8faff,#f1f5ff);
+  flex-shrink: 0;
+}
+#modal-search-wrap {
+  padding: 12px 16px;
+  border-bottom: 1px solid #f1f5f9;
+  flex-shrink: 0;
+  background: #fafafa;
+}
+#modal-search-input {
+  width: 100%; padding: 9px 14px;
+  border: 1.5px solid #e2e8f0; border-radius: 10px;
+  font-size: 13.5px; font-family: inherit; color: #1e293b;
+  outline: none;
+  transition: border-color 140ms, box-shadow 140ms;
+}
+#modal-search-input:focus { border-color: #6366f1; box-shadow: 0 0 0 3px rgba(99,102,241,.12); }
+#modal-product-list {
+  flex: 1; overflow-y: auto;
+}
+.modal-prod-row {
+  display: flex; align-items: center; gap: 12px;
+  padding: 10px 16px;
+  border-bottom: 1px solid #f8fafc;
+  cursor: pointer;
+  transition: background 100ms;
+}
+.modal-prod-row:hover { background: #f5f3ff; }
+.modal-prod-row:last-child { border-bottom: none; }
+
+/* ── Cellule « désignation » enrichie : spécification / observation en sous-ligne ── */
+.lines-table td.desig { min-width: 200px; }
+.lines-table td.desig .nom, .lines-table td.desig .sous { max-width: 320px; }
+@media (max-width: 1440px) { .lines-table td.desig .nom, .lines-table td.desig .sous { max-width: 250px; } }
+.lines-table td.desig .nom {
+  font-weight: 500; color: #1e293b;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.lines-table td.desig .sous {
+  font-size: 10.5px; color: #94a3b8; margin-top: 1px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.lines-table td.nowrap, .lines-table th.nowrap { white-space: nowrap; }
