@@ -39,6 +39,12 @@ class Migration(migrations.Migration):
             "UPDATE matieres_boncommandeservice SET destinataire = NULL WHERE destinataire = ''",
             reverse_sql=migrations.RunSQL.noop,
         ),
+        migrations.RunSQL(
+            "UPDATE matieres_boncommandeservice SET destinataire = NULL "
+            "WHERE destinataire IS NOT NULL "
+            "AND destinataire NOT IN (SELECT CAST(id AS TEXT) FROM matieres_depot)",
+            reverse_sql=migrations.RunSQL.noop,
+        ),
         migrations.AlterField(
             model_name='boncommandeservice',
             name='destinataire',

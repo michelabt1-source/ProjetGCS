@@ -24,7 +24,8 @@
           <tr class="bg-slate-50 text-slate-500 text-[11px] uppercase tracking-wide font-bold border-b border-slate-200">
             <th class="text-left px-4 py-3">N° Marché</th>
             <th class="text-left px-4 py-3">Date de création</th>
-            <th class="text-left px-4 py-3">Période</th>
+            <th class="text-left px-4 py-3">Date Début</th>
+            <th class="text-left px-4 py-3">Date Fin</th>
             <th class="text-left px-4 py-3">Fournisseur</th>
             <th class="text-left px-4 py-3">Référence</th>
             <th class="text-right px-4 py-3">Total TTC</th>
@@ -39,8 +40,13 @@
             <td class="px-4 py-3 font-mono font-semibold text-indigo-600">{{ m.num_marche }}</td>
             <td class="px-4 py-3 text-slate-600">{{ m.date_creation|date:"d/m/Y" }}</td>
             <td class="px-4 py-3 text-slate-600">
-              {% if m.date_debut or m.date_fin %}
-                {{ m.date_debut|date:"d/m/Y"|default:"—" }} → {{ m.date_fin|date:"d/m/Y"|default:"—" }}
+              {% if m.date_debut %}
+                {{ m.date_debut|date:"d/m/Y"|default:"—" }}
+              {% else %}—{% endif %}
+            </td>
+            <td class="px-4 py-3 text-slate-600">
+              {% if m.date_fin %}
+                {{ m.date_fin|date:"d/m/Y"|default:"—" }}
               {% else %}—{% endif %}
             </td>
             <td class="px-4 py-3 text-slate-700">{{ m.fournisseur|default:"—" }}</td>
@@ -61,7 +67,7 @@
             </td>
           </tr>
           {% empty %}
-          <tr><td colspan="9" class="px-4 py-10 text-center text-slate-400">Aucun marché enregistré.</td></tr>
+          <tr><td colspan="10" class="px-4 py-10 text-center text-slate-400">Aucun marché enregistré.</td></tr>
           {% endfor %}
         </tbody>
       </table>

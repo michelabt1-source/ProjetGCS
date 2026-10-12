@@ -407,8 +407,17 @@ def marches_list(request):
 def marche_create(request):
     if request.method == 'POST':
         try:
-            num_marche = request.POST.get('num_marche')
-            date_creation = request.POST.get('date_creation')
+            num_marche = request.POST.get('num_marche', '').strip()
+            date_creation = request.POST.get('date_creation') or None
+            date_debut = request.POST.get('date_debut') or None
+            date_fin = request.POST.get('date_fin') or None
+            if not num_marche:
+                raise ValueError("Le numéro du marché est obligatoire.")
+            if not date_creation:
+                raise ValueError("La date de création est obligatoire.")
+            date_creation = date.fromisoformat(date_creation)
+            if date_debut and date_fin and date.fromisoformat(date_fin) < date.fromisoformat(date_debut):
+                raise ValueError("La date de fin doit être postérieure ou égale à la date de début.")
             fournisseur_id = request.POST.get('fournisseur') or None
             num_bon_engagement = int(request.POST.get('num_bon_engagement') or 0)
             reference_marche = request.POST.get('reference_marche', '')
@@ -416,17 +425,24 @@ def marche_create(request):
             marche = Marche.objects.create(
                 num_marche=num_marche,
                 date_creation=date_creation,
+                date_debut=date_debut,
+                date_fin=date_fin,
                 fournisseur_id=fournisseur_id,
                 num_bon_engagement=num_bon_engagement,
                 reference_marche=reference_marche,
                 chapitre=chapitre,
             )
             messages.success(request, f"Marché {marche.num_marche} créé.")
-            return redirect('matieres:marches_list')
+            return redirect('matieres:marche_update', pk=marche.pk)
         except Exception as e:
             messages.error(request, f"Erreur: {e}")
 
-    context = {'page_title': 'Nouveau marché', 'fournisseurs': Fournisseur.objects.all(), 'today': date.today()}
+    context = {
+        'page_title': 'Nouveau marché',
+        'fournisseurs': Fournisseur.objects.all(),
+        'today': date.today(),
+        'form_data': request.POST if request.method == 'POST' else {},
+    }
     return render(request, 'marches/form.html', context)
 
 
@@ -456,6 +472,12 @@ def marche_etat(request, pk):
 def marche_solder(request, pk):
     marche = get_object_or_404(Marche, pk=pk)
     if request.method == 'POST' and marche.statut == 'en_cours':
+        if not marche.details.exists():
+            messages.error(request, "Impossible de solder un marché sans article.")
+            return redirect('matieres:marche_update', pk=pk)
+        if marche.solde_restant() > 0:
+            messages.error(request, "Impossible de solder un marché dont le montant n'est pas entièrement livré.")
+            return redirect('matieres:marche_update', pk=pk)
         marche.statut = 'solde'
         marche.save(update_fields=['statut'])
         messages.success(request, f"Marché {marche.num_marche} soldé.")
@@ -575,6 +597,8 @@ def expression_consolider(request, pk):
             messages.error(request, "Sélectionnez un marché en cours avant de consolider.")
         else:
             try:
+                if not expr.details.exists():
+                    raise ValueError("Impossible de consolider une expression sans article.")
                 expr.consolider_dans_marche(marche)
                 messages.success(request, f"Expression consolidée dans le marché {marche.num_marche}.")
             except ValueError as e:
@@ -587,16 +611,21 @@ def marche_update(request, pk):
     marche = get_object_or_404(Marche, pk=pk)
     editable = marche.statut == 'en_cours'
     if request.method == 'POST' and editable:
-        marche.date_creation = request.POST.get('date_creation') or marche.date_creation
-        marche.date_debut = request.POST.get('date_debut') or None
-        marche.date_fin = request.POST.get('date_fin') or None
-        marche.fournisseur_id = request.POST.get('fournisseur') or None
-        marche.num_bon_engagement = int(request.POST.get('num_bon_engagement') or marche.num_bon_engagement)
-        marche.reference_marche = request.POST.get('reference_marche', marche.reference_marche)
-        marche.chapitre = request.POST.get('chapitre', marche.chapitre)
-        marche.save()
-        messages.success(request, "En-tête du marché mis à jour.")
-        return redirect('matieres:marche_update', pk=pk)
+        date_debut = request.POST.get('date_debut') or None
+        date_fin = request.POST.get('date_fin') or None
+        if date_debut and date_fin and date.fromisoformat(date_fin) < date.fromisoformat(date_debut):
+            messages.error(request, "La date de fin doit être postérieure ou égale à la date de début.")
+        else:
+            marche.date_creation = request.POST.get('date_creation') or marche.date_creation
+            marche.date_debut = date_debut
+            marche.date_fin = date_fin
+            marche.fournisseur_id = request.POST.get('fournisseur') or None
+            marche.num_bon_engagement = int(request.POST.get('num_bon_engagement') or marche.num_bon_engagement)
+            marche.reference_marche = request.POST.get('reference_marche', marche.reference_marche)
+            marche.chapitre = request.POST.get('chapitre', marche.chapitre)
+            marche.save()
+            messages.success(request, "En-tête du marché mis à jour.")
+            return redirect('matieres:marche_update', pk=pk)
 
     context = {
         'page_title': f'Marché {marche.num_marche}',
