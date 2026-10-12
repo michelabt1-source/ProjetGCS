@@ -131,3 +131,11 @@ function selectProduit(id, designation, nomenclature, specification, uniteId, un
 document.addEventListener('keydown', function(e) {
   if (e.key === 'Escape') closeProduitModal();
 });
+
+// Quantité modifiée dans le tableau (.qte-cell) : Entrée valide comme une sortie du champ
+document.addEventListener('keydown', function (e) {
+  if (e.key === 'Enter' && e.target.classList && e.target.classList.contains('qte-cell')) {
+    e.preventDefault();
+    e.target.blur();
+  }
+});

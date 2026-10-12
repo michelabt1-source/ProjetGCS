@@ -345,3 +345,79 @@ class ExpressionLibreTests(TestCase):
         expr.refresh_from_db()
         self.assertEqual(expr.statut, 'consolide')
         self.assertEqual(marche.details.get().qte, 12)
+
+
+class SuiviLivraisonsMarcheTests(TestCase):
+    """Point 3 : livré / reste par ligne de marché et reprise des lignes dans le bon d'entrée."""
+
+    def setUp(self):
+        self.client.force_login(get_user_model().objects.create_user(username='comptable', password='x'))
+        self.fournisseur = Fournisseur.objects.create(nom='Titulaire SA')
+        self.ramette = Produit.objects.create(nomenclature='22.01.001', designation='Ramette A4')
+        self.encre = Produit.objects.create(nomenclature='22.01.002', designation='Encre HP 305')
+        self.marche = Marche.objects.create(num_marche='M-2026-05', date_creation=date.today(), fournisseur=self.fournisseur)
+        DetailMarche.objects.create(marche=self.marche, produit=self.ramette, designation='Ramette A4',
+                                    nomenclature='22.01.001', qte=100, prix_ht=2542, prix_ttc=3000, montant_ttc=300000)
+        # Saisie libre au marché : pas de produit lié, retrouvé par sa nomenclature à la reprise
+        DetailMarche.objects.create(marche=self.marche, designation='Encre HP 305', nomenclature='22.01.002',
+                                    qte=10, prix_ttc=12000, montant_ttc=120000)
+
+    def bon(self, num):
+        return BonEntree.objects.create(num_bon=num, date_creation=date.today(), marche=self.marche,
+                                        fournisseur=self.fournisseur)
+
+    def reprendre(self, bon):
+        return self.client.post(reverse('matieres:htmx_be_reprendre_marche', args=[bon.pk]))
+
+    def test_reprise_du_reste_a_livrer_au_prix_du_marche(self):
+        bon = self.bon(1)
+        self.reprendre(bon)
+        lignes = {d.nomenclature: d for d in bon.details.all()}
+        self.assertEqual(lignes['22.01.001'].qte, 100)
+        self.assertEqual(lignes['22.01.001'].montant_ttc, Decimal('300000'))
+        self.assertEqual(lignes['22.01.002'].produit, self.encre)
+
+    def test_livraison_partielle_puis_reste(self):
+        premier = self.bon(1)
+        self.reprendre(premier)
+        ligne = premier.details.get(nomenclature='22.01.001')
+        self.client.post(reverse('matieres:htmx_be_set_qte', args=[ligne.pk]), {'qte': '60'})
+        premier.details.filter(nomenclature='22.01.002').delete()
+        self.client.post(reverse('matieres:bon_entree_valider', args=[premier.pk]))
+        premier.refresh_from_db()
+        self.assertTrue(premier.valide)
+
+        suivi = {l.nomenclature: l for l in self.marche.suivi_lignes()}
+        self.assertEqual((suivi['22.01.001'].qte_livree, suivi['22.01.001'].reste), (60, 40))
+        self.assertEqual((suivi['22.01.002'].qte_livree, suivi['22.01.002'].reste), (0, 10))
+
+        second = self.bon(2)
+        self.reprendre(second)
+        self.assertEqual(dict(second.details.values_list('nomenclature', 'qte')), {'22.01.001': 40, '22.01.002': 10})
+
+    def test_reprise_ne_double_pas_ce_que_le_bon_contient_deja(self):
+        bon = self.bon(1)
+        self.reprendre(bon)
+        self.assertContains(self.reprendre(bon), 'Rien à reprendre')
+        self.assertEqual(bon.details.count(), 2)
+
+    def test_quantite_modifiee_au_dela_du_reste_refusee(self):
+        bon = self.bon(1)
+        self.reprendre(bon)
+        ligne = bon.details.get(nomenclature='22.01.002')
+        self.assertContains(self.client.post(reverse('matieres:htmx_be_set_qte', args=[ligne.pk]), {'qte': '11'}),
+                            'reste à livrer de 10')
+        ligne.refresh_from_db()
+        self.assertEqual(ligne.qte, 10)
+
+    def test_validation_refusee_pour_un_article_sans_fiche_produit(self):
+        bon = BonEntree.objects.create(num_bon=9, date_creation=date.today())
+        DetailBonEntree.objects.create(bon_entree=bon, designation='Article inconnu', nomenclature='99.99.999', qte=3)
+        self.client.post(reverse('matieres:bon_entree_valider', args=[bon.pk]))
+        bon.refresh_from_db()
+        self.assertFalse(bon.valide)
+
+    def test_page_du_marche_affiche_livre_et_reste(self):
+        response = self.client.get(reverse('matieres:marche_update', args=[self.marche.pk]))
+        self.assertContains(response, '>Livré<')
+        self.assertContains(response, '>Reste<')

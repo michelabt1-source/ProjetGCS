@@ -21,10 +21,19 @@
     <tr onclick="selectLine({{ d.pk }}, this)">
       <td class="desig" title="{{ d.designation }}{% if d.specification %} — {{ d.specification }}{% endif %}{% if d.observation %} — {{ d.observation }}{% endif %}">
         <div class="nom">{{ d.designation }}</div>
+        {% if not d.produit_id %}<div class="sous" style="color:#dc2626">Sans fiche produit — n'entrera pas en stock</div>{% endif %}
         {% if d.specification or d.observation %}<div class="sous">{{ d.specification }}{% if d.specification and d.observation %} · {% endif %}{{ d.observation }}</div>{% endif %}
       </td>
       <td class="mono nowrap">{{ d.nomenclature }}</td>
-      <td class="r" style="font-weight:600">{{ d.qte }}</td>
+      <td class="r">
+        {% if bon.valide %}<strong>{{ d.qte|intcomma }}</strong>
+        {% else %}
+        <input type="number" name="qte" value="{{ d.qte }}" min="1" step="1" class="qte-cell" inputmode="numeric"
+               aria-label="Quantité reçue — {{ d.designation }}" onclick="event.stopPropagation()"
+               hx-post="{% url 'matieres:htmx_be_set_qte' detail_pk=d.pk %}"
+               hx-trigger="change" hx-target="#detail-rows-container" hx-swap="innerHTML">
+        {% endif %}
+      </td>
       <td style="color:#64748b">{{ d.unite|default:"—" }}</td>
       <td class="r" style="color:#475569">{{ d.prix_ht|floatformat:0|intcomma }}</td>
       <td class="r" style="color:#475569">{{ d.prix_ttc|floatformat:0|intcomma }}</td>

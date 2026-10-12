@@ -413,6 +413,33 @@ class BonEntree(models.Model):
     def total_ttc(self):
         return sum(d.montant_ttc for d in self.details.all())
 
+    @transaction.atomic
+    def reprendre_lignes_marche(self):
+        """Ajoute au bon, au prix du marché, le reste à livrer de chaque article du marché
+        rattaché (déduction faite de ce que le bon contient déjà). Retourne le nombre de lignes."""
+        if self.valide:
+            raise ValueError("Bon validé : il ne peut plus recevoir de lignes.")
+        if not self.marche_id:
+            raise ValueError("Rattachez d'abord ce bon à un marché.")
+        if self.marche.statut != 'en_cours':
+            raise ValueError(f"Le marché {self.marche.num_marche} n'est plus en cours.")
+        deja = dict(self.details.values_list('nomenclature').annotate(t=models.Sum('qte')))
+        nouvelles = []
+        for l in self.marche.suivi_lignes():
+            dans_le_bon = min(l.reste, deja.get(l.nomenclature, 0))
+            deja[l.nomenclature] = deja.get(l.nomenclature, 0) - dans_le_bon
+            a_recevoir = l.reste - dans_le_bon
+            if a_recevoir <= 0:
+                continue
+            produit = l.produit or Produit.objects.filter(nomenclature=l.nomenclature).first()
+            nouvelles.append(DetailBonEntree(
+                bon_entree=self, produit=produit, designation=l.designation, nomenclature=l.nomenclature,
+                specification=l.specification, qte=a_recevoir, unite=l.unite or (produit.unite if produit else None),
+                prix_ht=l.prix_ht, prix_ttc=l.prix_ttc, montant_ttc=a_recevoir * l.prix_ttc,
+            ))
+        DetailBonEntree.objects.bulk_create(nouvelles)
+        return len(nouvelles)
+
 
 class DetailBonEntree(models.Model):
     bon_entree = models.ForeignKey(BonEntree, on_delete=models.CASCADE, related_name='details')
@@ -492,6 +519,21 @@ class Marche(models.Model):
         if exclure_bon is not None:
             qs = qs.exclude(bon_entree=exclure_bon)
         return qs.aggregate(t=models.Sum('qte'))['t'] or 0
+
+    def suivi_lignes(self):
+        """Lignes du marché avec qte_livree / reste (bons d'entrée validés). Les livraisons
+        d'un article sont imputées dans l'ordre des lignes qui portent sa nomenclature."""
+        livre = dict(
+            DetailBonEntree.objects.filter(bon_entree__marche=self, bon_entree__valide=True)
+            .values_list('nomenclature').annotate(t=models.Sum('qte'))
+        )
+        lignes = list(self.details.select_related('produit', 'unite').order_by('pk'))
+        for l in lignes:
+            dispo = livre.get(l.nomenclature, 0)
+            l.qte_livree = min(l.qte, dispo)
+            l.reste = l.qte - l.qte_livree
+            livre[l.nomenclature] = dispo - l.qte_livree
+        return lignes
 
     def erreur_rattachement(self, fournisseur_id, marche_actuel_id=None):
         """Message d'erreur si un bon d'entrée (de ce fournisseur, actuellement rattaché à

@@ -283,3 +283,20 @@
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .lines-table td.nowrap, .lines-table th.nowrap { white-space: nowrap; }
+
+/* ── Suivi des quantités (marché, bon d'entrée) ── */
+.lines-table .unite { font-size: 10.5px; font-weight: 400; color: #94a3b8; }
+.lines-table .sous-prix { font-size: 10.5px; color: #94a3b8; }
+.lines-table .reste { font-weight: 700; color: #b45309; font-variant-numeric: tabular-nums; }
+.lines-table .solde-ok { font-size: 11px; font-weight: 700; color: #059669; white-space: nowrap; }
+.qte-cell {
+  width: 76px; padding: 4px 8px; text-align: right; font-weight: 700; font-size: 13px;
+  border: 1.5px solid #e2e8f0; border-radius: 7px; background: #fff; color: #1e293b;
+  font-variant-numeric: tabular-nums; outline: none; transition: border-color 140ms, box-shadow 140ms;
+}
+.qte-cell:focus { border-color: #6366f1; box-shadow: 0 0 0 3px rgba(99,102,241,.12); }
+.bs-marche-bar {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  padding: 9px 16px; background: #f8faff; border-bottom: 1px solid #e0e7ff; font-size: 12.5px; color: #475569;
+}
+.bs-marche-bar strong { color: #3730a3; }

@@ -9,8 +9,8 @@
       <th>Désignation</th>
       <th>Nomenclature</th>
       <th class="r">Qté marché</th>
-      <th>Unité</th>
-      <th class="r">PU HT</th>
+      <th class="r">Livré</th>
+      <th class="r">Reste</th>
       <th class="r">PU TTC</th>
       <th class="r">Montant TTC</th>
       {% if editable %}<th></th>{% endif %}
@@ -26,19 +26,25 @@
         {% endif %}
       </td>
       <td class="mono nowrap">{{ d.nomenclature|default:"—" }}</td>
-      <td class="r" style="font-weight:600">{{ d.qte|intcomma }}</td>
-      <td style="color:#64748b">{{ d.unite|default:"—" }}</td>
-      <td class="r" style="color:#475569">{{ d.prix_ht|floatformat:0|intcomma }}</td>
-      <td class="r" style="color:#475569">{{ d.prix_ttc|floatformat:0|intcomma }}</td>
+      <td class="r nowrap" style="font-weight:600">{{ d.qte|intcomma }}{% if d.unite %} <span class="unite">{{ d.unite }}</span>{% endif %}</td>
+      <td class="r" style="color:{% if d.qte_livree %}#059669{% else %}#cbd5e1{% endif %};font-weight:600">{{ d.qte_livree|intcomma }}</td>
+      <td class="r">
+        {% if d.reste %}<span class="reste">{{ d.reste|intcomma }}</span>{% else %}<span class="solde-ok" title="Article entièrement livré">✓ livré</span>{% endif %}
+      </td>
+      <td class="r nowrap" style="color:#475569">{{ d.prix_ttc|floatformat:0|intcomma }}
+        <div class="sous-prix">HT {{ d.prix_ht|floatformat:0|intcomma }}</div>
+      </td>
       <td class="r nowrap" style="font-weight:700;color:#059669">{{ d.montant_ttc|floatformat:0|intcomma }}</td>
       {% if editable %}
       <td style="text-align:center">
+        {% if not d.qte_livree %}
         <button type="button" class="btn-del-line"
                 hx-post="{% url 'matieres:htmx_marche_delete_detail' detail_pk=d.pk %}"
                 hx-target="#detail-rows-container"
                 hx-swap="innerHTML"
                 hx-confirm="Supprimer cet article du marché ?"
                 title="Supprimer" aria-label="Supprimer {{ d.designation }}">×</button>
+        {% endif %}
       </td>
       {% endif %}
     </tr>

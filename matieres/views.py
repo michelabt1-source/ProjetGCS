@@ -602,7 +602,7 @@ def marche_update(request, pk):
         'page_title': f'Marché {marche.num_marche}',
         'marche': marche,
         'editable': editable,
-        'details': marche.details.select_related('produit', 'unite').all(),
+        'details': marche.suivi_lignes(),
         'total_marche': marche.total_ttc(),
         'fournisseurs': Fournisseur.objects.all(),
         'unites': Unite.objects.all(),
@@ -700,7 +700,7 @@ def _lire_ligne_article(post):
 
 def _marche_lignes(request, marche, erreur=None):
     return render(request, 'partials/marche_detail_rows.html', {
-        'details': marche.details.select_related('produit', 'unite').all(),
+        'details': marche.suivi_lignes(),
         'marche': marche,
         'editable': marche.statut == 'en_cours',
         'erreur': erreur,
@@ -839,6 +839,12 @@ def bon_entree_valider(request, pk):
     if request.method == 'POST' and not bon.valide:
         if not bon.details.exists():
             messages.error(request, "Impossible de valider : aucun article dans le bon.")
+            return redirect('matieres:bon_entree_update', pk=pk)
+        sans_fiche = list(bon.details.filter(produit__isnull=True).values_list('designation', flat=True))
+        if sans_fiche:
+            # Sans fiche produit, la ligne ne mouvementerait ni le stock ni le journal.
+            messages.error(request, "Validation impossible — article(s) sans fiche produit, donc sans entrée en "
+                                    "stock : " + ", ".join(sans_fiche) + ". Choisissez-les dans le catalogue.")
             return redirect('matieres:bon_entree_update', pk=pk)
         if bon.marche:
             # Contrôle refait ici : deux brouillons ont pu chacun passer à la saisie
@@ -1008,10 +1014,58 @@ def htmx_be_add_detail(request, pk):
 def htmx_be_delete_detail(request, detail_pk):
     detail = get_object_or_404(DetailBonEntree, pk=detail_pk)
     bon = detail.bon_entree
-    if not bon.valide:
+    if request.method == 'POST' and not bon.valide:
         detail.delete()
-    details = bon.details.select_related('produit', 'unite').all()
-    return render(request, 'partials/be_detail_rows.html', {'details': details, 'bon': bon})
+    return _be_lignes(request, bon)
+
+
+def _be_lignes(request, bon, erreur=None):
+    return render(request, 'partials/be_detail_rows.html', {
+        'details': bon.details.select_related('produit', 'unite').all(),
+        'bon': bon,
+        'erreur': erreur,
+    })
+
+
+@login_required
+def htmx_be_set_qte(request, detail_pk):
+    """Quantité reçue modifiée directement dans le tableau (bon non validé)."""
+    detail = get_object_or_404(DetailBonEntree.objects.select_related('bon_entree__marche'), pk=detail_pk)
+    bon = detail.bon_entree
+    erreur = None
+    if request.method == 'POST':
+        brut = (request.POST.get('qte') or '').replace(' ', '').replace('\xa0', '')
+        if bon.valide:
+            erreur = "Bon validé : dévalidez-le avant de modifier ses quantités."
+        elif not brut.isdigit() or int(brut) == 0:
+            erreur = f"{detail.designation} : saisissez une quantité entière supérieure à zéro (ou retirez la ligne)."
+        else:
+            qte = int(brut)
+            if bon.marche:
+                lignes = [(d.nomenclature, qte if d.pk == detail.pk else d.qte)
+                          for d in bon.details.only('pk', 'nomenclature', 'qte')]
+                erreurs = bon.marche.erreurs_lignes(bon, lignes)
+                if erreurs:
+                    erreur = " ".join(erreurs)
+            if not erreur:
+                detail.qte = qte
+                detail.montant_ttc = qte * detail.prix_ttc
+                detail.save(update_fields=['qte', 'montant_ttc'])
+    return _be_lignes(request, bon, erreur)
+
+
+@login_required
+def htmx_be_reprendre_marche(request, pk):
+    """Reprend dans le bon le reste à livrer de chaque article du marché rattaché."""
+    bon = get_object_or_404(BonEntree.objects.select_related('marche'), pk=pk)
+    erreur = None
+    if request.method == 'POST':
+        try:
+            if not bon.reprendre_lignes_marche():
+                erreur = "Rien à reprendre : tout le marché est déjà livré ou présent dans ce bon."
+        except ValueError as e:
+            erreur = str(e)
+    return _be_lignes(request, bon, erreur)
 
 
 @login_required

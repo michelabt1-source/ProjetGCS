@@ -198,6 +198,8 @@ urlpatterns = [
     # Bon d'entrée — HTMX
     path('htmx/be/<int:pk>/add-detail/', views.htmx_be_add_detail, name='htmx_be_add_detail'),
     path('htmx/be/detail/<int:detail_pk>/delete/', views.htmx_be_delete_detail, name='htmx_be_delete_detail'),
+    path('htmx/be/detail/<int:detail_pk>/qte/', views.htmx_be_set_qte, name='htmx_be_set_qte'),
+    path('htmx/be/<int:pk>/reprendre-marche/', views.htmx_be_reprendre_marche, name='htmx_be_reprendre_marche'),
     path('htmx/be/produit-search/', views.htmx_be_produit_search, name='htmx_be_produit_search'),
     path('htmx/be/produit-info/<int:pk>/', views.htmx_be_produit_info, name='htmx_be_produit_info'),
     path('htmx/be/modal-produits/', views.htmx_be_modal_produits, name='htmx_be_modal_produits'),
