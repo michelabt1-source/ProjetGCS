@@ -28,3 +28,10 @@ compta_matieres/settings_local.py
 # OS
 .DS_Store
 Thumbs.db
+
+# Journaux et sauvegardes
+logs/
+sauvegardes/
+*.sqlite3-wal
+*.sqlite3-shm
+deploiement/nssm.exe
