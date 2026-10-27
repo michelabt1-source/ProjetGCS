@@ -1,12 +1,14 @@
 {% extends "base.html" %}
-{% block content %}
-<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
-  <div>
-    <h1 style="font-size:22px;font-weight:700;color:#0f172a">Inventaire par Dépôt</h1>
-    <p style="color:#64748b;font-size:13px;margin-top:4px">{{ total }} article(s) — quantité totale : <strong>{{ total_qte }}</strong></p>
+{% block page_header %}
+<header class="page-header">
+  <div class="page-heading">
+    <h1 class="page-title">Inventaire par dépôt</h1>
+    <p class="page-subtitle">{{ total }} article(s) — quantité totale : <strong>{{ total_qte }}</strong></p>
   </div>
-</div>
+</header>
+{% endblock %}
 
+{% block content %}
 <div class="card" style="margin-bottom:16px;padding:14px 20px">
   <form method="get" style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">
     <select name="depot" style="padding:8px 14px;border:1px solid #e2e8f0;border-radius:8px;font-size:13px">

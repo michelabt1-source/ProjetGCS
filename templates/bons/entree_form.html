@@ -1,4 +1,17 @@
 {% extends 'base.html' %}
+{% block page_header %}
+<header class="page-header">
+  <div class="page-heading">
+    <div class="page-title-row">
+      <h1 class="page-title">Nouveau bon d'entrée</h1>
+      <span class="doc-num">BE-{{ next_num|stringformat:"04d" }}</span>
+    </div>
+    <p class="page-subtitle">Renseignez l'en-tête ; les articles s'ajoutent après validation.</p>
+    <p class="page-subtitle">Renseignez l'en-tête ; les articles s'ajoutent après validation.</p>
+  </div>
+</header>
+{% endblock %}
+
 {% block content %}
 
 <style>
@@ -77,13 +90,6 @@
   }
   .btn-annuler:hover { background: #fef2f2; border-color: #f87171; }
 </style>
-
-<!-- Fil d'Ariane -->
-<div class="flex items-center gap-2 mb-5 text-sm text-slate-400">
-  <a href="{% url 'matieres:bons_entree_list' %}" class="hover:text-indigo-600 transition-colors">Bons d'entrée</a>
-  <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
-  <span class="text-slate-600 font-medium">Nouveau bon d'entrée</span>
-</div>
 
 <!-- Formulaire création -->
 <form method="post" action="{% url 'matieres:bon_entree_create' %}">

@@ -1,0 +1,2 @@
+{# Pastille du statut d'une expression de besoin — usage : {% include 'partials/expression_statut.html' with e=expression %} #}
+<span class="status-pill {% if e.statut == 'soumis' %}tone-warning{% elif e.statut == 'rejete' %}tone-danger{% elif e.statut == 'valide_saf' %}tone-accent{% elif e.statut == 'recu' %}tone-info{% elif e.statut == 'consolide' %}tone-success{% else %}tone-neutral{% endif %}">{{ e.get_statut_display }}</span>

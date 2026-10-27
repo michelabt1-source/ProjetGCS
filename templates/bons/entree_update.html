@@ -1,21 +1,22 @@
 {% extends 'base.html' %}
 {% load humanize static %}
+{% block page_header %}
+<header class="page-header">
+  <div class="page-heading">
+    <div class="page-title-row">
+      <h1 class="page-title">Bon d'entrée</h1>
+      <span class="doc-num">BE-{{ bon.num_bon|stringformat:"04d" }}</span>
+      {% if bon.valide %}<span class="status-pill tone-success">Validé</span>{% else %}<span class="status-pill tone-warning">En attente de validation</span>{% endif %}
+    </div>
+  </div>
+</header>
+{% endblock %}
+
 {% block content %}
 
 <link rel="stylesheet" href="{% static 'css/bon-page.css' %}">
 
 {% with bon_num=bon.num_bon|stringformat:"04d" %}
-
-<!-- Fil d'Ariane -->
-<div class="flex items-center gap-2 mb-4 text-sm text-slate-400">
-  <a href="{% url 'matieres:bons_entree_list' %}" class="hover:text-indigo-600 transition-colors">Bons d'entrée</a>
-  <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
-  <span class="text-slate-600 font-semibold">BE-{{ bon_num }}</span>
-  <div class="ml-2 status-badge {% if bon.valide %}status-valide{% else %}status-attente{% endif %}">
-    <span style="width:6px;height:6px;border-radius:50%;background:currentColor;display:inline-block;flex-shrink:0"></span>
-    {% if bon.valide %}Validé{% else %}En attente de validation{% endif %}
-  </div>
-</div>
 
 <!-- ── BARRE D'ACTIONS ── -->
 <div class="action-bar no-print">

@@ -1,11 +1,16 @@
 {% extends "base.html" %}
+{% block page_header %}
+<header class="page-header">
+  <div class="page-heading">
+    <h1 class="page-title">Types d'opération</h1>
+    <p class="page-subtitle">{{ types.count }} type(s) enregistré(s)</p>
+  </div>
+</header>
+{% endblock %}
+
 {% block content %}
 <div style="display:flex;gap:24px;align-items:flex-start">
   <div style="flex:1">
-    <div style="margin-bottom:20px">
-      <h1 style="font-size:22px;font-weight:700;color:#0f172a">Types d'opération</h1>
-      <p style="color:#64748b;font-size:13px;margin-top:4px">{{ types.count }} type(s) enregistré(s)</p>
-    </div>
     <div class="card" style="padding:0;overflow:hidden">
       <table style="width:100%;border-collapse:collapse;font-size:13px">
         <thead>

@@ -1,9 +1,15 @@
 {% extends "base.html" %}
+{% block page_header %}
+<header class="page-header">
+  <div class="page-heading">
+    <h1 class="page-title">Société GCS</h1>
+    <p class="page-subtitle">Informations de l'établissement</p>
+  </div>
+</header>
+{% endblock %}
+
 {% block content %}
 <div style="max-width:760px">
-  <h1 style="font-size:22px;font-weight:700;color:#0f172a;margin-bottom:6px">Société GCS</h1>
-  <p style="color:#64748b;font-size:13px;margin-bottom:28px">Informations de l'établissement</p>
-
   <form method="post" enctype="multipart/form-data">
     {% csrf_token %}
     <div class="card" style="margin-bottom:20px">

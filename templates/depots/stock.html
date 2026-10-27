@@ -1,12 +1,14 @@
 {% extends 'base.html' %}
-{% block content %}
-<div class="flex items-center justify-between mb-6">
-  <div>
-    <h2 class="text-xl font-bold text-slate-800">Stock par dépôt</h2>
-    {% if depot_filtre %}<p class="text-sm text-slate-500 mt-0.5">Dépôt : {{ depot_filtre }}</p>{% endif %}
+{% block page_header %}
+<header class="page-header">
+  <div class="page-heading">
+    <h1 class="page-title">Stock par dépôt</h1>
+    {% if depot_filtre %}<p class="page-subtitle">Dépôt : {{ depot_filtre }}</p>{% endif %}
   </div>
-</div>
+</header>
+{% endblock %}
 
+{% block content %}
 <div class="card mb-6">
   <form method="get" class="flex gap-3">
     <div class="flex-1 relative">

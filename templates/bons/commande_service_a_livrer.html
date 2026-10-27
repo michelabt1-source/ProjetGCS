@@ -1,13 +1,15 @@
 {% extends 'base.html' %}
-{% block content %}
-<div class="p-6 max-w-6xl mx-auto">
-
-  <div class="flex items-center justify-between mb-5">
-    <div>
-      <h1 class="text-2xl font-bold text-slate-800">Bons de commande de services à livrer</h1>
-      <p class="text-sm text-slate-500 mt-0.5">Validés par le S.A.F. — en attente d'attribution de quantité par le comptable principal</p>
-    </div>
+{% block page_header %}
+<header class="page-header">
+  <div class="page-heading">
+    <h1 class="page-title">Bons de commande de service à livrer</h1>
+    <p class="page-subtitle">Validés par le S.A.F. — en attente d'attribution de quantité par le comptable principal</p>
   </div>
+</header>
+{% endblock %}
+
+{% block content %}
+<div>
 
   <div class="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
     <div class="overflow-x-auto">

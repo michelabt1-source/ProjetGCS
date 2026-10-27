@@ -1,4 +1,18 @@
 {% extends 'base.html' %}
+{% block page_header %}
+<header class="page-header">
+  <div class="page-heading">
+    <h1 class="page-title">Bureaux</h1>
+  </div>
+  <div class="page-actions">
+    <button class="btn-primary" onclick="openModal()">
+      <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+      Nouveau bureau
+    </button>
+  </div>
+</header>
+{% endblock %}
+
 {% block content %}
 <style>
 :root { --c-primary:#4f46e5; --c-surface:#fff; --c-bg:#f8fafc; --c-border:#e2e8f0; --c-text:#0f172a; --c-muted:#64748b; }
@@ -42,19 +56,6 @@
 .btn-submit { width:100%; padding:10px; background:var(--c-primary); color:#fff; border:none; border-radius:9px; font-size:13.5px; font-weight:700; cursor:pointer; font-family:inherit; margin-top:8px; transition:background .15s; }
 .btn-submit:hover { background:#4338ca; }
 </style>
-
-<div class="ref-header">
-  <div class="ref-title">
-    <svg width="22" height="22" fill="none" stroke="#4f46e5" viewBox="0 0 24 24" stroke-width="2">
-      <path stroke-linecap="round" stroke-linejoin="round" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/>
-    </svg>
-    Bureaux
-  </div>
-  <button class="btn-add" onclick="openModal()">
-    <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
-    Nouveau bureau
-  </button>
-</div>
 
 <div class="ref-card">
   <table class="ref-table">

@@ -1,5 +1,16 @@
 {% extends 'base.html' %}
 {% load humanize static %}
+{% block page_header %}
+<header class="page-header">
+  <div class="page-heading">
+    <div class="page-title-row">
+      <h1 class="page-title">Marché {{ marche.num_marche }}</h1>
+      <span class="status-pill {% if marche.statut == 'solde' %}tone-success{% elif marche.statut == 'annule' %}tone-danger{% else %}tone-info{% endif %}">{{ marche.get_statut_display }}</span>
+    </div>
+  </div>
+</header>
+{% endblock %}
+
 {% block content %}
 
 <link rel="stylesheet" href="{% static 'css/bon-page.css' %}">
@@ -24,17 +35,6 @@
   .liens-grid .lines-table tbody tr { cursor: default; }
   .lien-vide { padding: 22px 16px; text-align: center; color: #94a3b8; font-size: 12.5px; }
 </style>
-
-<!-- Fil d'Ariane -->
-<div class="flex items-center gap-2 mb-4 text-sm text-slate-400">
-  <a href="{% url 'matieres:marches_list' %}" class="hover:text-indigo-600 transition-colors">Marchés</a>
-  <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
-  <span class="text-slate-600 font-semibold">Marché {{ marche.num_marche }}</span>
-  <div class="ml-2 status-badge {% if marche.statut == 'solde' %}status-solde{% elif marche.statut == 'annule' %}status-annule{% else %}status-attente{% endif %}">
-    <span style="width:6px;height:6px;border-radius:50%;background:currentColor;display:inline-block;flex-shrink:0"></span>
-    {{ marche.get_statut_display }}
-  </div>
-</div>
 
 
 <!-- ── BARRE D'ACTIONS ── -->

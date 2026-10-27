@@ -1,12 +1,30 @@
 {% extends 'base.html' %}
 {% load humanize static %}
+{% block page_header %}
+<header class="page-header">
+  <div class="page-heading">
+    <div class="page-title-row">
+      <h1 class="page-title">{{ expression }}</h1>
+      {% include 'partials/expression_statut.html' with e=expression %}
+      <span class="status-pill tone-info">{{ expression.get_mode_display }}</span>
+    </div>
+  </div>
+</header>
+{% endblock %}
+
 {% block content %}
 
 <link rel="stylesheet" href="{% static 'css/bon-page.css' %}">
 <style>
-  .status-nouveau   { background: #f1f5f9; color: #475569; }
-  .status-recu      { background: #fef3c7; color: #92400e; }
-  .status-consolide { background: #dcfce7; color: #15803d; }
+  /* Rejet par le S.A.F. : formulaire déplié sous le bouton */
+  .reject-box { position: relative; }
+  .reject-box summary { list-style: none; }
+  .reject-box summary::-webkit-details-marker { display: none; }
+  .reject-form {
+    position: absolute; z-index: 20; top: calc(100% + 6px); left: 0; width: 340px;
+    padding: 14px; background: #fff; border: 1px solid #e2e8f0; border-radius: 12px;
+    box-shadow: 0 12px 32px -8px rgba(16,24,40,.25);
+  }
 
   /* Choix du type d'expression */
   .eb-modes { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
@@ -43,68 +61,8 @@
   .btn-workflow:hover { background: linear-gradient(135deg, #4338ca, #4f46e5); }
 </style>
 
-<!-- Fil d'Ariane -->
-<div class="flex items-center gap-2 mb-4 text-sm text-slate-400">
-  <a href="{% url 'matieres:expressions_list' %}" class="hover:text-indigo-600 transition-colors">Expressions de besoins</a>
-  <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
-  <span class="text-slate-600 font-semibold">{{ expression }}</span>
-  <div class="ml-2 status-badge status-{{ expression.statut }}">
-    <span style="width:6px;height:6px;border-radius:50%;background:currentColor;display:inline-block;flex-shrink:0"></span>
-    {{ expression.get_statut_display }}
-  </div>
-  <span class="bs-badge" style="margin-left:4px">{{ expression.get_mode_display }}</span>
-</div>
 
-
-<!-- ── BARRE D'ACTIONS : circuit de l'expression ── -->
-<div class="action-bar no-print" style="flex-wrap:wrap">
-  <a href="{% url 'matieres:expressions_list' %}" class="btn-action btn-back">
-    <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
-    Retour
-  </a>
-  <div class="sep"></div>
-
-  {% if expression.statut == 'nouveau' %}
-  <form method="post" action="{% url 'matieres:expression_recevoir' expression.pk %}" style="margin:0"
-        onsubmit="return confirm('Transmettre l\'expression au comptable des matières ? Elle ne sera plus modifiable.')">
-    {% csrf_token %}
-    <button type="submit" class="btn-action btn-validate">
-      <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-      Marquer reçue par le comptable
-    </button>
-  </form>
-  <span class="text-xs text-slate-400">
-    {% if expression.sur_marche %}Les articles laissés à 0 ne seront pas retenus.{% else %}L'expression sera ensuite consolidée dans un marché.{% endif %}
-  </span>
-
-  {% elif expression.statut == 'recu' and not expression.sur_marche %}
-  <form method="post" action="{% url 'matieres:expression_consolider' expression.pk %}" style="margin:0;display:flex;align-items:center;gap:8px"
-        onsubmit="return confirm('Consolider cette expression dans le marché sélectionné ?')">
-    {% csrf_token %}
-    <select name="marche_id" required class="f-select" style="width:260px" aria-label="Marché de consolidation">
-      <option value="">— Marché en cours —</option>
-      {% for m in marches_consolidation %}<option value="{{ m.pk }}">{{ m.num_marche }}{% if m.reference_marche %} — {{ m.reference_marche }}{% endif %}</option>{% endfor %}
-    </select>
-    <button type="submit" class="btn-action btn-workflow">
-      <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
-      Consolider dans ce marché
-    </button>
-  </form>
-  {% if not marches_consolidation %}<a href="{% url 'matieres:marche_create' %}" class="text-xs font-semibold text-indigo-600">+ Créer un marché</a>{% endif %}
-
-  {% else %}
-  <span class="text-sm text-slate-500 flex items-center gap-2">
-    <svg width="14" height="14" fill="none" stroke="#059669" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
-    {% if expression.statut == 'consolide' %}Consolidée dans le marché{% else %}Reçue le {{ expression.date_reception_comptable|date:"d/m/Y" }} — demande sur le marché{% endif %}
-    {% if expression.marche %}<a href="{% url 'matieres:marche_update' expression.marche.pk %}" class="font-semibold text-indigo-600 hover:underline">{{ expression.marche.num_marche }}</a>{% endif %}
-  </span>
-  {% endif %}
-
-  <div class="ml-auto text-xs text-slate-400 flex items-center gap-2">
-    <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-    {{ expression.date_creation|date:"d/m/Y" }}
-  </div>
-</div>
+{% include 'partials/expression_circuit.html' %}
 
 <!-- ══════════════════════════════════════════════
      EN-TÊTE (gauche) + ARTICLES DEMANDÉS (prioritaire)
@@ -132,7 +90,7 @@
             </div>
             <div class="col-span-2">
               <label class="f-label" for="e-service">Service demandeur</label>
-              <select id="e-service" name="service" class="f-select" {% if not editable %}disabled{% endif %}>
+              <select id="e-service" name="service" class="f-select" {% if not editable or service_impose %}disabled{% endif %}>
                 <option value="">—</option>
                 {% for s in services %}<option value="{{ s.pk }}" {% if expression.demandeur_service_id == s.pk %}selected{% endif %}>{{ s }}</option>{% endfor %}
               </select>
@@ -175,11 +133,28 @@
               Enregistrer l'entête
             </button>
             {% else %}
-            <div class="status-badge status-{{ expression.statut }}" style="font-size:11px">Expression transmise — entête verrouillée</div>
+            <div class="text-xs text-slate-400">{% if expression.modifiable %}Rédaction réservée au service demandeur{% else %}Expression transmise — entête verrouillée{% endif %}</div>
             {% endif %}
           </div>
         </form>
       </div>
+    </div>
+
+    <div class="section-card" style="margin:14px 0 0">
+      <div class="section-header"><div class="dot"></div>Historique du circuit</div>
+      {% if historique %}
+      <ol class="timeline">
+        {% for h in historique %}
+        <li class="tl-{{ h.action }}">
+          <div class="tl-title">{{ h.get_action_display }}</div>
+          <div class="tl-meta">{{ h.date|date:"d/m/Y à H:i" }}{% if h.utilisateur %} · {{ h.utilisateur.get_full_name|default:h.utilisateur.username }}{% endif %}</div>
+          {% if h.commentaire %}<div class="tl-comment">{{ h.commentaire }}</div>{% endif %}
+        </li>
+        {% endfor %}
+      </ol>
+      {% else %}
+      <p class="text-xs text-slate-400" style="padding:4px 16px 16px">Pas encore transmise au S.A.F.</p>
+      {% endif %}
     </div>
   </div>
 

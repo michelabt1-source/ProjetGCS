@@ -1,4 +1,16 @@
 {% extends 'base.html' %}
+{% block page_header %}
+<header class="page-header">
+  <div class="page-heading">
+    <div class="page-title-row">
+      <h1 class="page-title">Nouveau bon de sortie définitive</h1>
+      <span class="doc-num">BSD-{{ next_num|stringformat:"04d" }}</span>
+    </div>
+    <p class="page-subtitle">Consommables Groupe 2 — sortie unique de l'existant</p>
+  </div>
+</header>
+{% endblock %}
+
 {% block content %}
 
 <style>
@@ -10,22 +22,7 @@
   .section-divider { height:1px; background:#f1f5f9; margin:20px 0; }
 </style>
 
-<div style="max-width:640px;margin:0 auto">
-  <div style="background:linear-gradient(135deg,#dc2626 0%,#991b1b 100%);border-radius:14px;padding:20px 28px;margin-bottom:24px;display:flex;align-items:center;gap:16px">
-    <div style="background:rgba(255,255,255,.18);border-radius:10px;padding:10px">
-      <svg width="22" height="22" fill="none" stroke="#fff" viewBox="0 0 24 24" stroke-width="2">
-        <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-      </svg>
-    </div>
-    <div>
-      <h1 style="color:#fff;font-size:17px;font-weight:700;margin:0">Nouveau Bon de Sortie Définitive</h1>
-      <p style="color:rgba(255,255,255,.75);font-size:12px;margin:2px 0 0">Consommables Groupe 2 — sortie unique de l'existant</p>
-    </div>
-    <div style="margin-left:auto;background:rgba(255,255,255,.2);border-radius:10px;padding:8px 16px">
-      <span style="color:#fff;font-family:monospace;font-size:18px;font-weight:800">BSD-{{ next_num|stringformat:"04d" }}</span>
-    </div>
-  </div>
-
+<div style="max-width:640px;">
   <div class="form-card">
     <form method="post" action="{% url 'matieres:bon_sortie_def_g2_create' %}">
       {% csrf_token %}

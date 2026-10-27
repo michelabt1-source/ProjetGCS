@@ -1,13 +1,17 @@
 {% extends "base.html" %}
-{% block content %}
-<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px">
-  <div>
-    <h1 style="font-size:22px;font-weight:700;color:#0f172a">Sous-Comptes</h1>
-    <p style="color:#64748b;font-size:13px;margin-top:4px">{{ total }} sous-compte(s)</p>
+{% block page_header %}
+<header class="page-header">
+  <div class="page-heading">
+    <h1 class="page-title">Sous-comptes</h1>
+    <p class="page-subtitle">{{ total }} sous-compte(s)</p>
   </div>
-  <a href="{% url 'matieres:compte_principal_list' %}" class="btn-secondary">← Comptes principaux</a>
-</div>
+  <div class="page-actions">
+    <a class="btn-secondary" href="{% url 'matieres:compte_principal_list' %}">← Comptes principaux</a>
+  </div>
+</header>
+{% endblock %}
 
+{% block content %}
 <div class="card" style="margin-bottom:20px;padding:14px 20px">
   <form method="get" style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">
     <input name="q" value="{{ query }}" placeholder="Rechercher famille ou numéro…"

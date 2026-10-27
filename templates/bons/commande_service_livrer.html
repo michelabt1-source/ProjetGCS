@@ -1,29 +1,19 @@
 {% extends 'base.html' %}
-{% block content %}
-<div class="p-6 max-w-5xl mx-auto">
-
-  <div class="flex items-center gap-2 mb-5 text-sm text-slate-400">
-    <a href="{% url 'matieres:bons_commande_service_a_livrer' %}" class="hover:text-indigo-600 transition-colors">BCS à livrer</a>
-    <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
-    <span class="text-slate-600 font-semibold font-mono">BCS-{{ bon.num_bon|stringformat:"04d" }}</span>
-  </div>
-
-  <div class="mb-5">
-    <h1 class="text-xl font-bold text-slate-800">Attribuer la quantité à livrer</h1>
-    <p class="text-sm text-slate-500 mt-0.5">
+{% block page_header %}
+<header class="page-header">
+  <div class="page-heading">
+    <h1 class="page-title">Attribuer la quantité à livrer</h1>
+    <p class="page-subtitle">
       {{ bon.service|default:"—" }}{% if bon.destinataire %} → {{ bon.destinataire_display }}{% endif %}
       — validé par le S.A.F. <strong>{{ bon.valide_par|default:"—" }}</strong>
       {% if bon.date_validation %}le {{ bon.date_validation|date:"d/m/Y" }}{% endif %}
     </p>
   </div>
+</header>
+{% endblock %}
 
-  {% if messages %}
-  <div class="mb-4 space-y-2">
-    {% for msg in messages %}
-    <div class="px-4 py-2.5 rounded-lg text-sm font-medium {% if msg.tags == 'error' %}bg-red-50 text-red-700 border border-red-200{% else %}bg-emerald-50 text-emerald-700 border border-emerald-200{% endif %}">{{ msg }}</div>
-    {% endfor %}
-  </div>
-  {% endif %}
+{% block content %}
+<div>
 
   <form method="post">
     {% csrf_token %}

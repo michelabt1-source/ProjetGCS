@@ -1,15 +1,13 @@
 {% extends 'base.html' %}
-{% block content %}
-<div class="p-6 max-w-6xl mx-auto">
-
-  <div class="flex items-center justify-between mb-5">
-    <div>
-      <h1 class="text-2xl font-bold text-slate-800">Bons de commande de services</h1>
-      <p class="text-sm text-slate-500 mt-0.5">Demandes de consommation de matières formulées par les services</p>
-    </div>
+{% block page_header %}
+<header class="page-header">
+  <div class="page-heading">
+    <h1 class="page-title">Bons de commande de service</h1>
+    <p class="page-subtitle">Demandes de consommation de matières formulées par les services</p>
+  </div>
+  <div class="page-actions">
     {% if can_create %}
-    <a href="{% url 'matieres:bon_commande_service_create' %}"
-       class="inline-flex items-center gap-2 px-4 py-2.5 bg-indigo-600 text-white rounded-xl text-sm font-semibold shadow-sm hover:bg-indigo-700 transition-colors">
+    <a class="btn-primary" href="{% url 'matieres:bon_commande_service_create' %}">
       <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5">
         <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
       </svg>
@@ -17,6 +15,11 @@
     </a>
     {% endif %}
   </div>
+</header>
+{% endblock %}
+
+{% block content %}
+<div>
 
   {% if nb_a_valider and role == 'saf' or nb_a_valider and request.user.is_superuser %}
   <div class="mb-4 px-4 py-2.5 bg-amber-50 border border-amber-200 rounded-lg text-sm text-amber-700 flex items-center gap-2">

@@ -1,18 +1,23 @@
 {% extends 'base.html' %}
-{% block content %}
-<div class="flex items-center justify-between mb-6">
-  <div>
-    <h2 class="text-xl font-bold text-slate-800">Bordereaux de mutation</h2>
-    <p class="text-sm text-slate-500 mt-0.5">Transfert direct de matières Groupe 1 entre bureaux, sans passer par le dépôt</p>
+{% block page_header %}
+<header class="page-header">
+  <div class="page-heading">
+    <h1 class="page-title">Bordereaux de mutation</h1>
+    <p class="page-subtitle">Transfert direct de matières Groupe 1 entre bureaux, sans passer par le dépôt</p>
     {% if nb_non_valides > 0 %}
-    <p class="text-sm text-orange-600 mt-0.5">{{ nb_non_valides }} bordereau{{ nb_non_valides|pluralize }} en attente de validation</p>
+    <p class="page-subtitle is-warning">{{ nb_non_valides }} bordereau{{ nb_non_valides|pluralize }} en attente de validation</p>
     {% endif %}
   </div>
-  <a href="{% url 'matieres:bon_mutation_create' %}" class="btn-primary" style="background:#7c3aed">
-    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
-    Nouveau bordereau
-  </a>
-</div>
+  <div class="page-actions">
+    <a class="btn-primary" href="{% url 'matieres:bon_mutation_create' %}">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+      Nouveau bordereau
+    </a>
+  </div>
+</header>
+{% endblock %}
+
+{% block content %}
 <div class="card p-0 overflow-hidden">
   <div class="overflow-x-auto">
     <table class="w-full text-sm">

@@ -225,14 +225,6 @@ body { background: var(--clr-bg); }
   </div>
 </div>
 
-{% if messages %}
-<div class="msg-bar" role="alert" aria-live="polite">
-  {% for msg in messages %}
-  <div class="msg {% if msg.tags == 'error' %}msg-error{% elif msg.tags == 'success' %}msg-success{% else %}msg-warning{% endif %}">{{ msg }}</div>
-  {% endfor %}
-</div>
-{% endif %}
-
 <div class="bon-workspace" style="--bs-accent:#7c3aed;--bs-accent-dk:#5b21b6;--bs-accent-soft:#f5f3ff">
 
   <aside class="panel entete-panel" aria-label="En-tête du PV">

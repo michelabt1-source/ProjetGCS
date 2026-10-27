@@ -44,6 +44,7 @@ TEMPLATES = [
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
                 'matieres.context_processors.fermer_url',
+                'matieres.navigation.navigation',
             ],
         },
     },

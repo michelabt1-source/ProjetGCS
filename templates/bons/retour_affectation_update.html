@@ -87,15 +87,6 @@
   </a>
 </div>
 
-{% if messages %}
-<div style="margin-bottom:16px">{% for msg in messages %}
-<div style="padding:10px 16px;border-radius:9px;font-size:13px;font-weight:500;margin-bottom:6px;
-  {% if msg.tags == 'error' %}background:#fee2e2;color:#991b1b;border:1px solid #fecaca
-  {% elif msg.tags == 'success' %}background:#f0fdf4;color:#166534;border:1px solid #bbf7d0
-  {% else %}background:#fff7ed;color:#92400e;border:1px solid #fed7aa{% endif %}">
-  {{ msg }}</div>{% endfor %}</div>
-{% endif %}
-
 <div class="bs-workspace" style="--bs-accent:#0891b2;--bs-accent-dk:#0e7490;--bs-accent-soft:#cffafe">
   <div class="bs-aside">
   <!-- En-tête -->

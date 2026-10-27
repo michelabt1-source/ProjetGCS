@@ -1,18 +1,19 @@
 {% extends 'base.html' %}
 {% load humanize %}
 
-{% block content %}
-<div class="flex items-center gap-4 mb-6">
-  <a href="{% url 'matieres:bons_affectation_list' %}" class="btn-secondary">← Retour</a>
-  <div>
-    <h2 class="text-xl font-bold text-slate-800">Bon d'affectation N°{{ bon.num_bon|stringformat:"04d" }}</h2>
-    <p class="text-sm text-slate-500">{{ bon.date_affectation|date:"d/m/Y"|default:"—" }}</p>
+{% block page_header %}
+<header class="page-header">
+  <div class="page-heading">
+    <div class="page-title-row">
+      <h1 class="page-title">Bon d'affectation N°{{ bon.num_bon|stringformat:"04d" }}</h1>
+      {% if bon.valide %}<span class="status-pill tone-success">Confirmé</span>{% else %}<span class="status-pill tone-warning">En attente</span>{% endif %}
+    </div>
+    <p class="page-subtitle">{{ bon.date_affectation|date:"d/m/Y"|default:"—" }}</p>
   </div>
-  <div class="ml-auto">
-    {% if bon.valide %}<span class="badge-success text-sm px-3 py-1">Confirmé</span>{% else %}<span class="badge-warning text-sm px-3 py-1">En attente</span>{% endif %}
-  </div>
-</div>
+</header>
+{% endblock %}
 
+{% block content %}
 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
   <div class="card">
     <h3 class="font-semibold text-slate-700 mb-3 text-sm uppercase tracking-wide">Informations</h3>

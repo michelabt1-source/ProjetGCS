@@ -1,76 +1,75 @@
 {% extends 'base.html' %}
-{% block content %}
-<div class="p-6 max-w-6xl mx-auto">
-
-  <div class="flex items-center justify-between mb-5">
-    <div>
-      <h1 class="text-2xl font-bold text-slate-800">Expressions de besoins</h1>
-      <p class="text-sm text-slate-500 mt-0.5">Besoins exprimés par les services, à consolider dans un marché</p>
-    </div>
-    <a href="{% url 'matieres:expression_create' %}"
-       class="inline-flex items-center gap-2 px-4 py-2.5 bg-indigo-600 text-white rounded-xl text-sm font-semibold shadow-sm hover:bg-indigo-700 transition-colors">
-      <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5">
+{% block page_header %}
+<header class="page-header">
+  <div class="page-heading">
+    <h1 class="page-title">Expressions de besoins</h1>
+    <p class="page-subtitle">Rédigées par les services, validées par le S.A.F., puis réceptionnées par la comptabilité des matières</p>
+  </div>
+  {% if peut_rediger %}
+  <div class="page-actions">
+    <a class="btn-primary" href="{% url 'matieres:expression_create' %}">
+      <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5" aria-hidden="true">
         <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
       </svg>
       Nouvelle expression
     </a>
   </div>
-
-  {% if messages %}
-  <div class="mb-4 space-y-2">
-    {% for msg in messages %}
-    <div class="px-4 py-2.5 rounded-lg text-sm font-medium {% if msg.tags == 'error' %}bg-red-50 text-red-700 border border-red-200{% else %}bg-emerald-50 text-emerald-700 border border-emerald-200{% endif %}">{{ msg }}</div>
-    {% endfor %}
-  </div>
   {% endif %}
+</header>
+{% endblock %}
 
-  <div class="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
-    <div class="overflow-x-auto">
-      <table class="w-full text-sm">
-        <thead>
-          <tr class="bg-slate-50 text-slate-500 text-[11px] uppercase tracking-wide font-bold border-b border-slate-200">
-            <th class="text-left px-4 py-3">Référence</th>
-            <th class="text-left px-4 py-3">Date</th>
-            <th class="text-left px-4 py-3">Service demandeur</th>
-            <th class="text-left px-4 py-3">Type</th>
-            <th class="text-left px-4 py-3">Statut</th>
-            <th class="text-left px-4 py-3">Marché lié</th>
-            <th class="px-4 py-3"></th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for e in expressions %}
-          <tr class="border-b border-slate-100 hover:bg-slate-50 transition-colors">
-            <td class="px-4 py-3 font-semibold text-indigo-600">
-              <a href="{% url 'matieres:expression_update' e.pk %}" class="hover:underline">{{ e.reference|default:"—" }} {% if not e.reference %}#{{ e.id }}{% endif %}</a>
-            </td>
-            <td class="px-4 py-3 text-slate-600">{{ e.date_creation|date:"d/m/Y" }}</td>
-            <td class="px-4 py-3 text-slate-700">{{ e.demandeur_service|default:"—" }}</td>
-            <td class="px-4 py-3">
-              <span class="text-xs font-semibold {% if e.sur_marche %}text-indigo-600{% else %}text-slate-500{% endif %}">{{ e.get_mode_display }}</span>
-            </td>
-            <td class="px-4 py-3">
-              <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold
-                {% if e.statut == 'consolide' %}bg-emerald-50 text-emerald-700 border border-emerald-200
-                {% elif e.statut == 'recu' %}bg-amber-50 text-amber-700 border border-amber-200
-                {% else %}bg-slate-100 text-slate-500 border border-slate-200{% endif %}">
-                <span class="w-1.5 h-1.5 rounded-full bg-current"></span>
-                {{ e.get_statut_display }}
-              </span>
-            </td>
-            <td class="px-4 py-3 text-slate-600">
-              {% if e.marche %}<a href="{% url 'matieres:marche_update' e.marche.pk %}" class="text-indigo-600 hover:underline font-semibold">{{ e.marche.num_marche }}</a>{% else %}—{% endif %}
-            </td>
-            <td class="px-4 py-3 text-right whitespace-nowrap">
-              <a href="{% url 'matieres:expression_update' e.pk %}" class="text-slate-500 hover:text-indigo-600 text-xs font-semibold">Ouvrir</a>
-            </td>
-          </tr>
-          {% empty %}
-          <tr><td colspan="7" class="px-4 py-10 text-center text-slate-400">Aucune expression de besoin enregistrée.</td></tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
+{% block content %}
+<nav class="tabs" aria-label="Filtrer par statut">
+  {% for cle, libelle, n in onglets %}
+  <a href="?statut={{ cle }}" class="tab{% if cle == filtre %} is-active{% endif %}{% if cle == 'a_traiter' %} tab-todo{% endif %}"
+     {% if cle == filtre %}aria-current="page"{% endif %}>
+    {{ libelle }}<span class="tab-count">{{ n }}</span>
+  </a>
+  {% endfor %}
+</nav>
+
+<div class="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+  <div class="overflow-x-auto">
+    <table class="w-full text-sm">
+      <thead>
+        <tr class="bg-slate-50 text-slate-500 text-[11px] uppercase tracking-wide font-bold border-b border-slate-200">
+          <th class="text-left px-4 py-3">Référence</th>
+          <th class="text-left px-4 py-3">Date</th>
+          <th class="text-left px-4 py-3">Service demandeur</th>
+          <th class="text-left px-4 py-3">Type</th>
+          <th class="text-left px-4 py-3">Statut</th>
+          <th class="text-left px-4 py-3">Marché lié</th>
+          <th class="px-4 py-3"><span class="sr-only">Actions</span></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for e in expressions %}
+        <tr class="border-b border-slate-100 hover:bg-slate-50 transition-colors">
+          <td class="px-4 py-3 font-semibold text-indigo-600">
+            <a href="{% url 'matieres:expression_update' e.pk %}" class="hover:underline">{{ e }}</a>
+          </td>
+          <td class="px-4 py-3 text-slate-600 whitespace-nowrap">{{ e.date_creation|date:"d/m/Y" }}</td>
+          <td class="px-4 py-3 text-slate-700">{{ e.demandeur_service|default:"—" }}</td>
+          <td class="px-4 py-3">
+            <span class="text-xs font-semibold {% if e.sur_marche %}text-indigo-600{% else %}text-slate-500{% endif %}">{{ e.get_mode_display }}</span>
+          </td>
+          <td class="px-4 py-3">{% include 'partials/expression_statut.html' %}</td>
+          <td class="px-4 py-3 text-slate-600">
+            {% if e.marche %}<a href="{% url 'matieres:marche_update' e.marche.pk %}" class="text-indigo-600 hover:underline font-semibold">{{ e.marche.num_marche }}</a>{% else %}—{% endif %}
+          </td>
+          <td class="px-4 py-3 text-right whitespace-nowrap">
+            <a href="{% url 'matieres:expression_update' e.pk %}" class="text-slate-500 hover:text-indigo-600 text-xs font-semibold">
+              {% if filtre == 'a_traiter' %}Traiter →{% else %}Ouvrir{% endif %}
+            </a>
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="7" class="px-4 py-12 text-center text-slate-400">
+          {% if filtre == 'a_traiter' %}Rien à traiter pour le moment.{% elif filtre %}Aucune expression avec ce statut.{% else %}Aucune expression de besoin enregistrée.{% endif %}
+        </td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
   </div>
 </div>
 {% endblock %}

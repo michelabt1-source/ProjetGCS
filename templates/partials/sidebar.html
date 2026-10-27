@@ -1,0 +1,92 @@
+{% load static %}
+<aside class="sidebar" id="sidebar" aria-label="Navigation principale">
+  <div class="sb-head">
+    <a href="{{ nav_home.href }}" class="sb-brand" aria-label="Gestima — Tableau de bord">
+      <img src="{% static 'brand/gestima-logo-light.svg' %}" alt="Gestima">
+    </a>
+    <button type="button" class="icon-btn sb-collapse-btn" data-action="toggle-sidebar"
+            aria-controls="sidebar" aria-pressed="false" title="Replier / déplier la barre latérale">
+      <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" aria-hidden="true">
+        <rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v16M15 10l-2 2 2 2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </button>
+    <button type="button" class="icon-btn menu-close-btn" data-action="close-drawer" aria-label="Fermer le menu">
+      <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" aria-hidden="true"><path stroke-linecap="round" d="M6 18L18 6M6 6l12 12"/></svg>
+    </button>
+  </div>
+
+  <div class="sb-module">
+    <div class="module-switch" role="group" aria-label="Module">
+      {% for m in nav_modules %}
+        {% if m.available %}
+          <button type="button" class="module-opt is-current" aria-current="true" title="{{ m.label }}">
+            <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" aria-hidden="true">{% for d in m.icon %}<path stroke-linecap="round" stroke-linejoin="round" d="{{ d }}"/>{% endfor %}</svg>
+            <span>{{ m.short }}</span>
+          </button>
+        {% else %}
+          <button type="button" class="module-opt" aria-disabled="true" title="{{ m.label }} — bientôt disponible">
+            <span>{{ m.short }}</span><span class="soon">Bientôt</span>
+          </button>
+        {% endif %}
+      {% endfor %}
+    </div>
+  </div>
+
+  <div class="sb-search">
+    <button type="button" class="search-trigger" data-action="open-palette" title="Rechercher une page (Ctrl+K)">
+      <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path stroke-linecap="round" d="M20 20l-3.5-3.5"/></svg>
+      <span class="label">Aller à…</span>
+      <kbd>Ctrl K</kbd>
+    </button>
+  </div>
+
+  <nav class="sb-nav" aria-label="Pages">
+    {% if nav_home %}
+    <a href="{{ nav_home.href }}" class="nav-link{% if nav_home.active %} is-active{% endif %}"
+       {% if nav_home.active %}aria-current="page"{% endif %} title="{{ nav_home.label }}">
+      <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.8" aria-hidden="true">{% for d in nav_home.icon %}<path stroke-linecap="round" stroke-linejoin="round" d="{{ d }}"/>{% endfor %}</svg>
+      <span class="nav-label">{{ nav_home.label }}</span>
+    </a>
+    {% endif %}
+
+    {% for section in nav_sections %}
+    <div class="nav-group" data-key="{{ section.key }}" data-open="{{ section.open|yesno:'true,false' }}">
+      <button type="button" class="nav-group-toggle" aria-expanded="{{ section.open|yesno:'true,false' }}"
+              aria-controls="nav-g-{{ section.key }}">
+        <span class="nav-group-label">{{ section.label }}</span>
+        <svg class="chev" width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
+      </button>
+      <div class="nav-group-items" id="nav-g-{{ section.key }}">
+        {% for item in section.items %}
+        <a href="{{ item.href }}" class="nav-link{% if item.active %} is-active{% endif %}"
+           {% if item.active %}aria-current="page"{% endif %} title="{{ item.label }}">
+          <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.8" aria-hidden="true">{% for d in item.icon %}<path stroke-linecap="round" stroke-linejoin="round" d="{{ d }}"/>{% endfor %}</svg>
+          <span class="nav-label">{{ item.label }}</span>
+          {% if item.badge %}<span class="nav-badge" title="{{ item.badge }} à traiter">{{ item.badge }}</span>{% endif %}
+          {% if item.external %}
+          <svg class="ext" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" aria-label="(administration Django)"><path stroke-linecap="round" stroke-linejoin="round" d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 01-1 1H5a1 1 0 01-1-1V7a1 1 0 011-1h5"/></svg>
+          {% endif %}
+        </a>
+        {% endfor %}
+      </div>
+    </div>
+    {% endfor %}
+  </nav>
+
+  <div class="sb-foot">
+    <div class="user-card">
+      <div class="avatar" aria-hidden="true">{{ request.user.get_full_name|default:request.user.username|first|upper }}</div>
+      <div class="user-meta">
+        <div class="user-name">{{ request.user.get_full_name|default:request.user.username }}</div>
+        {% if nav_role_label %}<div class="user-role">{{ nav_role_label }}</div>{% endif %}
+      </div>
+      <form action="{% url 'logout' %}" method="post">
+        {% csrf_token %}
+        <button type="submit" class="icon-btn btn-logout" title="Se déconnecter" aria-label="Se déconnecter">
+          <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
+        </button>
+      </form>
+    </div>
+  </div>
+</aside>
+<div class="sb-backdrop" data-action="close-drawer" aria-hidden="true"></div>

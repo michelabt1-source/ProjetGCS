@@ -1,6 +1,25 @@
 {% extends 'base.html' %}
 {% block title %}Import de données{% endblock %}
 
+{% block page_header %}
+<header class="page-header">
+  <div class="page-heading">
+    <h1 class="page-title">Import de données</h1>
+    <p class="page-subtitle">
+      Importez vos données Excel dans Gestima — Structure et Configuration
+    </p>
+  </div>
+  <div class="page-actions">
+    <a class="btn-secondary" href="{% url 'matieres:import_template' %}">
+      <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+      </svg>
+      Télécharger le template
+    </a>
+  </div>
+</header>
+{% endblock %}
+
 {% block content %}
 <style>
   /* ── Zone d'upload drag & drop ── */
@@ -92,28 +111,6 @@
     flex-shrink: 0; margin-top: 1px;
   }
 </style>
-
-<!-- ── Page header ── -->
-<div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:24px">
-  <div>
-    <h1 style="font-size:1.5rem; font-weight:800; color:#0f172a; margin-bottom:4px">
-      Import de données
-    </h1>
-    <p style="font-size:13.5px; color:#64748b">
-      Importez vos données Excel dans Gestima — Structure et Configuration
-    </p>
-  </div>
-  <a href="{% url 'matieres:import_template' %}"
-     style="display:inline-flex; align-items:center; gap:8px; padding:9px 18px;
-            background:linear-gradient(135deg,#059669,#10b981); color:white;
-            border-radius:10px; font-size:13px; font-weight:600; text-decoration:none;
-            box-shadow:0 4px 14px rgba(16,185,129,.3); transition:all 180ms">
-    <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.2">
-      <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
-    </svg>
-    Télécharger le template
-  </a>
-</div>
 
 <div style="display:grid; grid-template-columns:1fr 320px; gap:20px; align-items:start">
 

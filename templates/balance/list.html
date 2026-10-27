@@ -1,30 +1,29 @@
 {% extends 'base.html' %}
 {% load humanize %}
 
-{% block content %}
-<div class="flex items-center justify-between mb-6">
-  <div>
+{% block page_header %}
+<header class="page-header">
+  <div class="page-heading">
+    <h1 class="page-title">{% if report_kind == 'periodique' %}Balance périodique des comptes{% else %}Balance générale des comptes{% endif %}</h1>
+    <p class="page-subtitle">Calculée en direct depuis le livre journal</p>
+  </div>
+  <div class="page-actions">
     {% if report_kind == 'periodique' %}
-    <h2 class="text-xl font-bold text-slate-800">Balance Périodique des Comptes</h2>
-    <p class="text-sm text-slate-500 mt-0.5">Balance Périodique des Comptes — calculée en direct depuis le Livre Journal</p>
+    <a class="btn-primary" href="{% url 'matieres:balance_periodique_etat' %}?date_debut={{ date_debut }}&date_fin={{ date_fin }}">
+      <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
+      État officiel (Modèle N°22)
+    </a>
     {% else %}
-    <h2 class="text-xl font-bold text-slate-800">Balance Générale des Comptes</h2>
-    <p class="text-sm text-slate-500 mt-0.5">Balance Générale des Comptes — calculée en direct depuis le Livre Journal</p>
+    <a class="btn-primary" href="{% url 'matieres:balance_general_etat' %}?date_debut={{ date_debut }}&date_fin={{ date_fin }}">
+      <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
+      État officiel (Modèle N°22)
+    </a>
     {% endif %}
   </div>
-  {% if report_kind == 'periodique' %}
-  <a href="{% url 'matieres:balance_periodique_etat' %}?date_debut={{ date_debut }}&date_fin={{ date_fin }}" class="btn-primary">
-    <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
-    État officiel (Modèle N°22)
-  </a>
-  {% else %}
-  <a href="{% url 'matieres:balance_general_etat' %}?date_debut={{ date_debut }}&date_fin={{ date_fin }}" class="btn-primary">
-    <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
-    État officiel (Modèle N°22)
-  </a>
-  {% endif %}
-</div>
+</header>
+{% endblock %}
 
+{% block content %}
 <!-- Filtre par intervalle de dates -->
 <div class="card mb-6">
   <form method="get" class="flex gap-3 items-end flex-wrap">

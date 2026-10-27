@@ -1,12 +1,14 @@
 {% extends "base.html" %}
-{% block content %}
-<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
-  <div>
-    <h1 style="font-size:22px;font-weight:700;color:#0f172a">Inventaire Global</h1>
-    <p style="color:#64748b;font-size:13px;margin-top:4px">{{ total }} produit(s) — stock théorique global</p>
+{% block page_header %}
+<header class="page-header">
+  <div class="page-heading">
+    <h1 class="page-title">Inventaire global</h1>
+    <p class="page-subtitle">{{ total }} produit(s) — stock théorique global</p>
   </div>
-</div>
+</header>
+{% endblock %}
 
+{% block content %}
 <!-- KPIs -->
 <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:20px">
   {% with t=totaux %}

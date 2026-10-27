@@ -504,10 +504,89 @@ def marche_reouvrir(request, pk):
     return redirect('matieres:marche_update', pk=pk)
 
 
+def _droits_expression(user, expr=None):
+    """Ce que l'utilisateur peut faire dans le circuit de l'expression.
+    · rédiger / transmettre : le service demandeur (pour son service) ; un compte sans
+      profil applicatif garde ce droit pour ne pas bloquer une installation non configurée ;
+    · décider (valider / rejeter) : le S.A.F. ;
+    · réceptionner / consolider : la comptabilité des matières.
+    Un superuser a tous les droits."""
+    profil = _profil(user)
+    role = profil.role if profil else None
+    su = user.is_superuser
+    if su or role is None:
+        redige = True
+    elif role == ProfilUtilisateur.ROLE_DEMANDEUR:
+        redige = expr is None or expr.demandeur_service_id in (None, profil.service_id)
+    else:
+        redige = False
+    return {
+        'role': role,
+        'peut_rediger': redige,
+        'peut_decider_saf': su or role == ProfilUtilisateur.ROLE_SAF,
+        'peut_receptionner': su or role == ProfilUtilisateur.ROLE_COMPTABLE,
+        'service_impose': profil.service if role == ProfilUtilisateur.ROLE_DEMANDEUR and profil.service_id else None,
+    }
+
+
+def _expressions_visibles(user):
+    """Un service demandeur ne voit que les expressions de son service ; les autres profils voient tout."""
+    exprs = ExpressionBesoin.objects.all()
+    profil = _profil(user)
+    if not user.is_superuser and profil and profil.role == ProfilUtilisateur.ROLE_DEMANDEUR:
+        exprs = exprs.filter(demandeur_service_id=profil.service_id)
+    return exprs
+
+
+def expressions_a_traiter(user):
+    """Statuts qui attendent une action de cet utilisateur (onglet « À traiter », badge de navigation)."""
+    profil = _profil(user)
+    role = profil.role if profil else None
+    if user.is_superuser:
+        return ['soumis', 'valide_saf']
+    return {
+        ProfilUtilisateur.ROLE_SAF: ['soumis'],
+        ProfilUtilisateur.ROLE_COMPTABLE: ['valide_saf'],
+        ProfilUtilisateur.ROLE_DEMANDEUR: ['rejete'],
+    }.get(role, [])
+
+
 @login_required
 def expressions_list(request):
-    exprs = ExpressionBesoin.objects.select_related('demandeur_service', 'demandeur_bureau', 'marche').order_by('-date_creation')
-    context = {'page_title': 'Expressions de besoins', 'expressions': exprs}
+    base = _expressions_visibles(request.user)
+    a_traiter = expressions_a_traiter(request.user)
+    # order_by() vide : l'ordre par défaut du modèle fausserait le regroupement par statut
+    compteurs = {r['statut']: r['n'] for r in base.order_by().values('statut').annotate(n=Count('pk'))}
+    nb_a_traiter = sum(compteurs.get(st, 0) for st in a_traiter)
+
+    onglets = []
+    if a_traiter:
+        onglets.append(('a_traiter', 'À traiter', nb_a_traiter))
+    onglets.append(('', 'Toutes', sum(compteurs.values())))
+    libelles_courts = {'nouveau': 'Brouillons', 'soumis': 'Au S.A.F.', 'rejete': 'Rejetées',
+                       'valide_saf': 'Validées', 'recu': 'Reçues', 'consolide': 'Consolidées'}
+    onglets += [(cle, libelles_courts[cle], compteurs.get(cle, 0)) for cle, _ in ExpressionBesoin.STATUT_CHOICES]
+
+    valides = {cle for cle, _, _ in onglets}
+    filtre = request.GET.get('statut')
+    if filtre is None:
+        filtre = 'a_traiter' if nb_a_traiter else ''
+    if filtre not in valides:
+        filtre = ''
+    exprs = base.select_related('demandeur_service', 'demandeur_bureau', 'marche').order_by('-date_creation', '-pk')
+    if filtre == 'a_traiter':
+        exprs = exprs.filter(statut__in=a_traiter)
+    elif filtre:
+        exprs = exprs.filter(statut=filtre)
+
+    context = {
+        'page_title': 'Expressions de besoins',
+        'expressions': exprs,
+        'onglets': onglets,
+        'filtre': filtre,
+        'nb_a_traiter': nb_a_traiter,
+        **_droits_expression(request.user),
+    }
     return render(request, 'expressions/list.html', context)
 
 
@@ -537,13 +616,18 @@ def _changer_type_expression(expr, mode, marche_id):
 
 @login_required
 def expression_create(request):
+    droits = _droits_expression(request.user)
+    if not droits['peut_rediger']:
+        messages.error(request, "Seul un service demandeur rédige une expression de besoin.")
+        return redirect('matieres:expressions_list')
+    service_impose = droits['service_impose']
     if request.method == 'POST':
         try:
             with transaction.atomic():
                 expr = ExpressionBesoin(
                     reference=request.POST.get('reference', '').strip(),
                     date_creation=request.POST.get('date_creation') or date.today().isoformat(),
-                    demandeur_service_id=request.POST.get('service') or None,
+                    demandeur_service_id=service_impose.pk if service_impose else (request.POST.get('service') or None),
                     demandeur_bureau_id=request.POST.get('bureau') or None,
                 )
                 reprendre = _changer_type_expression(expr, request.POST.get('mode'), request.POST.get('marche_id'))
@@ -560,6 +644,7 @@ def expression_create(request):
 
     context = {
         'page_title': 'Nouvelle expression de besoin',
+        'service_impose': service_impose,
         'services': Service.objects.all(),
         'bureaux': Bureau.objects.all(),
         'marches_en_cours': Marche.objects.filter(statut='en_cours').select_related('fournisseur').order_by('-date_creation'),
@@ -575,22 +660,62 @@ def expression_detail(request, pk):
     return redirect('matieres:expression_update', pk=pk)
 
 
-@login_required
-def expression_recevoir(request, pk):
-    expr = get_object_or_404(ExpressionBesoin, pk=pk)
+def _transition_expression(request, pk, droit, refus, action):
+    """Exécute une étape du circuit (POST uniquement) après contrôle du droit requis."""
+    expr = get_object_or_404(_expressions_visibles(request.user), pk=pk)
     if request.method == 'POST':
-        try:
-            expr.recevoir(date.today())
-            messages.success(request, "Expression reçue par le comptable des matières : elle est désormais figée.")
-        except ValueError as e:
-            messages.error(request, str(e))
+        if not _droits_expression(request.user, expr)[droit]:
+            messages.error(request, refus)
+        else:
+            try:
+                messages.success(request, action(expr))
+            except ValueError as e:
+                messages.error(request, str(e))
     return redirect('matieres:expression_update', pk=pk)
 
 
 @login_required
+def expression_soumettre(request, pk):
+    def action(expr):
+        expr.soumettre_au_saf(request.user)
+        return f"{expr} transmise au S.A.F. pour validation."
+    return _transition_expression(request, pk, 'peut_rediger',
+                                  "Seul le service demandeur transmet son expression au S.A.F.", action)
+
+
+@login_required
+def expression_valider_saf(request, pk):
+    def action(expr):
+        expr.valider_saf(request.user, request.POST.get('commentaire', ''))
+        return f"{expr} validée : elle est transmise à la comptabilité des matières."
+    return _transition_expression(request, pk, 'peut_decider_saf',
+                                  "La validation d'une expression est réservée au S.A.F.", action)
+
+
+@login_required
+def expression_rejeter_saf(request, pk):
+    def action(expr):
+        expr.rejeter_saf(request.user, request.POST.get('motif', ''))
+        return f"{expr} rejetée : elle est renvoyée au service demandeur."
+    return _transition_expression(request, pk, 'peut_decider_saf',
+                                  "Le rejet d'une expression est réservé au S.A.F.", action)
+
+
+@login_required
+def expression_recevoir(request, pk):
+    def action(expr):
+        expr.recevoir(date.today(), request.user)
+        return f"{expr} réceptionnée par la comptabilité des matières."
+    return _transition_expression(request, pk, 'peut_receptionner',
+                                  "La réception est réservée à la comptabilité des matières.", action)
+
+
+@login_required
 def expression_consolider(request, pk):
-    expr = get_object_or_404(ExpressionBesoin, pk=pk)
-    if request.method == 'POST':
+    expr = get_object_or_404(_expressions_visibles(request.user), pk=pk)
+    if request.method == 'POST' and not _droits_expression(request.user, expr)['peut_receptionner']:
+        messages.error(request, "La consolidation est réservée à la comptabilité des matières.")
+    elif request.method == 'POST':
         marche_id = request.POST.get('marche_id') or None
         marche = Marche.objects.filter(pk=marche_id).first() if marche_id else None
         if not marche:
@@ -599,7 +724,7 @@ def expression_consolider(request, pk):
             try:
                 if not expr.details.exists():
                     raise ValueError("Impossible de consolider une expression sans article.")
-                expr.consolider_dans_marche(marche)
+                expr.consolider_dans_marche(marche, request.user)
                 messages.success(request, f"Expression consolidée dans le marché {marche.num_marche}.")
             except ValueError as e:
                 messages.error(request, str(e))
@@ -645,16 +770,21 @@ def marche_update(request, pk):
 
 @login_required
 def expression_update(request, pk):
-    expr = get_object_or_404(ExpressionBesoin.objects.select_related('marche'), pk=pk)
+    expr = get_object_or_404(_expressions_visibles(request.user).select_related('marche'), pk=pk)
+    droits = _droits_expression(request.user, expr)
     if request.method == 'POST':
         if not expr.modifiable:
-            messages.error(request, "Expression reçue par le comptable : elle n'est plus modifiable.")
+            messages.error(request, MSG_EXPRESSION_FIGEE)
+            return redirect('matieres:expression_update', pk=pk)
+        if not droits['peut_rediger']:
+            messages.error(request, "Seul le service demandeur modifie son expression.")
             return redirect('matieres:expression_update', pk=pk)
         try:
             with transaction.atomic():
                 expr.reference = request.POST.get('reference', expr.reference).strip()
                 expr.date_creation = request.POST.get('date_creation') or expr.date_creation
-                expr.demandeur_service_id = request.POST.get('service') or None
+                expr.demandeur_service_id = (droits['service_impose'].pk if droits['service_impose']
+                                             else request.POST.get('service') or None)
                 expr.demandeur_bureau_id = request.POST.get('bureau') or None
                 reprendre = _changer_type_expression(expr, request.POST.get('mode'), request.POST.get('marche_id'))
                 expr.save()
@@ -677,7 +807,9 @@ def expression_update(request, pk):
         'marches_en_cours': marches.order_by('-date_creation'),
         'marches_consolidation': Marche.objects.filter(statut='en_cours').order_by('-date_creation'),
         'today': date.today(),
-        **_expression_lignes_contexte(expr),
+        'historique': expr.historique.select_related('utilisateur'),
+        **droits,
+        **_expression_lignes_contexte(expr, droits=droits),
     }
     return render(request, 'expressions/update.html', context)
 
@@ -769,7 +901,19 @@ def htmx_marche_delete_detail(request, detail_pk):
     return _marche_lignes(request, marche, erreur)
 
 
-def _expression_lignes_contexte(expr, erreur=None):
+MSG_EXPRESSION_FIGEE = "Expression transmise : elle n'est plus modifiable tant que le S.A.F. ne l'a pas renvoyée."
+
+
+def _expression_saisie_refusee(request, expr):
+    """Motif de refus d'une modification des lignes, ou None si elle est permise."""
+    if not expr.modifiable:
+        return MSG_EXPRESSION_FIGEE
+    if not _droits_expression(request.user, expr)['peut_rediger']:
+        return "Seul le service demandeur modifie son expression."
+    return None
+
+
+def _expression_lignes_contexte(expr, erreur=None, droits=None):
     details = list(expr.details.select_related('produit', 'unite', 'ligne_marche').order_by('pk'))
     for d in details:
         if d.ligne_marche_id:
@@ -779,7 +923,7 @@ def _expression_lignes_contexte(expr, erreur=None):
     return {
         'details': details,
         'expression': expr,
-        'editable': expr.modifiable,
+        'editable': expr.modifiable and (droits is None or droits['peut_rediger']),
         'erreur': erreur,
         'demandes': demandes,
         'nb_demandes': len(demandes),
@@ -788,7 +932,8 @@ def _expression_lignes_contexte(expr, erreur=None):
 
 
 def _expression_lignes(request, expr, erreur=None):
-    return render(request, 'partials/expression_detail_rows.html', _expression_lignes_contexte(expr, erreur))
+    contexte = _expression_lignes_contexte(expr, erreur, _droits_expression(request.user, expr))
+    return render(request, 'partials/expression_detail_rows.html', contexte)
 
 
 @login_required
@@ -796,8 +941,9 @@ def htmx_expression_add_detail(request, pk):
     expr = get_object_or_404(ExpressionBesoin, pk=pk)
     erreur = None
     if request.method == 'POST':
-        if not expr.modifiable:
-            erreur = "Expression reçue par le comptable : elle n'est plus modifiable."
+        refus = _expression_saisie_refusee(request, expr)
+        if refus:
+            erreur = refus
         elif expr.sur_marche:
             erreur = "Expression sur marché : seuls les articles du marché peuvent être demandés."
         else:
@@ -816,8 +962,9 @@ def htmx_expression_set_qte(request, detail_pk):
     erreur = None
     if request.method == 'POST':
         brut = (request.POST.get('qte') or '0').replace(' ', '').replace('\xa0', '')
-        if not expr.modifiable:
-            erreur = "Expression reçue par le comptable : elle n'est plus modifiable."
+        refus = _expression_saisie_refusee(request, expr)
+        if refus:
+            erreur = refus
         elif not brut.isdigit():
             erreur = f"{detail.designation} : saisissez une quantité entière positive."
         else:
@@ -840,8 +987,9 @@ def htmx_expression_reprendre(request, pk):
     erreur = None
     if request.method == 'POST':
         try:
-            if not expr.modifiable:
-                raise ValueError("Expression reçue par le comptable : elle n'est plus modifiable.")
+            refus = _expression_saisie_refusee(request, expr)
+            if refus:
+                raise ValueError(refus)
             if not expr.reprendre_articles_marche():
                 erreur = "Tous les articles du marché figurent déjà dans l'expression."
         except ValueError as e:
@@ -855,10 +1003,9 @@ def htmx_expression_delete_detail(request, detail_pk):
     expr = detail.expression
     erreur = None
     if request.method == 'POST':
-        if expr.modifiable:
+        erreur = _expression_saisie_refusee(request, expr)
+        if not erreur:
             detail.delete()
-        else:
-            erreur = "Expression reçue par le comptable : elle n'est plus modifiable."
     return _expression_lignes(request, expr, erreur)
 
 

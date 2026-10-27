@@ -1,5 +1,19 @@
 {% extends 'base.html' %}
 {% load humanize %}
+{% block page_header %}
+<header class="page-header">
+  <div class="page-heading">
+    <h1 class="page-title">Journal des opérations</h1>
+    <p class="page-subtitle">{{ total|intcomma }} opération{{ total|pluralize }} — traçabilité complète des mouvements de matières</p>
+  </div>
+  <div class="page-actions">
+    <a class="btn-secondary" href="{% url 'matieres:journal_etat' %}?q={{ query|urlencode }}&type={{ type_op|urlencode }}&depot={{ depot|urlencode }}&groupe={{ groupe|urlencode }}&annee={{ annee|urlencode }}">
+      Imprimer l'état du livre journal
+    </a>
+  </div>
+</header>
+{% endblock %}
+
 {% block content %}
 
 <style>
@@ -56,30 +70,6 @@
 .f-input:focus { border-color:#3b82f6; }
 .f-select { appearance:none; background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E"); background-repeat:no-repeat; background-position:right 8px center; background-size:13px; padding-right:26px; }
 </style>
-
-<!-- ── En-tête page ── -->
-<div style="display:flex;align-items:center;gap:14px;margin-bottom:20px">
-  <div style="background:linear-gradient(135deg,#1e293b,#334155);border-radius:12px;padding:10px 14px">
-    <svg width="20" height="20" fill="none" stroke="#fff" viewBox="0 0 24 24" stroke-width="1.8">
-      <path stroke-linecap="round" stroke-linejoin="round" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-    </svg>
-  </div>
-  <div>
-    <h1 style="font-size:18px;font-weight:800;color:#0f172a;margin:0">Journal des opérations</h1>
-    <p style="font-size:12px;color:#64748b;margin:2px 0 0">Traçabilité complète de tous les mouvements de matières</p>
-  </div>
-  <div style="margin-left:auto;background:#f1f5f9;border-radius:10px;padding:8px 16px;text-align:center">
-    <div style="font-size:22px;font-weight:800;color:#0f172a">{{ total|intcomma }}</div>
-    <div style="font-size:11px;color:#64748b">opération{{ total|pluralize }}</div>
-  </div>
-</div>
-
-<div style="display:flex;justify-content:flex-end;margin-bottom:14px">
-  <a href="{% url 'matieres:journal_etat' %}?q={{ query|urlencode }}&type={{ type_op|urlencode }}&depot={{ depot|urlencode }}&groupe={{ groupe|urlencode }}&annee={{ annee|urlencode }}"
-     style="display:inline-flex;align-items:center;gap:7px;padding:8px 14px;border-radius:8px;background:#4f46e5;color:#fff;text-decoration:none;font-size:12.5px;font-weight:700">
-    Imprimer l'état du livre journal
-  </a>
-</div>
 
 <!-- ── Barre de filtres ── -->
 <form method="get" class="filter-bar">

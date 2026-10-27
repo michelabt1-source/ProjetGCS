@@ -1,15 +1,20 @@
 {% extends 'base.html' %}
-{% block content %}
-<div class="flex items-center justify-between mb-6">
-  <div>
-    <h2 class="text-xl font-bold text-slate-800">PV de réforme des matières — Groupe 1</h2>
-    <p class="text-sm text-slate-500 mt-0.5">Modèle N°5 — Instruction Générale, Art 57d, 57e, 57f, 57k, 68</p>
+{% block page_header %}
+<header class="page-header">
+  <div class="page-heading">
+    <h1 class="page-title">PV de réforme des matières — Groupe 1</h1>
+    <p class="page-subtitle">Modèle N°5 — Instruction Générale, Art 57d, 57e, 57f, 57k, 68</p>
   </div>
-  <a href="{% url 'matieres:bon_sortie_def_g1_create' %}" class="btn-primary" style="background:#7c3aed">
-    <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
-    Nouveau PV de réforme
-  </a>
-</div>
+  <div class="page-actions">
+    <a class="btn-primary" href="{% url 'matieres:bon_sortie_def_g1_create' %}">
+      <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+      Nouveau PV de réforme
+    </a>
+  </div>
+</header>
+{% endblock %}
+
+{% block content %}
 <div class="card p-0 overflow-hidden">
   <div class="overflow-x-auto">
     <table class="w-full text-sm">

@@ -6,9 +6,16 @@ from django.test import TestCase
 from django.urls import reverse
 
 from .models import (
-    BonEntree, Depot, DetailBonEntree, DetailMarche, ExpressionBesoin, Fournisseur, Journal, Marche, Produit,
-    Profil, SocieteGCS, StockDepot, TypeOperation, Unite,
+    BonEntree, Depot, DetailBonEntree, DetailExpressionBesoin, DetailMarche, ExpressionBesoin, Fournisseur,
+    HistoriqueExpression, Journal, Marche, Produit, Profil, ProfilUtilisateur, Service, SocieteGCS, StockDepot,
+    TypeOperation, Unite,
 )
+
+
+def valider_par_le_saf(expr):
+    """Fait franchir à une expression transmise l'étape du S.A.F."""
+    expr.refresh_from_db()
+    expr.valider_saf()
 
 
 class ConfigurationCrudTests(TestCase):
@@ -271,25 +278,25 @@ class ExpressionSurMarcheTests(TestCase):
         self.assertContains(self.saisir(seconde, self.encre, '20'), '10 encore disponible')
         self.assertEqual(seconde.details.get(ligne_marche=self.encre).qte, 0)
 
-    def test_reception_ecarte_les_articles_laisses_a_zero(self):
+    def test_transmission_ecarte_les_articles_laisses_a_zero(self):
         expr = self.creer()
         self.saisir(expr, self.ramette, '40')
-        self.client.post(reverse('matieres:expression_recevoir', args=[expr.pk]))
+        self.client.post(reverse('matieres:expression_soumettre', args=[expr.pk]))
         expr.refresh_from_db()
-        self.assertEqual(expr.statut, 'recu')
+        self.assertEqual(expr.statut, 'soumis')
         self.assertEqual(list(expr.details.values_list('designation', flat=True)), ['Ramette A4'])
 
-    def test_reception_refusee_sans_aucune_quantite(self):
+    def test_transmission_refusee_sans_aucune_quantite(self):
         expr = self.creer()
-        self.client.post(reverse('matieres:expression_recevoir', args=[expr.pk]))
+        self.client.post(reverse('matieres:expression_soumettre', args=[expr.pk]))
         expr.refresh_from_db()
         self.assertEqual(expr.statut, 'nouveau')
         self.assertEqual(expr.details.count(), 2)   # rien n'est perdu
 
-    def test_expression_recue_figee(self):
+    def test_expression_transmise_figee(self):
         expr = self.creer()
         self.saisir(expr, self.ramette, '40')
-        self.client.post(reverse('matieres:expression_recevoir', args=[expr.pk]))
+        self.client.post(reverse('matieres:expression_soumettre', args=[expr.pk]))
         self.saisir(expr, self.ramette, '99')
         self.assertEqual(expr.details.get().qte, 40)
 
@@ -299,6 +306,8 @@ class ExpressionSurMarcheTests(TestCase):
                          {'designation': 'Hors marché', 'qte': '1'})
         self.assertFalse(expr.details.filter(designation='Hors marché').exists())
         self.saisir(expr, self.ramette, '5')
+        expr.soumettre_au_saf()
+        expr.valider_saf()
         expr.recevoir(date.today())
         with self.assertRaises(ValueError):
             expr.consolider_dans_marche(self.marche)
@@ -329,22 +338,27 @@ class ExpressionLibreTests(TestCase):
     def setUp(self):
         self.client.force_login(get_user_model().objects.create_user(username='service', password='x'))
 
-    def test_expression_vide_ni_recue_ni_consolidee(self):
+    def test_expression_vide_non_transmise(self):
         expr = ExpressionBesoin.objects.create(date_creation=date.today())
-        self.client.post(reverse('matieres:expression_recevoir', args=[expr.pk]))
+        self.client.post(reverse('matieres:expression_soumettre', args=[expr.pk]))
         expr.refresh_from_db()
         self.assertEqual(expr.statut, 'nouveau')
 
-    def test_circuit_libre_inchange(self):
+    def test_circuit_libre_complet(self):
         expr = ExpressionBesoin.objects.create(date_creation=date.today())
         self.client.post(reverse('matieres:htmx_expression_add_detail', args=[expr.pk]),
                          {'designation': 'Classeur', 'nomenclature': '22.02.001', 'qte': '12', 'prix_ttc': '1 500'})
+        self.client.post(reverse('matieres:expression_soumettre', args=[expr.pk]))
+        valider_par_le_saf(expr)
+        self.client.force_login(get_user_model().objects.create_superuser(username='cm', password='x'))
         self.client.post(reverse('matieres:expression_recevoir', args=[expr.pk]))
         marche = Marche.objects.create(num_marche='M-LIBRE', date_creation=date.today())
         self.client.post(reverse('matieres:expression_consolider', args=[expr.pk]), {'marche_id': marche.pk})
         expr.refresh_from_db()
         self.assertEqual(expr.statut, 'consolide')
         self.assertEqual(marche.details.get().qte, 12)
+        self.assertEqual(list(expr.historique.values_list('action', flat=True)),
+                         ['soumission', 'validation_saf', 'reception', 'consolidation'])
 
 
 class SuiviLivraisonsMarcheTests(TestCase):
@@ -479,7 +493,7 @@ class MarchePeriodTests(TestCase):
 
 class ExpressionWorkflowTests(TestCase):
     def setUp(self):
-        self.user = get_user_model().objects.create_user(username='expressions', password='secret123')
+        self.user = get_user_model().objects.create_superuser(username='expressions', password='secret123')
 
     def test_consolidation_rejects_expression_without_lines(self):
         self.client.force_login(self.user)
@@ -494,3 +508,103 @@ class ExpressionWorkflowTests(TestCase):
         expression.refresh_from_db()
         self.assertEqual(expression.statut, 'recu')
         self.assertIsNone(expression.marche_id)
+
+
+class CircuitSafExpressionTests(TestCase):
+    """Expression de besoin : service demandeur → S.A.F. (valide / rejette) → comptabilité des matières."""
+
+    def setUp(self):
+        User = get_user_model()
+        self.service = Service.objects.create(code='DSI', libelle='Informatique')
+        self.autre_service = Service.objects.create(code='RH', libelle='Ressources humaines')
+
+        def compte(nom, role, service=None):
+            user = User.objects.create_user(username=nom, password='x')
+            ProfilUtilisateur.objects.create(user=user, role=role, service=service)
+            return user
+
+        self.demandeur = compte('dem', ProfilUtilisateur.ROLE_DEMANDEUR, self.service)
+        self.saf = compte('saf', ProfilUtilisateur.ROLE_SAF)
+        self.comptable = compte('cm', ProfilUtilisateur.ROLE_COMPTABLE)
+        self.expr = ExpressionBesoin.objects.create(date_creation=date.today(), demandeur_service=self.service)
+        DetailExpressionBesoin.objects.create(expression=self.expr, designation='Classeur',
+                                              nomenclature='22.02.001', qte=12)
+
+    def agir(self, user, url_name, **data):
+        self.client.force_login(user)
+        self.client.post(reverse('matieres:' + url_name, args=[self.expr.pk]), data)
+        self.expr.refresh_from_db()
+
+    def test_circuit_complet_trace_qui_fait_quoi(self):
+        self.agir(self.demandeur, 'expression_soumettre')
+        self.assertEqual(self.expr.statut, 'soumis')
+        self.agir(self.saf, 'expression_valider_saf', commentaire='Crédits disponibles')
+        self.assertEqual(self.expr.statut, 'valide_saf')
+        self.agir(self.comptable, 'expression_recevoir')
+        self.assertEqual(self.expr.statut, 'recu')
+        self.assertTrue(self.expr.recu_par_comptable)
+        self.assertEqual(
+            list(self.expr.historique.values_list('action', 'utilisateur__username', 'commentaire')),
+            [('soumission', 'dem', ''), ('validation_saf', 'saf', 'Crédits disponibles'), ('reception', 'cm', '')])
+
+    def test_rejet_exige_un_motif_et_renvoie_au_service(self):
+        self.agir(self.demandeur, 'expression_soumettre')
+        self.agir(self.saf, 'expression_rejeter_saf', motif='   ')
+        self.assertEqual(self.expr.statut, 'soumis')                  # sans motif : refusé
+        self.agir(self.saf, 'expression_rejeter_saf', motif='Quantité à justifier')
+        self.assertEqual((self.expr.statut, self.expr.motif_rejet), ('rejete', 'Quantité à justifier'))
+        self.assertTrue(self.expr.modifiable)
+
+        # Le service corrige puis retransmet : le motif est effacé, la retransmission tracée
+        self.client.force_login(self.demandeur)
+        ligne = self.expr.details.get()
+        self.client.post(reverse('matieres:htmx_expression_delete_detail', args=[ligne.pk]))
+        self.client.post(reverse('matieres:htmx_expression_add_detail', args=[self.expr.pk]),
+                         {'designation': 'Classeur', 'nomenclature': '22.02.001', 'qte': '6'})
+        self.agir(self.demandeur, 'expression_soumettre')
+        self.assertEqual((self.expr.statut, self.expr.motif_rejet), ('soumis', ''))
+        self.assertEqual(self.expr.details.get().qte, 6)
+        self.assertEqual(self.expr.historique.last().action, 'retransmission')
+
+    def test_chaque_etape_reservee_a_son_role(self):
+        self.agir(self.saf, 'expression_soumettre')                   # le S.A.F. ne transmet pas
+        self.assertEqual(self.expr.statut, 'nouveau')
+        self.agir(self.demandeur, 'expression_soumettre')
+        self.agir(self.demandeur, 'expression_valider_saf')           # le service ne se valide pas
+        self.agir(self.comptable, 'expression_valider_saf')
+        self.assertEqual(self.expr.statut, 'soumis')
+        self.agir(self.comptable, 'expression_recevoir')              # pas de réception avant le S.A.F.
+        self.assertEqual(self.expr.statut, 'soumis')
+        self.agir(self.saf, 'expression_valider_saf')
+        self.agir(self.saf, 'expression_recevoir')                    # la réception est comptable
+        self.assertEqual(self.expr.statut, 'valide_saf')
+
+    def test_seul_le_service_demandeur_modifie_les_lignes(self):
+        for intrus in (self.saf, self.comptable):
+            self.client.force_login(intrus)
+            self.client.post(reverse('matieres:htmx_expression_add_detail', args=[self.expr.pk]),
+                             {'designation': 'Intrus', 'nomenclature': '22.02.009', 'qte': '1'})
+        self.assertFalse(self.expr.details.filter(designation='Intrus').exists())
+
+    def test_service_demandeur_ne_voit_que_ses_expressions(self):
+        ExpressionBesoin.objects.create(date_creation=date.today(), demandeur_service=self.autre_service,
+                                        reference='EB-RH')
+        self.client.force_login(self.demandeur)
+        reponse = self.client.get(reverse('matieres:expressions_list') + '?statut=')
+        self.assertEqual(list(reponse.context['expressions']), [self.expr])
+
+    def test_onglet_et_badge_a_traiter_pour_le_saf(self):
+        self.agir(self.demandeur, 'expression_soumettre')
+        self.client.force_login(self.saf)
+        reponse = self.client.get(reverse('matieres:expressions_list'))
+        self.assertEqual(reponse.context['filtre'], 'a_traiter')       # le S.A.F. arrive sur sa file
+        self.assertEqual(list(reponse.context['expressions']), [self.expr])
+        entree = next(i for sec in reponse.context['nav_sections'] for i in sec['items']
+                      if i['label'] == 'Expressions de besoins')
+        self.assertEqual(entree['badge'], 1)
+
+    def test_frise_du_circuit(self):
+        self.assertEqual([e for _, e in self.expr.etapes], ['en_cours', 'a_venir', 'a_venir', 'a_venir'])
+        self.expr.soumettre_au_saf()
+        self.expr.rejeter_saf(motif='À revoir')
+        self.assertEqual([e for _, e in self.expr.etapes], ['fait', 'rejete', 'a_venir', 'a_venir'])

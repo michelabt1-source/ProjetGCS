@@ -1,17 +1,21 @@
 {% extends 'base.html' %}
 
-{% block content %}
-<div class="flex items-center justify-between mb-6">
-  <div>
-    <h2 class="text-xl font-bold text-slate-800">Produits / Matières</h2>
-    <p class="text-sm text-slate-500 mt-0.5">{{ total }} article{{ total|pluralize }} référencé{{ total|pluralize }}</p>
+{% block page_header %}
+<header class="page-header">
+  <div class="page-heading">
+    <h1 class="page-title">Produits & matières</h1>
+    <p class="page-subtitle">{{ total }} article{{ total|pluralize }} référencé{{ total|pluralize }}</p>
   </div>
-  <a href="{% url 'matieres:produit_create' %}" class="btn-primary">
-    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
-    Nouveau produit
-  </a>
-</div>
+  <div class="page-actions">
+    <a class="btn-primary" href="{% url 'matieres:produit_create' %}">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+      Nouveau produit
+    </a>
+  </div>
+</header>
+{% endblock %}
 
+{% block content %}
 <!-- Filtres -->
 <div class="card mb-6">
   <form method="get" class="flex gap-3">

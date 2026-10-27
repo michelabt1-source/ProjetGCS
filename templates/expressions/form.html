@@ -1,5 +1,13 @@
 {% extends 'base.html' %}
 {% load static %}
+{% block page_header %}
+<header class="page-header">
+  <div class="page-heading">
+    <h1 class="page-title">Nouvelle expression de besoin</h1>
+  </div>
+</header>
+{% endblock %}
+
 {% block content %}
 
 <link rel="stylesheet" href="{% static 'css/bon-page.css' %}">
@@ -16,13 +24,7 @@
   @media (max-width: 640px) { .eb-modes { grid-template-columns: 1fr; } }
 </style>
 
-<div class="max-w-3xl mx-auto">
-  <div class="flex items-center gap-2 mb-4 text-sm text-slate-400">
-    <a href="{% url 'matieres:expressions_list' %}" class="hover:text-indigo-600 transition-colors">Expressions de besoins</a>
-    <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
-    <span class="text-slate-600 font-semibold">Nouvelle expression</span>
-  </div>
-
+<div class="max-w-3xl">
 
   <div class="section-card">
     <div class="section-header"><div class="dot"></div>Nouvelle expression de besoin</div>
@@ -39,10 +41,15 @@
         </div>
         <div>
           <label class="f-label" for="n-service">Service demandeur</label>
-          <select id="n-service" name="service" class="f-select">
+          <select id="n-service" name="service" class="f-select" {% if service_impose %}disabled{% endif %}>
+            {% if service_impose %}
+            <option selected>{{ service_impose }}</option>
+            {% else %}
             <option value="">—</option>
             {% for s in services %}<option value="{{ s.pk }}" {% if saisie.service == s.pk|stringformat:'s' %}selected{% endif %}>{{ s }}</option>{% endfor %}
+            {% endif %}
           </select>
+          {% if service_impose %}<div class="mt-1 text-[11px] text-slate-400">Votre service, défini dans votre profil.</div>{% endif %}
         </div>
         <div>
           <label class="f-label" for="n-bureau">Bureau demandeur</label>

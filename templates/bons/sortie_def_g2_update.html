@@ -371,16 +371,6 @@ body { background: var(--clr-bg); }
 </div>
 
 <!-- Messages -->
-{% if messages %}
-<div class="msg-bar" role="alert" aria-live="polite">
-  {% for msg in messages %}
-  <div class="msg {% if msg.tags == 'error' %}msg-error{% elif msg.tags == 'success' %}msg-success{% else %}msg-warning{% endif %}">
-    {{ msg }}
-  </div>
-  {% endfor %}
-</div>
-{% endif %}
-
 <!-- ══════════════════════ WORKSPACE ══════════════════════ -->
 <div class="bon-workspace" style="--bs-accent:#dc2626;--bs-accent-dk:#991b1b;--bs-accent-soft:#fef2f2">
 

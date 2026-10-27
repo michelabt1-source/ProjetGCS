@@ -1,12 +1,14 @@
 {% extends 'base.html' %}
-{% block content %}
-<div class="p-6 max-w-2xl mx-auto">
-
-  <div class="flex items-center gap-2 mb-5 text-sm text-slate-400">
-    <a href="{% url 'matieres:marches_list' %}" class="hover:text-indigo-600 transition-colors">Marchés</a>
-    <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
-    <span class="text-slate-600 font-semibold">Nouveau marché</span>
+{% block page_header %}
+<header class="page-header">
+  <div class="page-heading">
+    <h1 class="page-title">Nouveau marché</h1>
   </div>
+</header>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl">
 
   <div class="bg-white border border-slate-200 rounded-2xl shadow-sm p-6">
     <form method="post" action="{% url 'matieres:marche_create' %}">

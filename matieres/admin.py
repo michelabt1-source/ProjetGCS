@@ -12,7 +12,7 @@ from .models import (
     BonSortieDefinitive, DetailBonSortieDefinitive,
     BonSortieDefinitiveG1, DetailBonSortieDefinitiveG1,
     BalancePeriodique, Journal,
-    Marche, DetailMarche, ExpressionBesoin, DetailExpressionBesoin,
+    Marche, DetailMarche, ExpressionBesoin, DetailExpressionBesoin, HistoriqueExpression,
     BonCommandeService, DetailBonCommandeService,
 )
 
@@ -64,6 +64,17 @@ class DetailMarcheInline(admin.TabularInline):
 class DetailExpressionBesoinInline(admin.TabularInline):
     model = DetailExpressionBesoin
     extra = 1
+
+
+class HistoriqueExpressionInline(admin.TabularInline):
+    """Trace du circuit : en lecture seule, elle ne se modifie pas à la main."""
+    model = HistoriqueExpression
+    extra = 0
+    can_delete = False
+    readonly_fields = ['date', 'action', 'utilisateur', 'commentaire']
+
+    def has_add_permission(self, request, obj=None):
+        return False
 
 
 class DetailBonCommandeServiceInline(admin.TabularInline):
@@ -252,7 +263,7 @@ class MarcheAdmin(admin.ModelAdmin):
 class ExpressionBesoinAdmin(admin.ModelAdmin):
     list_display = ['id', 'reference', 'date_creation', 'demandeur_service', 'recu_par_comptable', 'statut']
     list_filter = ['statut', 'recu_par_comptable', 'demandeur_service']
-    inlines = [DetailExpressionBesoinInline]
+    inlines = [DetailExpressionBesoinInline, HistoriqueExpressionInline]
 
 
 @admin.register(BonCommandeService)

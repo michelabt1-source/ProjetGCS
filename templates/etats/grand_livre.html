@@ -1,12 +1,14 @@
 {% extends "base.html" %}
-{% block content %}
-<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
-  <div>
-    <h1 style="font-size:22px;font-weight:700;color:#0f172a">Grand Livre</h1>
-    <p style="color:#64748b;font-size:13px;margin-top:4px">{{ total }} opération(s)</p>
+{% block page_header %}
+<header class="page-header">
+  <div class="page-heading">
+    <h1 class="page-title">Grand livre</h1>
+    <p class="page-subtitle">{{ total }} opération(s)</p>
   </div>
-</div>
+</header>
+{% endblock %}
 
+{% block content %}
 <div class="card" style="margin-bottom:16px;padding:14px 20px">
   <form method="get" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
     <input name="q" value="{{ query }}" placeholder="Désignation, nomenclature, bénéficiaire…"

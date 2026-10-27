@@ -599,11 +599,18 @@ class DetailMarche(models.Model):
 
 
 class ExpressionBesoin(models.Model):
+    # Circuit : le service rédige (nouveau) et transmet au S.A.F. (soumis) ; le S.A.F. valide
+    # (valide_saf) ou rejette (rejete : retour au service, qui corrige et retransmet) ; la
+    # comptabilité des matières réceptionne (recu) puis consolide dans un marché (consolide).
     STATUT_CHOICES = [
-        ('nouveau', 'Nouveau'),
-        ('recu', 'Reçu par comptable'),
+        ('nouveau', 'Brouillon'),
+        ('soumis', 'Transmise au S.A.F.'),
+        ('rejete', 'Rejetée par le S.A.F.'),
+        ('valide_saf', 'Validée par le S.A.F.'),
+        ('recu', 'Reçue par la comptabilité'),
         ('consolide', 'Consolidée dans un marché'),
     ]
+    STATUTS_MODIFIABLES = ('nouveau', 'rejete')
     MODE_CHOICES = [
         ('libre', 'Libre'),            # articles saisis librement, consolidés ensuite dans un marché
         ('sur_marche', 'Sur marché'),  # le service puise dans les articles d'un marché en cours
@@ -625,6 +632,7 @@ class ExpressionBesoin(models.Model):
         'Marche', on_delete=models.SET_NULL, null=True, blank=True,
         related_name='expressions_besoin', verbose_name="Marché lié"
     )
+    motif_rejet = models.TextField(blank=True, verbose_name="Motif du rejet (S.A.F.)")
 
     class Meta:
         verbose_name = "Expression de besoin"
@@ -643,8 +651,54 @@ class ExpressionBesoin(models.Model):
 
     @property
     def modifiable(self):
-        """Une expression n'est modifiable que tant que le comptable ne l'a pas reçue."""
-        return self.statut == 'nouveau'
+        """Le service ne modifie son expression qu'en brouillon, ou après un rejet du S.A.F."""
+        return self.statut in self.STATUTS_MODIFIABLES
+
+    def _journaliser(self, action, utilisateur=None, commentaire=''):
+        HistoriqueExpression.objects.create(
+            expression=self, action=action, commentaire=commentaire,
+            utilisateur=utilisateur if utilisateur is not None and utilisateur.is_authenticated else None,
+        )
+
+    def _verifier_statut(self, *attendus):
+        if self.statut not in attendus:
+            raise ValueError(f"Action impossible : l'expression est « {self.get_statut_display().lower()} ».")
+
+    @transaction.atomic
+    def soumettre_au_saf(self, utilisateur=None):
+        """Le service transmet son expression au S.A.F. : elle est figée jusqu'à la décision.
+        Sur un marché, les articles laissés à 0 ne sont pas retenus."""
+        self._verifier_statut(*self.STATUTS_MODIFIABLES)
+        if not self.details.filter(qte__gt=0).exists():
+            raise ValueError("Aucun article demandé : saisissez au moins une quantité avant la transmission.")
+        if self.sur_marche:
+            self.details.filter(qte=0).delete()
+        retransmission = self.statut == 'rejete'
+        self.statut = 'soumis'
+        self.motif_rejet = ''
+        self.save(update_fields=['statut', 'motif_rejet'])
+        self._journaliser('retransmission' if retransmission else 'soumission', utilisateur)
+
+    @transaction.atomic
+    def valider_saf(self, utilisateur=None, commentaire=''):
+        """Le S.A.F. valide : l'expression part à la comptabilité des matières.
+        Point d'extension du module Suivi budgétaire : contrôle des crédits disponibles."""
+        self._verifier_statut('soumis')
+        self.statut = 'valide_saf'
+        self.save(update_fields=['statut'])
+        self._journaliser('validation_saf', utilisateur, (commentaire or '').strip())
+
+    @transaction.atomic
+    def rejeter_saf(self, utilisateur=None, motif=''):
+        """Le S.A.F. rejette : l'expression revient au service, qui la corrige et la retransmet."""
+        self._verifier_statut('soumis')
+        motif = (motif or '').strip()
+        if not motif:
+            raise ValueError("Indiquez le motif du rejet : il sera communiqué au service demandeur.")
+        self.statut = 'rejete'
+        self.motif_rejet = motif
+        self.save(update_fields=['statut', 'motif_rejet'])
+        self._journaliser('rejet_saf', utilisateur, motif)
 
     def reprendre_articles_marche(self):
         """Ajoute à l'expression, à quantité 0, chaque article du marché associé qu'elle
@@ -666,21 +720,40 @@ class ExpressionBesoin(models.Model):
         return len(lignes)
 
     @transaction.atomic
-    def recevoir(self, le_jour):
-        """Réception par le comptable des matières : l'expression est figée. Les articles
-        d'un marché laissés à 0 ne sont pas retenus."""
+    def recevoir(self, le_jour, utilisateur=None):
+        """Réception par la comptabilité des matières d'une expression validée par le S.A.F."""
         if self.recu_par_comptable:
             return
-        if self.sur_marche:
-            self.details.filter(qte=0).delete()
-        if not self.details.filter(qte__gt=0).exists():
-            raise ValueError("Aucun article demandé : saisissez au moins une quantité avant la transmission.")
+        if self.statut != 'valide_saf':
+            raise ValueError("L'expression doit d'abord être validée par le S.A.F. avant sa réception.")
         self.recu_par_comptable = True
         self.date_reception_comptable = le_jour
         self.statut = 'recu'
         self.save(update_fields=['recu_par_comptable', 'date_reception_comptable', 'statut'])
+        self._journaliser('reception', utilisateur)
 
-    def consolider_dans_marche(self, marche):
+    # Frise de progression : chaque étape est l'action attendue à ce stade du circuit.
+    ETAPES = ['Rédaction', 'Validation S.A.F.', 'Réception comptabilité', 'Consolidation marché']
+    ETAPE_COURANTE = {'nouveau': 0, 'rejete': 1, 'soumis': 1, 'valide_saf': 2, 'recu': 3, 'consolide': 4}
+
+    @property
+    def etapes(self):
+        """Liste de (libellé, état) avec état ∈ fait / en_cours / rejete / a_venir.
+        Une expression « sur marché » s'arrête à la réception (pas de consolidation)."""
+        etapes = self.ETAPES[:3] if self.sur_marche else self.ETAPES
+        courante = self.ETAPE_COURANTE.get(self.statut, 0)
+        resultat = []
+        for i, libelle in enumerate(etapes):
+            if i < courante:
+                etat = 'fait'
+            elif i == courante:
+                etat = 'rejete' if self.statut == 'rejete' else 'en_cours'
+            else:
+                etat = 'a_venir'
+            resultat.append((libelle, etat))
+        return resultat
+
+    def consolider_dans_marche(self, marche, utilisateur=None):
         """Consolide cette expression de besoin (reçue par le comptable) dans un marché
         en cours : chaque ligne exprimée devient une ligne du marché, appel d'offres
         et contrat fournisseur restant à la charge du marché lui-même. Idempotent."""
@@ -701,6 +774,7 @@ class ExpressionBesoin(models.Model):
             self.marche = marche
             self.statut = 'consolide'
             self.save(update_fields=['marche', 'statut'])
+            self._journaliser('consolidation', utilisateur, f"Marché {marche.num_marche}")
         return marche
 
     def _copier_lignes_dans(self, marche):
@@ -719,6 +793,32 @@ class ExpressionBesoin(models.Model):
                 observation=d.observation,
                 expression_source=d,
             )
+
+
+class HistoriqueExpression(models.Model):
+    """Trace horodatée de chaque étape du circuit d'une expression de besoin."""
+    ACTION_CHOICES = [
+        ('soumission', 'Transmise au S.A.F.'),
+        ('retransmission', 'Corrigée et retransmise au S.A.F.'),
+        ('validation_saf', 'Validée par le S.A.F.'),
+        ('rejet_saf', 'Rejetée par le S.A.F.'),
+        ('reception', 'Réceptionnée par la comptabilité'),
+        ('consolidation', 'Consolidée dans un marché'),
+    ]
+    expression = models.ForeignKey(ExpressionBesoin, on_delete=models.CASCADE, related_name='historique')
+    action = models.CharField(max_length=20, choices=ACTION_CHOICES, verbose_name="Action")
+    utilisateur = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True,
+                                    related_name='+', verbose_name="Par")
+    date = models.DateTimeField(auto_now_add=True, verbose_name="Le")
+    commentaire = models.TextField(blank=True, verbose_name="Commentaire")
+
+    class Meta:
+        verbose_name = "Historique d'expression de besoin"
+        verbose_name_plural = "Historiques d'expressions de besoin"
+        ordering = ['date', 'pk']
+
+    def __str__(self):
+        return f"{self.expression} — {self.get_action_display()}"
 
 
 class DetailExpressionBesoin(models.Model):

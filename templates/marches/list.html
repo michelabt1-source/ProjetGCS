@@ -1,21 +1,24 @@
 {% extends 'base.html' %}
 {% load humanize %}
-{% block content %}
-<div class="p-6 max-w-6xl mx-auto">
-
-  <div class="flex items-center justify-between mb-5">
-    <div>
-      <h1 class="text-2xl font-bold text-slate-800">Gestion des marchés</h1>
-      <p class="text-sm text-slate-500 mt-0.5">Contrats annuels signés avec les fournisseurs suite aux appels d'offres</p>
-    </div>
-    <a href="{% url 'matieres:marche_create' %}"
-       class="inline-flex items-center gap-2 px-4 py-2.5 bg-indigo-600 text-white rounded-xl text-sm font-semibold shadow-sm hover:bg-indigo-700 transition-colors">
+{% block page_header %}
+<header class="page-header">
+  <div class="page-heading">
+    <h1 class="page-title">Gestion des marchés</h1>
+    <p class="page-subtitle">Contrats annuels signés avec les fournisseurs suite aux appels d'offres</p>
+  </div>
+  <div class="page-actions">
+    <a class="btn-primary" href="{% url 'matieres:marche_create' %}">
       <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5">
         <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
       </svg>
       Nouveau marché
     </a>
   </div>
+</header>
+{% endblock %}
+
+{% block content %}
+<div>
 
   <div class="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
     <div class="overflow-x-auto">

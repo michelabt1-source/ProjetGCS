@@ -1,4 +1,18 @@
 {% extends 'base.html' %}
+{% block page_header %}
+<header class="page-header">
+  <div class="page-heading">
+    <h1 class="page-title">Services</h1>
+  </div>
+  <div class="page-actions">
+    <button class="btn-primary" onclick="openModal('create')">
+      <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+      Nouveau service
+    </button>
+  </div>
+</header>
+{% endblock %}
+
 {% block content %}
 <style>
 :root {
@@ -48,19 +62,6 @@
 .btn-submit { width:100%; padding:10px; background:var(--c-primary); color:#fff; border:none; border-radius:9px; font-size:13.5px; font-weight:700; cursor:pointer; font-family:inherit; margin-top:8px; transition:background .15s; }
 .btn-submit:hover { background:#4338ca; }
 </style>
-
-<div class="ref-header">
-  <div class="ref-title">
-    <svg width="22" height="22" fill="none" stroke="#4f46e5" viewBox="0 0 24 24" stroke-width="2">
-      <path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
-    </svg>
-    Services
-  </div>
-  <button class="btn-add" onclick="openModal('create')">
-    <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
-    Nouveau service
-  </button>
-</div>
 
 <div class="ref-card">
   <table class="ref-table">

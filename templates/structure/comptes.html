@@ -1,12 +1,14 @@
 {% extends "base.html" %}
-{% block content %}
-<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px">
-  <div>
-    <h1 style="font-size:22px;font-weight:700;color:#0f172a">Comptes Principaux</h1>
-    <p style="color:#64748b;font-size:13px;margin-top:4px">{{ total }} compte(s) — référentiel comptable</p>
+{% block page_header %}
+<header class="page-header">
+  <div class="page-heading">
+    <h1 class="page-title">Comptes principaux</h1>
+    <p class="page-subtitle">{{ total }} compte(s) — référentiel comptable</p>
   </div>
-</div>
+</header>
+{% endblock %}
 
+{% block content %}
 <div class="card" style="margin-bottom:20px;padding:14px 20px">
   <form method="get" style="display:flex;gap:12px;align-items:center">
     <input name="q" value="{{ query }}" placeholder="Rechercher famille ou numéro…"
