@@ -197,7 +197,7 @@ kbd, .kbd {
   display: flex; align-items: center; gap: 6px;
   padding: 6px 10px;
   border: 0; background: transparent; cursor: pointer;
-  font: 700 10.5px/1 var(--font-body); letter-spacing: .07em; text-transform: uppercase;
+  font: 700 10.5px/1.4 var(--font-body); letter-spacing: .07em; text-transform: uppercase;
   color: var(--text-3); text-align: left; border-radius: 6px;
 }
 .nav-group-toggle:hover { color: var(--text-2); }

@@ -53,6 +53,21 @@ def role_required(*roles):
 
 # ─────────────────────────── DASHBOARD ───────────────────────────
 
+def _type_operation_court(type_entree):
+    """Libellé court et teinte d'un type d'opération du journal (pastilles du tableau de bord)."""
+    t = (type_entree or '').lower()
+    for cle, libelle, tone in (
+        ('retour sortie', 'Retour S.P.', 'info'), ('retour', 'Retour affect.', 'info'),
+        ('provisoire', 'Sortie prov.', 'warning'), ('définitive', 'Sortie déf.', 'danger'),
+        ('reforme', 'Réforme', 'danger'), ('réforme', 'Réforme', 'danger'),
+        ('mutation', 'Mutation', 'neutral'), ('affectation', 'Affectation', 'accent'),
+        ('entrée', 'Entrée', 'success'), ('balance', 'Balance', 'success'),
+    ):
+        if cle in t:
+            return libelle, tone
+    return (type_entree or '—')[:14], 'neutral'
+
+
 @login_required
 def dashboard(request):
     aujourd_hui = date.today()
@@ -76,7 +91,9 @@ def dashboard(request):
     bons_sortie_def_attente = BonSortieDefinitive.objects.filter(valide=False).count()
     bons_affectation_attente = BonAffectation.objects.filter(valide=False).count()
 
-    dernieres_operations = Journal.objects.order_by('-date_creation', '-id')[:10]
+    dernieres_operations = list(Journal.objects.order_by('-date_creation', '-id')[:8])
+    for op in dernieres_operations:
+        op.type_court, op.tone = _type_operation_court(op.type_entree)
     stock_faible = StockDepot.objects.filter(qte_stock__lt=5).order_by('qte_stock')[:8]
 
     # Graphique 6 derniers mois
@@ -97,11 +114,31 @@ def dashboard(request):
         data_entrees.append(BonEntree.objects.filter(date_creation__range=[debut, fin]).count())
         data_sorties.append(BonSortieDefinitive.objects.filter(date_creation__range=[debut, fin]).count())
 
-    # Stock par dépôt
-    stock_par_depot = []
-    for depot in Depot.objects.all():
-        total = StockDepot.objects.filter(depot=depot).aggregate(t=Sum('qte_stock'))['t'] or 0
-        stock_par_depot.append({'depot': depot.code, 'total': total})
+    # Stock par dépôt (du plus fourni au moins fourni, pour une lecture en barres)
+    stock_par_depot = sorted(
+        ({'depot': d.libelle or d.code, 'code': d.code,
+          'total': StockDepot.objects.filter(depot=d).aggregate(t=Sum('qte_stock'))['t'] or 0}
+         for d in Depot.objects.all()),
+        key=lambda r: -r['total'])
+
+    # Valeur du stock : existant × dernier prix connu, comme la balance générale des comptes
+    valeur_stock_fcfa = sum(b['montant_existant'] for b in _calculer_balance_periodique(None, None))
+
+    # Circuit des expressions de besoin (pipeline du tableau de bord)
+    exprs = _expressions_visibles(request.user)
+    par_statut = {r['statut']: r['n'] for r in exprs.order_by().values('statut').annotate(n=Count('pk'))}
+    a_traiter = expressions_a_traiter(request.user)
+    circuit = [
+        {'cle': 'nouveau', 'libelle': 'En rédaction', 'acteur': 'Services'},
+        {'cle': 'soumis', 'libelle': 'Au S.A.F.', 'acteur': 'Validation'},
+        {'cle': 'valide_saf', 'libelle': 'Validées', 'acteur': 'Vers la comptabilité'},
+        {'cle': 'recu', 'libelle': 'Réceptionnées', 'acteur': 'Comptabilité'},
+        {'cle': 'consolide', 'libelle': 'Consolidées', 'acteur': 'Marchés'},
+    ]
+    for etape in circuit:
+        etape['n'] = par_statut.get(etape['cle'], 0)
+        etape['a_traiter'] = etape['cle'] in a_traiter
+    nb_en_circuit = sum(par_statut.get(k, 0) for k in ('nouveau', 'soumis', 'rejete', 'valide_saf'))
 
     societe = SocieteGCS.objects.first()
 
@@ -125,6 +162,12 @@ def dashboard(request):
         'data_entrees': json.dumps(data_entrees),
         'data_sorties': json.dumps(data_sorties),
         'stock_par_depot': json.dumps(stock_par_depot),
+        'valeur_stock_fcfa': valeur_stock_fcfa,
+        'nb_bons_attente': bons_entree_attente + bons_affectation_attente + bons_sortie_def_attente,
+        'circuit': circuit,
+        'nb_rejetees': par_statut.get('rejete', 0),
+        'nb_en_circuit': nb_en_circuit,
+        'nb_expr_a_traiter': sum(par_statut.get(k, 0) for k in a_traiter),
         'societe': societe,
         'aujourd_hui': aujourd_hui,
     }
